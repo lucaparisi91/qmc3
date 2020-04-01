@@ -9,7 +9,7 @@ add_subdirectory(${PROJECT_BINARY_DIR}/../external/eigen)
 
 find_package (Eigen3 3.3 REQUIRED NO_MODULE)
 
-set(SOURCES  src/geometry.cpp src/wavefunction/jastrows/jastrowSquareWell.cpp src/wavefunction/wavefunction.cpp src/wavefunction/productWavefunction.cpp)
+set(SOURCES  src/geometry.cpp src/wavefunction/jastrows/jastrowSquareWell.cpp src/wavefunction/wavefunction.cpp src/wavefunction/productWavefunction.cpp src/tableDistances.cpp src/potential.cpp)
 
 
 add_executable(main src/main.cpp ${SOURCES})

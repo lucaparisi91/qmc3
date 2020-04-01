@@ -20,6 +20,28 @@ void productWavefunction::evaluateDerivatives(const productWavefunction::particl
 
 }
 
+
+void productWavefunction::evaluateDerivatives(const productWavefunction::particles_t & states, productWavefunction::grads_t & grads, real_t & waveValue,real_t & lap,const tableDistances & tab)
+{
+	waveValue=0;lap=0;
+
+	real_t lapPartial,waveValuePartial;
+	for (int i=0;i< size();i++)
+	 {
+	 	grads[i].setConstant(0.);
+	 }
+	
+	for (int i=0;i< size();i++)
+		{
+			_logWaves[i]->evaluateDerivatives(states,grads,waveValuePartial,lapPartial,tab);
+			waveValue+=waveValuePartial;
+			lap+=lapPartial;
+		}
+
+}
+
+
+
 real_t productWavefunction::operator()(const productWavefunction::particles_t &states)
 {
 	real_t waveValue=0;

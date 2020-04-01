@@ -4,6 +4,54 @@
 		"selected_items":
 		[
 			[
+				"wavef",
+				"wavefunctionComponentCommands"
+			],
+			[
+				"table",
+				"tableDistances"
+			],
+			[
+				"dist",
+				"distances"
+			],
+			[
+				"distances",
+				"distances_t"
+			],
+			[
+				"states",
+				"states_t"
+			],
+			[
+				"indic",
+				"indices2b\tint indices2b"
+			],
+			[
+				"indices",
+				"indices1b\tstd::unordered_map<int, int> indices1b"
+			],
+			[
+				"unor",
+				"unordered_map\t/usr/include/c++/9"
+			],
+			[
+				"mess",
+				"message_"
+			],
+			[
+				"waveV",
+				"waveValuePartial"
+			],
+			[
+				"wavefunction",
+				"wavefunctionComponentCommands\twavefunctionComponentCommands"
+			],
+			[
+				"_single",
+				"_singleSetWavefunctions\tint _singleSetWavefunctions"
+			],
+			[
 				"rea",
 				"real_t"
 			],
@@ -232,37 +280,10 @@
 	"buffers":
 	[
 		{
-			"file": "CMakeLists.txt",
+			"file": "src/tableDistances.h",
 			"settings":
 			{
-				"buffer_size": 1033,
-				"encoding": "UTF-8",
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "src/geometry.h",
-			"settings":
-			{
-				"buffer_size": 2009,
-				"encoding": "UTF-8",
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "src/wavefunction.h",
-			"settings":
-			{
-				"buffer_size": 2524,
-				"encoding": "UTF-8",
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "src/geometry.cpp",
-			"settings":
-			{
-				"buffer_size": 2052,
+				"buffer_size": 1046,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -271,34 +292,88 @@
 			"file": "src/main.cpp",
 			"settings":
 			{
-				"buffer_size": 528,
+				"buffer_size": 932,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
 		},
 		{
-			"file": "src/qmcExceptions.h",
+			"file": "src/potential.h",
 			"settings":
 			{
-				"buffer_size": 323,
+				"buffer_size": 1279,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
 		},
 		{
-			"file": "src/jastrow.h",
+			"file": "src/wavefunction/wavefunction.h",
 			"settings":
 			{
-				"buffer_size": 1493,
+				"buffer_size": 5556,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
 		},
 		{
-			"file": "src/tools.h",
+			"file": "src/traits.h",
 			"settings":
 			{
-				"buffer_size": 20,
+				"buffer_size": 381,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/geometry.h",
+			"settings":
+			{
+				"buffer_size": 2321,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "CMakeLists.txt",
+			"settings":
+			{
+				"buffer_size": 1248,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/wavefunction/wavefunction.cpp",
+			"settings":
+			{
+				"buffer_size": 887,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/tableDistances.cpp",
+			"settings":
+			{
+				"buffer_size": 1811,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/potential.cpp",
+			"settings":
+			{
+				"buffer_size": 417,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/harmonicPotential.h",
+			"settings":
+			{
+				"buffer_size": 287,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -5781,25 +5856,44 @@
 	"expanded_folders":
 	[
 		"/home/luca/source/qmc3",
-		"/home/luca/source/qmc3/src"
+		"/home/luca/source/qmc3/src",
+		"/home/luca/source/qmc3/src/wavefunction"
 	],
 	"file_history":
 	[
-		"/home/luca/source/qmc3/old/jastrow.h",
-		"/home/luca/source/qmc3/src/walkers.h",
-		"/home/luca/source/qmc3/qmc3.sublime-project",
-		"/home/luca/source/qmc3/tst/jastrow-test.cpp",
-		"/home/luca/source/qmc3/scartch.json",
-		"/home/luca/source/qmc3/src/wavefunction.h",
-		"/home/luca/source/qmc3/external/eigen/unsupported/Eigen/CXX11/src/Tensor/Tensor.h",
 		"/home/luca/source/qmc3/external/eigen/unsupported/Eigen/CXX11/src/Tensor/TensorEvaluator.h",
+		"/home/luca/source/qmc3/old/wavefunction/wavefunction.h",
+		"/home/luca/source/qmc3/src/potentials.h",
+		"/home/luca/source/qmc3/src/geometry.cpp",
+		"/home/luca/source/qmc3/tst/wavefunction-test.cpp",
+		"/home/luca/source/qmc3/src/wavefunction/tableDistances.h",
+		"/home/luca/source/qmc3/src/qmcExceptions.h",
+		"/home/luca/source/qmc3/tst/jastrow-test.cpp",
+		"/home/luca/source/qmc3/src/walkers.h",
+		"/home/luca/source/qmc3/src/wavefunction/accumulators.h",
+		"/home/luca/source/qmc3/src/wavefunction/productWavefunction.h",
+		"/home/luca/source/qmc3/src/geometry.h",
+		"/home/luca/source/qmc3/src/productWavefunction.cpp",
+		"/home/luca/source/qmc3/src/wavefunction.h",
+		"/home/luca/source/qmc3/src/main.cpp",
+		"/home/luca/source/qmc3/src/productWavefunction.h",
+		"/home/luca/source/qmc3/src/wavefunction/wavefunction.h",
+		"/home/luca/source/qmc3/src/wavefunction.cpp",
+		"/home/luca/source/qmc3/src/jastrow.h",
+		"/home/luca/source/qmc3/external/eigen/unsupported/Eigen/CXX11/src/Tensor/Tensor.h",
+		"/home/luca/source/qmc3/external/eigen/unsupported/Eigen/CXX11/src/Tensor/TensorAssign.h",
+		"/home/luca/source/qmc3/old/jastrow.h",
+		"/home/luca/source/qmc3/src/jastrowSquareWell.h",
+		"/home/luca/source/qmc3/src/jastrowSquareWell.cpp",
+		"/home/luca/source/qmc3/external/eigen/test/exceptions.cpp",
+		"/home/luca/source/qmc3/src/tools.h",
+		"/home/luca/source/qmc3/qmc3.sublime-project",
+		"/home/luca/source/qmc3/scartch.json",
 		"/home/luca/source/qmc3/external/eigen/unsupported/Eigen/CXX11/src/Tensor/TensorExecutor.h",
 		"/home/luca/source/qmc3/src/TensorEvaluator.h",
 		"/home/luca/source/qmc3/src/traits.h",
 		"/home/luca/source/qmc3/src/parameters.h",
 		"/home/luca/source/qmc3/external/eigen/Eigen/Geometry",
-		"/home/luca/source/qmc3/src/main.cpp",
-		"/home/luca/source/qmc3/src/jastrow.h",
 		"/home/luca/source/qmc3/tst/parameters-test.cpp",
 		"/home/luca/source/qmc3/tst/main.cpp",
 		"/home/luca/source/qmc3/main.cpp",
@@ -5849,7 +5943,7 @@
 	],
 	"find":
 	{
-		"height": 39.0
+		"height": 26.0
 	},
 	"find_in_files":
 	{
@@ -5863,13 +5957,17 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"wavefunction",
+			"double"
 		],
-		"highlight": true,
+		"highlight": false,
 		"in_selection": false,
 		"preserve_case": false,
 		"regex": false,
 		"replace_history":
 		[
+			"potential",
+			"real_t"
 		],
 		"reverse": false,
 		"show_context": true,
@@ -5880,29 +5978,90 @@
 	"groups":
 	[
 		{
-			"selected": 7,
+			"selected": 3,
 			"sheets":
 			[
 				{
 					"buffer": 0,
-					"file": "CMakeLists.txt",
+					"file": "src/tableDistances.h",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 1033,
+						"buffer_size": 1046,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								318,
-								318
+								506,
+								506
 							]
 						],
 						"settings":
 						{
-							"syntax": "Packages/CMake/CMake.sublime-syntax"
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"translate_tabs_to_spaces": false,
+							"word_wrap": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 6,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "src/main.cpp",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 932,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								928,
+								928
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"word_wrap": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 411.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 2,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "src/potential.h",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1279,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								101,
+								101
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"translate_tabs_to_spaces": false,
+							"word_wrap": true
 						},
 						"translation.x": 0.0,
 						"translation.y": 0.0,
@@ -5912,20 +6071,50 @@
 					"type": "text"
 				},
 				{
-					"buffer": 1,
-					"file": "src/geometry.h",
+					"buffer": 3,
+					"file": "src/wavefunction/wavefunction.h",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 2009,
+						"buffer_size": 5556,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								761,
-								761
+								4345,
+								4345
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"translate_tabs_to_spaces": false,
+							"word_wrap": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 1479.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				},
+				{
+					"buffer": 4,
+					"file": "src/traits.h",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 381,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								373,
+								373
 							]
 						],
 						"settings":
@@ -5933,33 +6122,97 @@
 							"syntax": "Packages/C++/C++.sublime-syntax"
 						},
 						"translation.x": 0.0,
-						"translation.y": 204.0,
+						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 2,
+					"stack_index": 4,
 					"type": "text"
 				},
 				{
-					"buffer": 2,
-					"file": "src/wavefunction.h",
+					"buffer": 5,
+					"file": "src/geometry.h",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 2524,
+						"buffer_size": 2321,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								179,
-								179
+								221,
+								221
 							]
 						],
 						"settings":
 						{
 							"syntax": "Packages/C++/C++.sublime-syntax",
 							"translate_tabs_to_spaces": false,
+							"word_wrap": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 5,
+					"type": "text"
+				}
+			]
+		},
+		{
+			"selected": 1,
+			"sheets":
+			[
+				{
+					"buffer": 6,
+					"file": "CMakeLists.txt",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1248,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								499,
+								499
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/CMake/CMake.sublime-syntax",
+							"word_wrap": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 9,
+					"type": "text"
+				},
+				{
+					"buffer": 7,
+					"file": "src/wavefunction/wavefunction.cpp",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 887,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								320,
+								320
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
 							"word_wrap": true
 						},
 						"translation.x": 0.0,
@@ -5970,105 +6223,49 @@
 					"type": "text"
 				},
 				{
-					"buffer": 3,
-					"file": "src/geometry.cpp",
+					"buffer": 8,
+					"file": "src/tableDistances.cpp",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 2052,
+						"buffer_size": 1811,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								105,
-								105
+								1631,
+								1631
 							]
 						],
 						"settings":
 						{
 							"syntax": "Packages/C++/C++.sublime-syntax",
-							"translate_tabs_to_spaces": false
+							"word_wrap": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 0.0,
+						"translation.y": 429.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 4,
-					"type": "text"
-				},
-				{
-					"buffer": 4,
-					"file": "src/main.cpp",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 528,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								526,
-								526
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/C++/C++.sublime-syntax"
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 5,
+					"stack_index": 11,
 					"type": "text"
 				},
 				{
 					"buffer": 5,
-					"file": "src/qmcExceptions.h",
+					"file": "src/geometry.h",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 323,
+						"buffer_size": 2321,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								214,
-								214
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/C++/C++.sublime-syntax"
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 6,
-					"type": "text"
-				},
-				{
-					"buffer": 6,
-					"file": "src/jastrow.h",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 1493,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								0,
-								0
+								165,
+								165
 							]
 						],
 						"settings":
@@ -6078,27 +6275,27 @@
 							"word_wrap": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 0.0,
+						"translation.y": 102.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 7,
+					"stack_index": 10,
 					"type": "text"
 				},
 				{
-					"buffer": 7,
-					"file": "src/tools.h",
+					"buffer": 4,
+					"file": "src/traits.h",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 20,
+						"buffer_size": 381,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								20,
-								20
+								100,
+								100
 							]
 						],
 						"settings":
@@ -6109,7 +6306,64 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 0,
+					"stack_index": 12,
+					"type": "text"
+				},
+				{
+					"buffer": 9,
+					"file": "src/potential.cpp",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 417,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								130,
+								130
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax"
+						},
+						"translation.x": 0.0,
+						"translation.y": 51.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 8,
+					"type": "text"
+				},
+				{
+					"buffer": 10,
+					"file": "src/harmonicPotential.h",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 287,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								230,
+								230
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"word_wrap": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 7,
 					"type": "text"
 				}
 			]
@@ -6121,7 +6375,7 @@
 	},
 	"input":
 	{
-		"height": 0.0
+		"height": 38.0
 	},
 	"layout":
 	{
@@ -6132,11 +6386,18 @@
 				0,
 				1,
 				1
+			],
+			[
+				1,
+				0,
+				2,
+				1
 			]
 		],
 		"cols":
 		[
 			0.0,
+			0.529333054876,
 			1.0
 		],
 		"rows":
@@ -6172,36 +6433,92 @@
 		"selected_items":
 		[
 			[
-				"jastrw",
-				"old/jastrow.h"
+				"geome",
+				"src/geometry.h"
+			],
+			[
+				"wavefunction.h",
+				"old/wavefunction/wavefunction.h"
+			],
+			[
+				"wavefunction/wavef",
+				"src/wavefunction/wavefunction.cpp"
+			],
+			[
+				"wavef",
+				"old/wavefunction/wavefunction.h"
+			],
+			[
+				"trai",
+				"src/traits.h"
+			],
+			[
+				"geometr",
+				"src/geometry.cpp"
+			],
+			[
+				"wavefunction-test",
+				"tst/wavefunction-test.cpp"
+			],
+			[
+				"main",
+				"src/main.cpp"
+			],
+			[
+				"geom",
+				"src/geometry.h"
+			],
+			[
+				"wavefunction/wav",
+				"old/wavefunction/wavefunction.h"
+			],
+			[
+				"walker",
+				"src/walkers.h"
+			],
+			[
+				"cmake",
+				"CMakeLists.txt"
 			],
 			[
 				"test",
 				"tst/jastrow-test.cpp"
 			],
 			[
-				"jastr",
-				"old/jastrow.h"
+				"produc",
+				"src/productWavefunction.cpp"
 			],
 			[
-				"wavef",
-				"src/wavefunction.h"
+				"produ",
+				"src/productWavefunction.h"
 			],
 			[
 				"wavefun",
 				"src/wavefunction.h"
 			],
 			[
+				"exce",
+				"src/qmcExceptions.h"
+			],
+			[
+				"jastrow",
+				"src/jastrow.h"
+			],
+			[
+				"jas",
+				"old/jastrow.h"
+			],
+			[
+				"jastrw",
+				"old/jastrow.h"
+			],
+			[
+				"jastr",
+				"old/jastrow.h"
+			],
+			[
 				"proej",
 				"qmc3.sublime-project"
-			],
-			[
-				"geom",
-				"external/eigen/Eigen/Geometry"
-			],
-			[
-				"main",
-				"src/main.cpp"
 			],
 			[
 				"para",
@@ -6244,16 +6561,8 @@
 				"evaluate.cpp"
 			],
 			[
-				"geometr",
-				"geometry.h"
-			],
-			[
 				"gp.cp",
 				"gp.cpp"
-			],
-			[
-				"geome",
-				"geometry.h"
 			],
 			[
 				"gp.b",
@@ -6322,10 +6631,6 @@
 			[
 				"ma",
 				"main.cpp"
-			],
-			[
-				"cmake",
-				"CMakeLists.txt"
 			],
 			[
 				"CMake",

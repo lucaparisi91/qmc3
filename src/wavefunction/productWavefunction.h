@@ -1,9 +1,13 @@
+#ifndef PRODUCT_WAVEFUNCTION_H
+#define PRODUCT_WAVEFUNCTION_H
+
 #include "wavefunction.h"
 
 class productWavefunction
 {
 	/*
-	Represent the sum of the logharitms of single wavefunctions.
+	Represent the sum of the logharitms of single wavefunctions. Does not own
+	the wavefunctions.
 	*/
 public:
 	using particles_t = wavefunction::states_t;
@@ -17,8 +21,12 @@ public:
 
 	void add(wavefunction & wave) {_logWaves.push_back(&wave);}
 
+	void evaluateDerivatives(const particles_t & states,grads_t & grads,real_t & waveValue ,real_t & lap, const tableDistances & tab);
+
 	size_t size () const { return _logWaves.size();}
 
 private:
 	std::vector<wavefunction*> _logWaves;
 };
+
+#endif

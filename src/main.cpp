@@ -4,6 +4,8 @@
 #include <unsupported/Eigen/CXX11/Tensor>
 #include "geometry.h"
 #include "wavefunction/productWavefunction.h"
+#include "tableDistances.h"
+#include "potential.h"
 
 using state_t = Eigen::Tensor<real_t, 2>;
 using states_t = std::vector<state_t>;
@@ -24,6 +26,7 @@ int main(int argc, char** argv)
 {
 	
 	int N=100;
+	int D=3;
  	state_t particleData(N , 3);
  	state_t gradient(N , 3);
 
@@ -32,20 +35,20 @@ int main(int argc, char** argv)
  	particleData.setRandom();
 
  	geometryPBC geo( 10., 10., 10.);
- 	auto diffs=norm(geo.differencesOneBody(particleData,{0,0,0}));
 
- 	auto J=gaussianJastrow(1.);
- 	jastrowOneBodyWavefunction<gaussianJastrow> wave(J,geo,0);
-
- 	productWavefunction waveT;
- 	waveT.add(wave);
-
- 	real_t e , ef , waveValue =0;
-
- 	states_t gradients {gradient};
  	states_t states {particleData};
- 	waveT.evaluateDerivatives( states, gradients, waveValue, e);
+ 	tableDistances tab(geo);
 
- 	std::cout << kinetic_energy(e, gradients) << std::endl;
+ 	tab.add(0);
+ 	tab.add(0,0);
+ 	tab.update(states);
+
+ 	harmonicPotential v(geo,1.,0);
+
+ 	harmonicPotential * p = &v;
+ 	
+ 	auto value =v(states);
+
+ 	std::cout << value << std::endl;
 
 }

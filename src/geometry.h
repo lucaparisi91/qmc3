@@ -12,8 +12,8 @@
 class geometry
 {
 public:
-	using particles_t = Eigen::Tensor<real_t, 2>;
-	using diff_t =  Eigen::Tensor<real_t, 2>;
+	using particles_t = ::state_t;
+	using diff_t =  ::difference_t;
 
 
 	virtual diff_t differencesTwoBody(const particles_t & data) const = 0; // distances between undistinguishible particles
@@ -24,6 +24,13 @@ public:
 	virtual diff_t differencesOneBody(const particles_t & data , const std::array<real_t,3> & x) const = 0;
 
 	virtual diff_t differencesOneBody(const particles_t & data, std::initializer_list<real_t> l) const;
+
+	virtual diff_t differences(const particles_t & data, std::initializer_list<real_t> l) const { return differencesOneBody(data,l);}
+
+	virtual diff_t differences(const particles_t & data) const { return differencesTwoBody(data);}
+
+	virtual diff_t differences(const particles_t & data1, const particles_t & data2 ) const { return differencesTwoBody(data1,data2);}
+
 };
 
 
