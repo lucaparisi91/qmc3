@@ -1,3 +1,7 @@
+#ifndef POTENTIAL_H
+#define POTENTIAL_H
+
+
 #include "traits.h"
 #include "qmcExceptions.h"
 
@@ -58,3 +62,6 @@ private:
 
 	real_t omega;
 };
+
+
+#endif

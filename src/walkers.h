@@ -1,5 +1,6 @@
 #include "traits.h"
-
+#include <memory>
+#include "tableDistances.h"
 
 /*
 A walker contains all the informiation
@@ -9,21 +10,32 @@ so on. Walkers own data memory
 */
 
 
-
-struct vmcWalker
+struct walker
 {
-	vmcWalker()
+	using grads_t = states_t;
+	walker(){};
+	const  auto & getStates() const {return _states;}
+	const auto & getTableDistances() const {return _tab;}
+	const auto & getLogWave() const {return _waveValue;}
+	const auto & getGradients() const {return _gradients;}
+
+	auto & getStates()  {return _states;}
+	auto & getTableDistances()  {return _tab;}
+	auto & getLogWave() {return _waveValue;}
+	auto & getGradients()  {return _gradients;}
+
 private:
     states_t _states; // a vector of particle data
 	tableDistances _tab;
-	real_t waveValue;
-}
+	real_t _waveValue; // value of the wavefunction
+	grads_t _gradients; // contains the gradient of the wavefunction
+};
 
 
-struct dmcWalker : vmcWalker
+struct dmcWalker : walker
 {
-	dmcWalker()
+	dmcWalker();
+	const auto & energy() {return _e;}
 private:
-	real_t _e; // stores the energy of the current configuration
-	grades_t _gradients; //  vector of the gradients of the wavefunction for each sets
+	real_t _e=1E+20; // stores the energy of the current configuration
 };

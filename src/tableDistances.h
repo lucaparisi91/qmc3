@@ -13,6 +13,11 @@ public:
 	using distances_t = Eigen::Tensor<real_t ,1>;
 	using state_t = Eigen::Tensor<real_t,2>;
 	using states_t = std::vector<state_t>;
+	
+	tableDistances(){};
+	const auto & getGeometry() const {return *geo;}
+
+	void setGeometry(const geometry_t & geo_)  {geo=&geo_;}
 	tableDistances(geometry_t & geo_) : geo(&geo_){}
 
 	void update(const states_t & states); // update all registered distances
@@ -31,7 +36,7 @@ private:
 	std::vector<distances_t> _distances; // scalar distances
 	std::map<std::pair<int,int> , int> indices2b;
 	std::unordered_map<int,int> indices1b;
-	geometry_t *  geo;
+	const geometry_t *  geo;
 };
 
 #endif

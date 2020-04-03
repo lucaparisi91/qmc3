@@ -32,12 +32,14 @@ public:
 	virtual real_t operator()(const states_t & state,tableDistances & tab ) = 0;
 
 
-	const auto & getGeometry() {return *geo;}
+	const auto & getGeometry() const {return *geo;}
 
 
 	virtual void evaluateDerivatives(const states_t & state, grads_t & gradient , real_t & wavevalue, real_t & laplacian)=0;
 
 	virtual void evaluateDerivatives(const states_t & state, grads_t & gradient , real_t & wavevalue, real_t & laplacian,const tableDistances & tab)=0;
+
+	virtual std::vector<int> sets() const = 0 ;
 
 
 
@@ -76,6 +78,8 @@ public:
 
 	const int & setA() const {return _setA;}
 
+	std::vector<int>  sets() const {return {_setA};}
+
 private:
 	int _setA;
 	distance_t distances;
@@ -91,7 +95,7 @@ public:
 
 	using wavefunction1b::operator();
 	using wavefunction1b::evaluateDerivatives;
-	
+
 
 	jastrowOneBodyWavefunction(jastrow_t J_,const geometry_t  &geo_, int setA=0) : J(J_),wavefunction1b::wavefunction1b(geo_,setA) {}
 
@@ -111,23 +115,28 @@ public:
 
 	virtual void evaluateDerivatives(const state_t & state, grad_t & gradient , real_t & waveValue, real_t & laplacian , const difference_t & differences,const distance_t & distances) override
 	{
-		real_t tmp,tmp1,tmp2;
+		real_t tmp=0,tmp1=0,tmp2=0;
 		
 		int N=state.dimensions()[0];
 		int D=state.dimensions()[1];
-
+		
 		laplacian=0;
 		for (int i=0;i<N;i++)
 			{
 				auto d = distances(i);
+
 				J.evaluateDerivatives(d,tmp,tmp1,tmp2);
+				
 				laplacian+=tmp2 + (D-1)*tmp1/d;
 		 		waveValue+=tmp;
 				for(int id=0;id<D;id++)
 					{
-	  					gradient(i,id)+=differences(i,d)*(tmp1/d);
+	  					gradient(i,id)+=differences(i,id)/d * tmp1;
 					}
+				
+
 			}
+		
       
 	}
 

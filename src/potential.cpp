@@ -1,7 +1,7 @@
 #include "potential.h"
 #include "geometry.h"
 #include "tableDistances.h"
-
+#include <iostream>
 potential::potential(const geometry_t & geo_ ) : geo(&geo_)
 {
 
@@ -31,7 +31,7 @@ harmonicPotential::harmonicPotential(const geometry_t & geo,real_t freq , int se
 real_t harmonicPotential::operator()(const state_t & state,const distance_t & dis)
 {
 		
-		
+	
 		int N=state.dimensions()[0];
 		real_t sum=0;
 

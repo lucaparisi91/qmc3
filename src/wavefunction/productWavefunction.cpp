@@ -6,8 +6,9 @@ void productWavefunction::evaluateDerivatives(const productWavefunction::particl
 	waveValue=0;lap=0;
 
 	real_t lapPartial,waveValuePartial;
-	for (int i=0;i< size();i++)
+	for (int i=0;i< grads.size();i++)
 	 {
+	 	grads[i].resize(states[i].dimensions());
 	 	grads[i].setConstant(0.);
 	 }
 	
@@ -26,10 +27,13 @@ void productWavefunction::evaluateDerivatives(const productWavefunction::particl
 	waveValue=0;lap=0;
 
 	real_t lapPartial,waveValuePartial;
-	for (int i=0;i< size();i++)
+	grads.resize(states.size());
+	for (int i=0;i< grads.size();i++)
 	 {
+	 	grads[i].resize(states[i].dimensions());
 	 	grads[i].setConstant(0.);
 	 }
+
 	
 	for (int i=0;i< size();i++)
 		{
@@ -39,8 +43,6 @@ void productWavefunction::evaluateDerivatives(const productWavefunction::particl
 		}
 
 }
-
-
 
 real_t productWavefunction::operator()(const productWavefunction::particles_t &states)
 {

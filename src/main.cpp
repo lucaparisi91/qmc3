@@ -6,25 +6,27 @@
 #include "wavefunction/productWavefunction.h"
 #include "tableDistances.h"
 #include "potential.h"
+#include "initializer.h"
+#include "walkers.h"
+#include "energy.h"
 
 using state_t = Eigen::Tensor<real_t, 2>;
 using states_t = std::vector<state_t>;
 
-real_t kinetic_energy(const real_t & lap, const states_t & grads  )
+
+real_t kineticEnergyGaussian(real_t alpha,distance_t dis)
 {
-	real_t e=0;
-	for (int i=0;i<grads.size();i++)
-	{
-		Eigen::Tensor<real_t,0> tmp = (grads[i] * grads[i]).sum();
-		e+=tmp();
-	}
-	return e + lap;
+
+	Eigen::Tensor<real_t,0> tmp=(dis * dis).sum();
+
+	//return -2.*alpha*alpha * tmp() +3*alpha*dis.dimensions()[0]; 
+
+	return -2.*alpha*alpha * tmp();
 }
 
 
 int main(int argc, char** argv)
 {
-	
 	int N=100;
 	int D=3;
  	state_t particleData(N , 3);
@@ -38,17 +40,23 @@ int main(int argc, char** argv)
 
  	states_t states {particleData};
  	tableDistances tab(geo);
+ 	real_t alpha=0.5;
+ 	auto J=gaussianJastrow(alpha);
 
- 	tab.add(0);
- 	tab.add(0,0);
- 	tab.update(states);
+ 	jastrowOneBodyWavefunction<gaussianJastrow> wave(J,geo,0);
+
+ 	productWavefunction psi{&wave};
+
+ 	walker w;
+ 	initializer::initialize(w,states,psi);
 
  	harmonicPotential v(geo,1.,0);
 
- 	harmonicPotential * p = &v;
- 	
- 	auto value =v(states);
+ 	energy eO(&v);
 
- 	std::cout << value << std::endl;
+ 	auto e = eO(w,psi);
+ 	//auto ek = kineticEnergyGaussian(alpha, w.getTableDistances().distances(0));
+ 	std::cout << e << std::endl;
+ 	//std::cout << ek << std::endl;
 
 }

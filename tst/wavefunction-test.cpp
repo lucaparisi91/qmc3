@@ -1,6 +1,10 @@
 #include "wavefunction/productWavefunction.h"
 #include "gtest/gtest.h"
 #include "tableDistances.h"
+#include "walkers.h"
+#include "initializer.h"
+#include "potential.h"
+#include "energy.h"
 
 
 using state_t = Eigen::Tensor<real_t, 2>;
@@ -24,7 +28,7 @@ TEST(wavefunctionTest,oneBody)
  	jastrowOneBodyWavefunction<gaussianJastrow> wave(J,geo,0);
 
  	productWavefunction waveT;
- 	waveT.add(wave);
+ 	waveT.add(&wave);
 
  	real_t e , ef , waveValue =0;
 
@@ -98,7 +102,7 @@ TEST(wavefunctionTest,oneBody_from_distances)
  	jastrowOneBodyWavefunction<gaussianJastrow> wave(J,geo,0);
 
  	productWavefunction waveT;
- 	waveT.add(wave);
+ 	waveT.add(&wave);
 
  	real_t e , ef , waveValue =0;
 
@@ -116,3 +120,39 @@ TEST(wavefunctionTest,oneBody_from_distances)
  	EXPECT_EQ(e,-2*alpha*N*D);
  	
 }
+
+TEST(wavefunctionTest,harmonic_oscillator_3d)
+{
+
+	int N=100;
+	int D=3;
+ 	state_t particleData(N , 3);
+ 	state_t gradient(N , 3);
+
+ 	//Eigen::Tensor<real_t, 2> diffs( (N * (N-1) )/2, 3);
+
+ 	particleData.setRandom();
+
+ 	geometryPBC geo( 10., 10., 10.);
+
+ 	states_t states {particleData};
+ 	tableDistances tab(geo);
+ 	real_t alpha=0.5;
+ 	auto J=gaussianJastrow(alpha);
+
+ 	jastrowOneBodyWavefunction<gaussianJastrow> wave(J,geo,0);
+
+ 	productWavefunction psi{&wave};
+
+ 	walker w;
+ 	initializer::initialize(w,states,psi);
+
+ 	harmonicPotential v(geo,1.,0);
+
+ 	energy eO(&v);
+
+ 	auto e = eO(w,psi);
+ 	//auto ek = kineticEnergyGaussian(alpha, w.getTableDistances().distances(0));
+ 	EXPECT_NEAR(e,150.,1e-5);
+ 	
+ }
