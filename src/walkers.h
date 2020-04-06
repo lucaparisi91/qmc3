@@ -1,3 +1,6 @@
+#ifndef WALKERS_H
+#define WALKERS_H
+
 #include "traits.h"
 #include <memory>
 #include "tableDistances.h"
@@ -23,12 +26,12 @@ struct walker
 	auto & getTableDistances()  {return _tab;}
 	auto & getLogWave() {return _waveValue;}
 	auto & getGradients()  {return _gradients;}
-
+	
 private:
     states_t _states; // a vector of particle data
 	tableDistances _tab;
 	real_t _waveValue; // value of the wavefunction
-	grads_t _gradients; // contains the gradient of the wavefunction
+	grads_t _gradients; // contains the gradient of the wavefunction. Just a temporary
 };
 
 
@@ -39,3 +42,5 @@ struct dmcWalker : walker
 private:
 	real_t _e=1E+20; // stores the energy of the current configuration
 };
+
+#endif

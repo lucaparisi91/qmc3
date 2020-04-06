@@ -38,6 +38,12 @@ TEST(wavefunctionTest,oneBody)
  	
  	EXPECT_EQ(e,-2*alpha*N*D);
 
+ 	auto psi_value = waveT(states);
+
+ 	Eigen::Tensor<real_t,0> sum2 = (states[0]*states[0]).sum();
+ 	
+ 	EXPECT_NEAR(psi_value,sum2()*(-alpha),1e-5);
+
 }
 
 TEST(wavefunctionTest,tableDistances)

@@ -1,3 +1,7 @@
+#ifndef OBSERVABLES_H
+#define OBSERVABLES_H
+
+
 #include "accumulators.h"
 class productWavefunction;
 class walker;
@@ -25,3 +29,5 @@ public:
 
 	virtual real_t operator()(walker_t & walker,wavefunction_t & wave)=0;
 };
+
+#endif

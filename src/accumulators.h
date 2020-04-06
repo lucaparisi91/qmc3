@@ -1,3 +1,6 @@
+#ifndef ACCUMULATORS_H
+#define ACCUMULATORS_H
+
 #include "traits.h"
 
 
@@ -6,12 +9,12 @@ class scalarAccumulator
 {
 public:
 	using value_t = T;
-	scalarAccumulator(){}
+	scalarAccumulator() : sum(0.),n(0) {}
 
 	void operator+=(value_t e){sum+=e;n+=1;};
 
 	value_t average() const {return sum/n;}
-
+	void clear(){sum=0.;n=0.;}
 private:
 	value_t sum;
 	size_t n;
@@ -23,6 +26,7 @@ class vectorAccumulator
 public:
 	using vec_t = Eigen::Tensor<T,1> ;
 	using value_t = T ;
+	vectorAccumulator(){};
 
 	vectorAccumulator(size_t size) : _sums(size),ns(size) {_sums.setConstant(0);ns.setConstant(0);}
 
@@ -33,7 +37,7 @@ public:
 	const vec_t & sums() const {return _sums;}
 
 	size_t size(){return  _sums.size();}
-
+	
 private:
 	T _sums;
 	Eigen::Tensor< real_t, 1> ns;
@@ -42,3 +46,5 @@ private:
 
 using realScalarAccumulator_t = scalarAccumulator<real_t>;
 using realVectorAccumulator_t = vectorAccumulator<real_t>;
+
+#endif

@@ -11,8 +11,6 @@
 struct wavefunctionComponentCommands;
 class tableDistances;
 
-
-
 class wavefunction
 {
 	/*
@@ -40,8 +38,6 @@ public:
 	virtual void evaluateDerivatives(const states_t & state, grads_t & gradient , real_t & wavevalue, real_t & laplacian,const tableDistances & tab)=0;
 
 	virtual std::vector<int> sets() const = 0 ;
-
-
 
 private:
 	const geometry_t * geo;
@@ -116,7 +112,7 @@ public:
 	virtual void evaluateDerivatives(const state_t & state, grad_t & gradient , real_t & waveValue, real_t & laplacian , const difference_t & differences,const distance_t & distances) override
 	{
 		real_t tmp=0,tmp1=0,tmp2=0;
-		
+		waveValue=0;
 		int N=state.dimensions()[0];
 		int D=state.dimensions()[1];
 		

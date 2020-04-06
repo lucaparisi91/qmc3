@@ -12,5 +12,4 @@ struct initializer
 	static void registerDistances(tableDistances & tab,const productWavefunction & wave);
 
 	static void initialize(walker & w, const states_t & states ,  productWavefunction & psi);
-	
 };
