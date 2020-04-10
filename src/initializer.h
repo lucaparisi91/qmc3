@@ -5,7 +5,6 @@ class tableDistances;
 class productWavefunction;
 class walker;
 
-
 struct initializer
 {
 	static void registerDistances(tableDistances & tab,const wavefunction & wave);

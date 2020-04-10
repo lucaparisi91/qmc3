@@ -7,7 +7,6 @@
 #include "wavefunction/jastrows/jastrow.h"
 #include "qmcExceptions.h"
 
-
 struct wavefunctionComponentCommands;
 class tableDistances;
 
@@ -94,10 +93,9 @@ public:
 
 
 	jastrowOneBodyWavefunction(jastrow_t J_,const geometry_t  &geo_, int setA=0) : J(J_),wavefunction1b::wavefunction1b(geo_,setA) {}
-
+  
 	virtual real_t operator()(const state_t & state,const distance_t & dis) override 
-	{
-		
+	{		
 		
 		int N=state.dimensions()[0];
 		real_t sum=0;
@@ -120,7 +118,7 @@ public:
 		for (int i=0;i<N;i++)
 			{
 				auto d = distances(i);
-
+				
 				J.evaluateDerivatives(d,tmp,tmp1,tmp2);
 				
 				laplacian+=tmp2 + (D-1)*tmp1/d;

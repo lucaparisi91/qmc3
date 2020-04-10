@@ -1,5 +1,8 @@
 #include "observables.h"
 #include "potential.h"
+#ifndef ENERGY_H
+#define ENERGY_H
+
 class kineticEnergy : public realScalarObservable
 {
 public:
@@ -24,3 +27,14 @@ class forceEnergy : public realScalarObservable
 private:
 	potential * _pot;
 };
+
+class energyFromWalker : public realScalarObservable
+{
+public:
+  
+  virtual real_t operator()(walker_t & w,wavefunction_t & psi) override;
+private:
+  
+};
+
+#endif

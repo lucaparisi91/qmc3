@@ -1,4 +1,9 @@
+#ifndef ESTIMATORS_COLLECTION_H
+#define ESTIMATORS_COLLECTION_H
+
+
 #include <vector>
+
 
 class estimatorBase;
 
@@ -21,3 +26,5 @@ public:
 private:
 	std::vector<estimatorBase*> _estimators;
 };
+
+#endif

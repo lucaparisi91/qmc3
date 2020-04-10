@@ -11,7 +11,7 @@
 #include "energy.h"
 #include "estimators.h"
 #include "driver.h"
-
+#include "dmcDriver.h"
 using state_t = Eigen::Tensor<real_t, 2>;
 using states_t = std::vector<state_t>;
 
@@ -42,37 +42,31 @@ int main(int argc, char** argv)
 
  	states_t states {particleData};
  	tableDistances tab(geo);
- 	real_t alpha=2.;
+ 	real_t alpha=1;
  	auto J=gaussianJastrow(alpha);
 
  	jastrowOneBodyWavefunction<gaussianJastrow> wave(J,geo,0);
 
  	productWavefunction psi{&wave};
 
- 	walker w;
- 	initializer::initialize(w,states,psi);
-
  	harmonicPotential v(geo,1.,0);
 
  	energy eO(&v);
  	forceEnergy efO(&v);
-
+	
 
  	realScalarEstimator m("energy",&eO);
  	realScalarEstimator m2("forceEnergy",&efO);
+	
+ 	 // vmcDriver vmcO(&psi,1e-1);
+ 	 // vmcO.getStepsPerBlock()=100000.;
+ 	 // vmcO.getEstimators().push_back(&m);
 
- 	
+ 	 // vmcO.run(states,1000);
+	
+	dmcDriver dmcO(&psi,&v,1E-1);
+	dmcO.getStepsPerBlock()=100000;
+	dmcO.getEstimators().push_back(&m2);
 
- 	auto e = eO(w,psi);
- 	//auto ek = kineticEnergyGaussian(alpha, w.getTableDistances().distances(0));
- 	std::cout << e << std::endl;
- 	//std::cout << ek << std::endl;
-
- 	vmc::vmcDriver vmcO(&psi,1e-2);
- 	vmcO.stepsPerBlock()=100000.;
- 	vmcO.estimators().push_back(&m);
- 	vmcO.estimators().push_back(&m2);
-
- 	vmcO.run(states,10000);
-
+	dmcO.run({states},1000);
 }
