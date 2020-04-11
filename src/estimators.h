@@ -15,17 +15,22 @@ class walker;
 class estimatorBase
 {
 public:
-	using wave_t = productWavefunction;
-	using walker_t=walker;
+  using wave_t = productWavefunction;
+  using walker_t=walker;
 	
-	estimatorBase(std::string label);
-	virtual void accumulate(walker_t &w, wave_t & psi )=0;
-	const std::string & label() const{ return _label;};
-	virtual void write(std::ostream & stream)=0;
-	virtual void clear() = 0;
-	virtual void dump();
-
-	virtual ~ estimatorBase();
+  estimatorBase(std::string label);
+  virtual void accumulate(walker_t &w, wave_t & psi )=0;
+  const std::string & label() const{ return _label;};
+  virtual void write(std::ostream & stream)=0;
+  virtual void clear() = 0;
+  virtual void dump();
+  virtual std::string & getLabel() {return _label;}
+  virtual std::string & getFileName() {return filename;}
+  
+  virtual ~ estimatorBase();
+  
+  virtual std::fstream & getFileDescriptor() {return f;}
+  
 private:
 	std::string _label;
 	std::fstream f;
@@ -51,7 +56,8 @@ private:
 class realScalarEstimator : public estimator<realScalarObservable>
 {
 public:
-	using estimator<realScalarObservable>::estimator;
+  realScalarEstimator(std::string label_,realScalarObservable * ob_);
+  using estimator<realScalarObservable>::estimator;
 };
 
 

@@ -9,8 +9,7 @@ real_t kineticEnergy::operator()(walker_t & w,wavefunction_t & psi)
 		real_t dummy=0;
 
 		
-		psi.evaluateDerivatives(w.getStates(),w.getGradients(),w.getLaplacianLog()     ,e,w.getTableDistances());
-
+		psi.evaluateDerivatives(w.getStates(),w.getGradients(),w.getLogWave()     ,e,w.getTableDistances());
 		
 		for (const auto & grad : w.getGradients())
 		{

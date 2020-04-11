@@ -11,3 +11,8 @@ std::string ansiColor(const std::string & color_name)
 	throw invalidInput(color_name);
 
 };
+
+bool is_empty(std::ifstream& pFile)
+{
+    return pFile.peek() == std::ifstream::traits_type::eof();
+}

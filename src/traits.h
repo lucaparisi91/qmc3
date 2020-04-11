@@ -5,6 +5,8 @@
 
 
 class geometry;
+class productWavefunction;
+
 
 using real_t = double;
 using geometry_t = geometry;
@@ -17,5 +19,7 @@ using differences_t = std::vector<difference_t>;
 using distance_t = Eigen::Tensor<real_t,1> ;
 using distances_t = std::vector<distance_t>;
 
+using wavefunction_t = productWavefunction;
 
+using randomGenerator_t = std::ranlux24;
 #endif

@@ -1,8 +1,8 @@
 #include "metropolis.h"
 
-metropolis::metropolis(std::ranlux24 * rand) : _rand(rand),uniformDis(0.,1.),n(0),nAccepted(0.) {}
+metropolis::metropolis() : n(0),nAccepted(0){}
 
-bool metropolis::acceptLog(real_t ratioLog)
+bool metropolis::acceptLog(real_t ratioLog,randomGenerator_t & randGen)
   {
     bool result;
     if ( ratioLog > 0. )
@@ -11,7 +11,7 @@ bool metropolis::acceptLog(real_t ratioLog)
       }
     else
       {
-	     if ( ratioLog > std::log(uniformDis(*_rand)) )
+	if ( ratioLog > std::log(uniformDis(randGen)) )
 	     {
 	    result=true;
 	     }
@@ -28,8 +28,7 @@ bool metropolis::acceptLog(real_t ratioLog)
     return result;
   }
 
-
-real_t metropolis::getAcceptanceRatio()
+real_t metropolis::getAcceptanceRatio() const
 {
   return nAccepted*1./n;
 }

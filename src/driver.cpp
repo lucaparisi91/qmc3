@@ -33,7 +33,7 @@ void driver::run(size_t nBlocks)
 
  vmcDriver::vmcDriver(vmcDriver::wavefunction_t * wave_,real_t sigma_) :
 driver::driver(wave_),
- metropolisObj(& getRandomGenerator()),
+ metropolisObj(),
  vmcMove(new gaussianMover(sigma_))
  {
  	
@@ -68,7 +68,7 @@ void vmcDriver::step()
 	// update distances and evaluates the wavefunction
 	update(current_walker,wave);
 	// accept or reject the walker
-	bool accept = metropolisObj.acceptLog(2* (current_walker.getLogWave() - old_walker.getLogWave()));
+	bool accept = metropolisObj.acceptLog(2* (current_walker.getLogWave() - old_walker.getLogWave()),getRandomGenerator());
 	if (!accept)
 	{
 		current_walker=old_walker;

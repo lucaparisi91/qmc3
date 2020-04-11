@@ -33,7 +33,7 @@ int main(int argc, char** argv)
 	int D=3;
  	state_t particleData(N , 3);
  	state_t gradient(N , 3);
-
+	
  	//Eigen::Tensor<real_t, 2> diffs( (N * (N-1) )/2, 3);
 
  	particleData.setRandom();
@@ -54,7 +54,6 @@ int main(int argc, char** argv)
  	energy eO(&v);
  	forceEnergy efO(&v);
 	
-
  	realScalarEstimator m("energy",&eO);
  	realScalarEstimator m2("forceEnergy",&efO);
 	

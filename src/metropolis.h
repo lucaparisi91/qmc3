@@ -8,14 +8,13 @@
 class metropolis
 {
 public:
-  metropolis(std::ranlux24 * rand);
-  bool acceptLog(real_t ratioLog);
+  metropolis();
+  bool acceptLog(real_t ratioLog,randomGenerator_t & randGenerator);
 
-  real_t getAcceptanceRatio();
+  real_t getAcceptanceRatio() const;
 
   void clear();
 private:
-  std::ranlux24 *_rand;
   std::uniform_real_distribution<real_t> uniformDis;
   size_t n;
   size_t nAccepted;

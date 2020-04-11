@@ -43,14 +43,14 @@ real_t driftDiffusionFirstOrder::transitionProbabilityRatio(const dmcWalker & ne
 
 	for (int i=0;i< new_positions.size();i++)
 	{
-		auto a=	_timeStep*1./4 *( 
-				old_driftForces[i] - new_driftForces[i] 
+	  auto a=  (
+		    _timeStep*1./2 *(old_driftForces[i] - new_driftForces[i]) 
 			- new_positions[i] + old_positions[i]
-			) ;
-		auto b=( old_driftForces[i] + new_driftForces[i] ) * 0.5;
+		    ) ;
+	  auto b=( old_driftForces[i] + new_driftForces[i] ) ;
 
-		Eigen::Tensor<real_t,0> res=a.contract(b,product_dims);
-		q+=res();
+	  Eigen::Tensor<real_t,0> res=a.contract(b,product_dims);
+	  q+=res();
 	};
 	
 	return q;

@@ -12,7 +12,9 @@ public:
 	virtual bool accept(
 		mover & move,
 		const dmcWalker & new_walker,
-		const dmcWalker & old_walker)=0;
+		const dmcWalker & old_walker,
+		wavefunction_t & wavefunction,
+			    randomGenerator_t & generator)=0;
   virtual real_t getAcceptanceRatio() const =0;
 
   virtual void clear()=0;
@@ -25,11 +27,36 @@ public:
   virtual bool accept(
 		mover & move,
 		const dmcWalker & new_walker,
-		const dmcWalker & old_walker);
+		const dmcWalker & old_walker,
+		wavefunction_t & wavefunction,
+		randomGenerator_t & generator);
   virtual real_t getAcceptanceRatio() const ;
   virtual void clear() {};
+private:
+  metropolis metropolisSampler;
   
 };
+
+
+class metropolisPolicy : public acceptRejectPolicy
+{
+public:
+  virtual bool accept(
+		mover & move,
+		const dmcWalker & new_walker,
+		const dmcWalker & old_walker,
+		wavefunction_t & wavefunction,
+		randomGenerator_t & generator
+		      );
+  virtual real_t getAcceptanceRatio() const ;
+  virtual void clear() ;
+  
+private:
+  metropolis metropolisSampler;
+  
+};
+
+
 
 class dmcDriver : public driver
 {
