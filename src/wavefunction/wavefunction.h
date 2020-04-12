@@ -10,6 +10,7 @@
 struct wavefunctionComponentCommands;
 class tableDistances;
 
+
 class wavefunction
 {
 	/*

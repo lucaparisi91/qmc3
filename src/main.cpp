@@ -12,6 +12,8 @@
 #include "estimators.h"
 #include "driver.h"
 #include "dmcDriver.h"
+#include "branching.h"
+
 using state_t = Eigen::Tensor<real_t, 2>;
 using states_t = std::vector<state_t>;
 
@@ -63,9 +65,16 @@ int main(int argc, char** argv)
 
  	 // vmcO.run(states,1000);
 	
-	dmcDriver dmcO(&psi,&v,1E-1);
-	dmcO.getStepsPerBlock()=100000;
-	dmcO.getEstimators().push_back(&m2);
+	// dmcDriver dmcO(&psi,&v,1E-1);
+	// dmcO.getStepsPerBlock()=100000;
+	// dmcO.getEstimators().push_back(&m2);
 
-	dmcO.run({states},1000);
+	// dmcO.run({states},1000);
+
+
+
+	
+	std::vector<dmcWalker> walkers;
+	std::vector<dmcWalker> newWalkers;
+
 }

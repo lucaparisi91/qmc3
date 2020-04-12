@@ -7,8 +7,6 @@
 #include <initializer_list>
 #include <unsupported/Eigen/CXX11/Tensor>
 
-
-
 class geometry
 {
 public:

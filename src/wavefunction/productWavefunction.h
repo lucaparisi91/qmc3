@@ -1,8 +1,9 @@
 #ifndef PRODUCT_WAVEFUNCTION_H
 #define PRODUCT_WAVEFUNCTION_H
 
-#include "wavefunction.h"
+#include "wavefunction/wavefunction.h"
 #include <initializer_list>
+
 
 class productWavefunction
 {

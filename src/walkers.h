@@ -55,4 +55,13 @@ private:
 	real_t _e=1E+20; // stores the energy of the current configuration
 };
 
+
+class energy;
+
+void update(dmcWalker & w, productWavefunction & wave);
+void updateForceGradientLaplacian(walker & w,productWavefunction & psi);
+void updateForceGradientEnergy(dmcWalker & w,productWavefunction & psi, energy & energyOb);
+
+
+
 #endif

@@ -1,7 +1,7 @@
 #include "driver.h"
 #include "energy.h"
 
-void update(dmcWalker & w, productWavefunction & wave);
+
 
 class potential;
 class realScalarEstimator;
