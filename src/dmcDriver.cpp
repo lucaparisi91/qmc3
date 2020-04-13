@@ -5,6 +5,8 @@
 #include "tools.h"
 #include "moves/dmcMoves.h"
 #include "estimators.h"
+#include "branching.h"
+
 
 bool noMetropolisPolicy::accept(
 		mover & move,
@@ -35,7 +37,6 @@ bool metropolisPolicy::accept(
   
 }
 
-
 real_t metropolisPolicy::getAcceptanceRatio() const
 {
   return metropolisSampler.getAcceptanceRatio();
@@ -50,35 +51,35 @@ void metropolisPolicy::clear()
 
  void dmcDriver::step()
 {
-	std::swap(current_walkers,old_walkers);
+        std::swap(current_walkers,old_walkers);
+        current_walkers.resize(old_walkers.size(),*(old_walkers.end()-1));
+        brancher->setEnergyShift(old_walkers);
+	
 	current_walkers.resize(old_walkers.size());
 	
 	for (int i=0;i<old_walkers.size();i++)
 	{
+	  dmcMover->move(current_walkers[i],old_walkers[i],getRandomGenerator());
+	  updateForceGradientEnergy(current_walkers[i], getWavefunction(),energyOb);
+		
+	  bool accepted=accepter->accept(*dmcMover,current_walkers[i],old_walkers[i],getWavefunction() ,getRandomGenerator());
 	  
-		dmcMover->move(current_walkers[i],old_walkers[i],getRandomGenerator());
-		updateForceGradientEnergy(current_walkers[i], getWavefunction(),energyOb);
-		
-		bool accepted=accepter->accept(*dmcMover,current_walkers[i],old_walkers[i],getWavefunction() ,getRandomGenerator());
-		
-		if (!accepted)
-		{
-		  current_walkers[i]=old_walkers[i];
-		}
-
+	  if (!accepted)
+	    {
+	      current_walkers[i]=old_walkers[i];
+	    }
 	}
+	
+	brancher->branch(current_walkers,old_walkers,getRandomGenerator());
+       
+	
 }
 
 void dmcDriver::run( const std::vector<states_t> &states , size_t nBlocks )
 {
-  current_walkers.resize(states.size());
-  old_walkers.resize(states.size());
-  
-  for (int i=0;i<current_walkers.size();i++)
-    {
-      initializer::initialize(current_walkers[i],states[i],getWavefunction());
-      initializer::initialize(old_walkers[i],states[i],getWavefunction());
-    }
+
+  initializer::initialize(current_walkers,states,getWavefunction(),energyOb);
+  initializer::initialize(old_walkers,states,getWavefunction(),energyOb);
   
   driver::run(nBlocks);
 }
@@ -93,6 +94,10 @@ void dmcDriver::out()
 	std::cout << std::scientific;
 	energyEst->write(std::cout);
 	std::cout << std::endl<<std::defaultfloat;
+
+	std::cout << ansiColor("cyan") << "Curr. Walkers: " << ansiColor("default") ;
+	std::cout << current_walkers.size() << std::endl;
+
 	
 	auto & ests = getEstimators();
 	ests.dump();
@@ -100,11 +105,14 @@ void dmcDriver::out()
 
 }
 
-dmcDriver::dmcDriver(dmcDriver::wavefunction_t * wave, potential * pot,real_t timeStep) :
+dmcDriver::dmcDriver(dmcDriver::wavefunction_t * wave, potential * pot,real_t timeStep,size_t nWalkers) :
   driver::driver(wave), energyOb(pot),
   dmcMover( new driftDiffusionFirstOrder(timeStep)),
   energyEst(new realScalarEstimator("energy",&energyAccFromWalker) ),
-  accepter(new metropolisPolicy)
+  accepter(new metropolisPolicy),
+  brancher(
+	   new branchingControl(timeStep,nWalkers,int(0.1*nWalkers))
+	   )
 {
   getEstimators().push_back( energyEst.get() );
 }

@@ -44,7 +44,7 @@ int main(int argc, char** argv)
 
  	states_t states {particleData};
  	tableDistances tab(geo);
- 	real_t alpha=1;
+ 	real_t alpha=1.;
  	auto J=gaussianJastrow(alpha);
 
  	jastrowOneBodyWavefunction<gaussianJastrow> wave(J,geo,0);
@@ -65,16 +65,20 @@ int main(int argc, char** argv)
 
  	 // vmcO.run(states,1000);
 	
-	// dmcDriver dmcO(&psi,&v,1E-1);
-	// dmcO.getStepsPerBlock()=100000;
-	// dmcO.getEstimators().push_back(&m2);
-
-	// dmcO.run({states},1000);
+	dmcDriver dmcO(&psi,&v,1E-2,200);
+	dmcO.getStepsPerBlock()=100;
+	dmcO.getEstimators().push_back(&m2);
+	std::vector<states_t> dmcStates;
+	size_t nW=100;
+	
+	for(int i=0;i<100;i++)
+	  {
+	    dmcStates.push_back(states);
+	  }
+	dmcO.run(dmcStates,1000);
 
 
 
 	
-	std::vector<dmcWalker> walkers;
-	std::vector<dmcWalker> newWalkers;
 
 }

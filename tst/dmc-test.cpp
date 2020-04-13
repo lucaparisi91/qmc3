@@ -30,11 +30,11 @@ TEST(dmcTest,branching_lower)
 
  	energy eO(&v);
 
- 	std::vector<dmcWalker> walkers;
-	std::vector<dmcWalker> newWalkers;
+ 	walkerContainer<dmcWalker> walkers;
+	walkerContainer<dmcWalker> newWalkers;
 
 	std::vector< states_t> walkerStates;
-
+	
 	for (int i=0;i<nW;i++)
 	  {
 	    state_t statetmp(N,D);
@@ -77,7 +77,6 @@ TEST(dmcTest,branching_lower)
 	
  }
 
-
 TEST(dmcTest,branching_upper)
 {
 	int N=100;
@@ -85,7 +84,6 @@ TEST(dmcTest,branching_upper)
 	int nW=100;	
 	
  	geometryPBC geo( 10., 10., 10.);
-
 	
  	tableDistances tab(geo);
  	real_t alpha=1;
@@ -100,9 +98,10 @@ TEST(dmcTest,branching_upper)
 
  	energy eO(&v);
 
- 	std::vector<dmcWalker> walkers;
-	std::vector<dmcWalker> newWalkers;
+ 	walkerContainer<dmcWalker> walkers;
+	walkerContainer<dmcWalker> newWalkers;
 
+	
 	std::vector< states_t> walkerStates;
 
 	for (int i=0;i<nW;i++)
@@ -135,7 +134,7 @@ TEST(dmcTest,branching_upper)
 	bc.branch(newWalkers,walkers,rand2);
 	
 	ASSERT_EQ( newPopulation , newWalkers.size());
-	
+	EXPECT_GT(newPopulation,nW);
 	for (int i=0;i<walkers.size();i++)
 	  {
 	    real_t e=walkers[i].getEnergy();

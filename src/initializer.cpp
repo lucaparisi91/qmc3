@@ -50,7 +50,7 @@ void initializer::initialize(dmcWalker & w, const states_t & states ,  productWa
   updateForceGradientEnergy(w,psi,ob);
 }
 
-void initializer::initialize(std::vector<dmcWalker> & ws, const std::vector<states_t> & states ,  productWavefunction & psi,energy & ob)
+void initializer::initialize(walkerContainer<dmcWalker> & ws, const std::vector<states_t> & states ,  productWavefunction & psi,energy & ob)
 {
   ws.resize(states.size());
   

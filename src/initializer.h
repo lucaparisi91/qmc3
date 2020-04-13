@@ -6,7 +6,7 @@ class productWavefunction;
 class walker;
 class dmcWalker;
 class energy;
-
+template<class T> class walkerContainer;
 
 struct initializer
 {
@@ -16,6 +16,6 @@ struct initializer
   static void initialize(walker & w, const states_t & states ,  productWavefunction & psi);
   static void initialize(dmcWalker & w, const states_t & states ,  productWavefunction & psi,energy & ob);
 
-  static void initialize(std::vector<dmcWalker> & ws, const std::vector<states_t> & states ,  productWavefunction & psi,energy & ob);
+  static void initialize(walkerContainer<dmcWalker> & ws, const std::vector<states_t> & states ,  productWavefunction & psi,energy & ob);
   
 };

@@ -56,12 +56,73 @@ private:
 };
 
 
+
 class energy;
+
 
 void update(dmcWalker & w, productWavefunction & wave);
 void updateForceGradientLaplacian(walker & w,productWavefunction & psi);
 void updateForceGradientEnergy(dmcWalker & w,productWavefunction & psi, energy & energyOb);
 
+template<class T>
+class walkerContainer
+{
+public:
+  using value_type=T;
+  /*A wrapper around std::vector to contain walkers. 
+    Calling resize does not make old allocated data invalid.
+*/
+  
+  walkerContainer() : walkers(),_size(0) {};
+  walkerContainer( std::vector<T> vec ) : walkers(vec),_size(vec.size()) {}
+  
+  auto & operator[](size_t i) {return walkers[i];}
+  const auto & operator[](size_t i) const {return walkers[i];}
+  
+  void push_back( T  w)
+  {
+    _size=_size +1;
+    
+    if (_size > capacity() )
+      {
+	walkers.push_back(w);
+      }
+    else
+      {
+	walkers[_size-1]=w;
+      }
+  }
+  void resize(size_t size2)
+  {
+    if (size2 > capacity() ) walkers.resize(size2);
+    _size=size2;
+  }
 
+  void resize(size_t size2, T  w)
+  {
+    if (size2 > capacity() ) walkers.resize(size2,w);
+    
+    _size=size2;
+  }
+  
+  size_t size() const {return _size;}
+  size_t capacity() const {return walkers.size();}
+  
+  auto  begin()  {return walkers.begin();}
+  auto end() {return walkers.begin() + _size;}
+
+  auto  begin() const  {return walkers.begin();}
+  auto end() const {return walkers.begin() + _size;}
+
+  
+  auto  cbegin() const {return walkers.cbegin();}
+  auto cend() const {return walkers.cbegin() + _size;}
+  
+
+  
+  private:
+  std::vector<T> walkers;
+  size_t _size;
+};
 
 #endif

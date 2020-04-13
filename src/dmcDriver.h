@@ -1,10 +1,12 @@
 #include "driver.h"
 #include "energy.h"
 
-
+#include "walkers.h"
 
 class potential;
 class realScalarEstimator;
+class branchingControl;
+
 
 class acceptRejectPolicy
 {
@@ -56,15 +58,13 @@ private:
   
 };
 
-
-
 class dmcDriver : public driver
 {
 	using walker_t =dmcWalker;
 public:
   
-  dmcDriver(wavefunction_t * wave,potential * pot,real_t timeStep);
-
+  dmcDriver(wavefunction_t * wave,potential * pot,real_t timeStep,size_t nWalkers);
+  
   virtual void run( const std::vector<states_t> &states , size_t nBlocks );
 
   virtual void step();
@@ -72,11 +72,12 @@ public:
   virtual void out();
   virtual void accumulate();
 private:
-  std::vector<walker_t> current_walkers;
-  std::vector<walker_t> old_walkers;
+  walkerContainer<dmcWalker> current_walkers;
+  walkerContainer<dmcWalker> old_walkers;
   std::unique_ptr<mover> dmcMover;
   energy energyOb;
   energyFromWalker energyAccFromWalker;
   std::unique_ptr<realScalarEstimator> energyEst;
   std::unique_ptr<acceptRejectPolicy> accepter;
+  std::unique_ptr< branchingControl> brancher;
 };

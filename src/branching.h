@@ -2,17 +2,22 @@
 #define BRANCHING_H
 #include "traits.h"
 class dmcWalker;
+template <class T> class walkerContainer;
+
 
 class branchingControl 
 {
 public:
   using walker_t = dmcWalker;
+  using walkerContainer_t = walkerContainer<dmcWalker>;
+
+  
   branchingControl(real_t timeStep_,real_t meanWalkers_,real_t deltaWalkers_);
 
-  void branch(std::vector<walker_t> & newWalkers,const std::vector<walker_t> & oldWalkers,randomGenerator_t & rand);
+  void branch(walkerContainer_t & newWalkers,const walkerContainer_t & oldWalkers,randomGenerator_t & rand);
   int nDescendants(walker_t & new_walker, const walker_t & old_walker,randomGenerator_t & rand);
 
-  void setEnergyShift(const std::vector<walker_t> & walkers);
+  void setEnergyShift(const walkerContainer_t & walkers);
   
 private:
   size_t meanWalkers;

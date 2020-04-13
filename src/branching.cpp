@@ -12,7 +12,7 @@ int branchingControl::nDescendants(branchingControl::walker_t & new_walker, cons
   return int(exp(-timeStep* ( 0.5*(new_walker.getEnergy() + old_walker.getEnergy() ) - energyShift ) ) + uniformDis(rand) );
 }
 
-void branchingControl::branch(std::vector<branchingControl::walker_t> & newWalkers,const std::vector<branchingControl::walker_t> & oldWalkers,randomGenerator_t & rand)
+void branchingControl::branch(branchingControl::walkerContainer_t & newWalkers,const branchingControl::walkerContainer_t & oldWalkers,randomGenerator_t & rand)
 {
   // compute the number of descendants for each walkers
   _nDescendants.resize(newWalkers.size());
@@ -58,26 +58,31 @@ void branchingControl::branch(std::vector<branchingControl::walker_t> & newWalke
 }
 
 
-void branchingControl::setEnergyShift(const std::vector<walker_t> & walkers)
+void branchingControl::setEnergyShift(const branchingControl::walkerContainer_t & walkers)
 {
   // set shift to average energy
   energyShift=0;
-  std::accumulate(walkers.begin(),walkers.end(),energyShift,[]( real_t & sum, const walker_t  & w){return w.getEnergy();});
-  energyShift/=walkers.size();
   
-  // restrct to window
+  for (const auto & w : walkers)
+    {
+      energyShift+=w.getEnergy();
+    }
+  
+  energyShift/=walkers.size();
+
+  
+  // restrict to window
 
   if (walkers.size() > (meanWalkers + deltaWalkers))
     {
-      energyShift +=1./timeStep
-	* log (meanWalkers*1./(meanWalkers + deltaWalkers))
+      energyShift +=1./timeStep	* log (meanWalkers*1./(meanWalkers + deltaWalkers))
 	;
 	
     }
   else if (walkers.size() < ( meanWalkers - deltaWalkers) )
   {
-      energyShift +=1./timeStep
-	* log (meanWalkers*1./(meanWalkers - deltaWalkers))
+    energyShift +=1./timeStep
+      * log (meanWalkers*1./(meanWalkers - deltaWalkers))
 	;
 
   }

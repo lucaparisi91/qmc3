@@ -1,0 +1,9 @@
+{
+    "lBox" : [10,10,10]
+    "method" : "dmc"
+    "timeStep" : 1e-3,
+    "stepsPerBlock" : 100,
+    "walkers" : 100,
+    "deltaWalkers" : 10,
+    "nBlocks" : 10
+}
