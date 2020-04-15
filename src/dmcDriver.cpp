@@ -55,8 +55,6 @@ void metropolisPolicy::clear()
         current_walkers.resize(old_walkers.size(),*(old_walkers.end()-1));
         brancher->setEnergyShift(old_walkers);
 	
-	current_walkers.resize(old_walkers.size());
-	
 	for (int i=0;i<old_walkers.size();i++)
 	{
 	  dmcMover->move(current_walkers[i],old_walkers[i],getRandomGenerator());
@@ -71,8 +69,6 @@ void metropolisPolicy::clear()
 	}
 	
 	brancher->branch(current_walkers,old_walkers,getRandomGenerator());
-       
-	
 }
 
 void dmcDriver::run( const std::vector<states_t> &states , size_t nBlocks )

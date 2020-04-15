@@ -27,7 +27,7 @@ void driftDiffusionFirstOrder::move(
 	}
 
        diffusionMove.move(new_walker,new_walker,randGenerator); // diffusion
-
+       
 }
 
 real_t driftDiffusionFirstOrder::transitionProbabilityRatio(const dmcWalker & new_w, const dmcWalker & old_w )

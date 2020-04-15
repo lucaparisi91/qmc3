@@ -113,11 +113,9 @@ public:
 
   auto  begin() const  {return walkers.begin();}
   auto end() const {return walkers.begin() + _size;}
-
   
   auto  cbegin() const {return walkers.cbegin();}
   auto cend() const {return walkers.cbegin() + _size;}
-  
 
   
   private:

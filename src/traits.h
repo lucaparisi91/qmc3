@@ -7,7 +7,6 @@
 class geometry;
 class productWavefunction;
 
-
 using real_t = double;
 using geometry_t = geometry;
 using state_t = Eigen::Tensor<real_t,2> ;

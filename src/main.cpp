@@ -14,6 +14,8 @@
 #include "dmcDriver.h"
 #include "branching.h"
 
+#include <nlohmann/json.hpp>
+
 using state_t = Eigen::Tensor<real_t, 2>;
 using states_t = std::vector<state_t>;
 
@@ -31,54 +33,62 @@ real_t kineticEnergyGaussian(real_t alpha,distance_t dis)
 
 int main(int argc, char** argv)
 {
-	int N=1;
-	int D=3;
- 	state_t particleData(N , 3);
- 	state_t gradient(N , 3);
+  nlohmann::json j;
+  std::cin >> j;
+  std::vector<real_t> lBox;
+  
+  lBox=j["lBox"].get<decltype(lBox)>();
+  std::vector<int> Ns;
+  Ns=j["N"].get<decltype(Ns)>();
+  int D=lBox.size();
+  
+  geometryPBC geo( lBox[0], lBox[1], lBox[2]);
+  
+  states_t states;
+  
+  for (int i=0;i<Ns.size();i++)
+    {
+      state_t particleData(Ns[i] , D);
+      particleData.setRandom();
+      states.push_back(particleData);
+    }
+  
+  tableDistances tab(geo);
+  real_t alpha=1.;
+  auto J=gaussianJastrow(alpha);
+
+  jastrowOneBodyWavefunction<gaussianJastrow> wave(J,geo,0);
+
+  productWavefunction psi{&wave};
+
+  harmonicPotential v(geo,1.,0);
+  
+  energy eO(&v);
+  forceEnergy efO(&v);
+  
+  realScalarEstimator m("energy",&eO);
+  realScalarEstimator m2("forceEnergy",&efO);
 	
- 	//Eigen::Tensor<real_t, 2> diffs( (N * (N-1) )/2, 3);
+  // vmcDriver vmcO(&psi,1e-1);
+  // vmcO.getStepsPerBlock()=100000.;
+  // vmcO.getEstimators().push_back(&m);
+  
+  // vmcO.run(states,1000);
 
- 	particleData.setRandom();
-
- 	geometryPBC geo( 100., 100., 100.);
-
- 	states_t states {particleData};
- 	tableDistances tab(geo);
- 	real_t alpha=1.;
- 	auto J=gaussianJastrow(alpha);
-
- 	jastrowOneBodyWavefunction<gaussianJastrow> wave(J,geo,0);
-
- 	productWavefunction psi{&wave};
-
- 	harmonicPotential v(geo,1.,0);
-
- 	energy eO(&v);
- 	forceEnergy efO(&v);
-	
- 	realScalarEstimator m("energy",&eO);
- 	realScalarEstimator m2("forceEnergy",&efO);
-	
- 	 // vmcDriver vmcO(&psi,1e-1);
- 	 // vmcO.getStepsPerBlock()=100000.;
- 	 // vmcO.getEstimators().push_back(&m);
-
- 	 // vmcO.run(states,1000);
-	
-	dmcDriver dmcO(&psi,&v,1E-2,200);
-	dmcO.getStepsPerBlock()=100;
-	dmcO.getEstimators().push_back(&m2);
-	std::vector<states_t> dmcStates;
-	size_t nW=100;
-	
-	for(int i=0;i<100;i++)
-	  {
-	    dmcStates.push_back(states);
-	  }
-	dmcO.run(dmcStates,1000);
-
-
-
-	
+  
+  size_t nW=j["walkers"];
+  real_t timeStep = j["timeStep"];
+  size_t stepsPerBlock = j["stepsPerBlock"];
+  size_t nBlocks = j["nBlocks"];
+  dmcDriver dmcO(&psi,&v,timeStep,nW);
+  dmcO.getStepsPerBlock()=stepsPerBlock;
+  std::vector<states_t> dmcStates;
+  
+  for(int i=0;i<nW;i++)
+    {
+      dmcStates.push_back(states);
+    }
+  
+  dmcO.run(dmcStates,nBlocks);	
 
 }

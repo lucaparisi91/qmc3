@@ -2,6 +2,7 @@
 #include "walkers.h"
 #include <algorithm>
 #include <iostream>
+
 branchingControl::branchingControl(real_t timeStep_,real_t meanWalkers_,real_t deltaWalkers_) : timeStep(timeStep_),meanWalkers(meanWalkers_),deltaWalkers(deltaWalkers_),uniformDis(0.,1.),energyShift(0.),maxWalkers( (meanWalkers + deltaWalkers)*4)
 {
   
@@ -34,7 +35,6 @@ void branchingControl::branch(branchingControl::walkerContainer_t & newWalkers,c
 	  newWalkers.resize(newWalkers.size()-1);
 	  _nDescendants.resize(_nDescendants.size()-1);
 	  
-	  
 	}
       else if (n>=1) // advance index and push back new copies at the end
 	{
@@ -50,13 +50,7 @@ void branchingControl::branch(branchingControl::walkerContainer_t & newWalkers,c
 	}
 
     }
-
- 
-  
-
-  
 }
-
 
 void branchingControl::setEnergyShift(const branchingControl::walkerContainer_t & walkers)
 {

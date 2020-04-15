@@ -28,7 +28,7 @@ target_include_directories(main_lib PUBLIC
 			   )
 
 
-target_include_directories(main_lib SYSTEM PUBLIC ${PROJECT_BINARY_DIR}/../external/eigen
+target_include_directories(main_lib SYSTEM PUBLIC ${PROJECT_BINARY_DIR}/../external/eigen ${PROJECT_BINARY_DIR}/../external/json/single_include 
 		           )
 			 
 target_link_libraries (main_lib Eigen3::Eigen)

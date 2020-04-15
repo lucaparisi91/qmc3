@@ -13,7 +13,6 @@ public:
 	using particles_t = ::state_t;
 	using diff_t =  ::difference_t;
 
-
 	virtual diff_t differencesTwoBody(const particles_t & data) const = 0; // distances between undistinguishible particles
 
 	virtual diff_t differencesTwoBody(const particles_t & data1, const particles_t & data2) const = 0; // distances between distinguishiblle particles
@@ -35,15 +34,6 @@ public:
 real_t norm(real_t x,real_t y, real_t z);
 
 Eigen::Tensor<real_t,1> norm( const Eigen::Tensor<real_t, 2> & diffs);
-
-
-class geometryOBC
-{
-public:
-   void difference(real_t diffx,real_t diffy,real_t diffz,real_t & diffNewx, real_t & diffNewy,real_t & diffNewz) {diffNewx=diffx;diffNewy=diffy;diffNewz=diffz;}
-   std::tuple<double,double,double> difference(real_t diffx,real_t diffy, real_t diffz) { return std::make_tuple(diffx,diffy,diffz);}
-private:
-};
 
 
 
