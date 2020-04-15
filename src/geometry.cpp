@@ -1,5 +1,5 @@
 #include "geometry.h"
-
+#include "tools.h"
 
 real_t norm(real_t x,real_t y, real_t z)
 {
@@ -8,8 +8,8 @@ real_t norm(real_t x,real_t y, real_t z)
 
 geometryPBC::diff_t geometryPBC::differencesOneBody(const geometryPBC::particles_t & particleData, const std::array<real_t,3> & x) const
 	{
-		int N = particleData.dimensions()[0];
-		int D=particleData.dimensions()[1];
+	  int N = getN(particleData);
+	  constexpr int D=getDimensions();
 
 		diff_t diffs(N,D);
 
@@ -24,31 +24,30 @@ geometryPBC::diff_t geometryPBC::differencesOneBody(const geometryPBC::particles
 		return diffs;
 	}
 
-
-Eigen::Tensor<real_t,1> norm( const Eigen::Tensor<real_t, 2> & diffs)
+distance_t norm( const difference_t & diffs)
 {
-	const int N = diffs.dimensions()[0];
-	const int D= diffs.dimensions()[1];
-
-	Eigen::Tensor<real_t,1> norms(N);
-	for(int i=0;i<N;i++)
+  const int N = diffs.rows();
+  constexpr int D=difference_t::ColsAtCompileTime;
+	
+  distance_t norms(N);
+  for(int i=0;i<N;i++)
+    {
+      real_t tmp=0;
+      for(int d=0;d<D;d++)
 	{
-		real_t tmp=0;
-		for(int d=0;d<D;d++)
-		{
-			tmp+= diffs(i,d)*diffs(i,d);	
-		}
-		norms(i)=std::sqrt(tmp);
+	  tmp+= diffs(i,d)*diffs(i,d);	
 	}
+      norms(i)=std::sqrt(tmp);
+    }
 
-	return norms;
+  return norms;
 }
 
 
 geometryPBC::diff_t geometryPBC::differencesTwoBody(const geometryPBC::particles_t & particleData) const 
 	{
-		int N = particleData.dimensions()[0];
-		int D=particleData.dimensions()[1];
+	         const int N = particleData.rows();
+                 constexpr int D=difference_t::ColsAtCompileTime;
 
 		diff_t diffs( (N*(N-1))/2,D);
 
@@ -68,12 +67,13 @@ geometryPBC::diff_t geometryPBC::differencesTwoBody(const geometryPBC::particles
 
  geometryPBC::diff_t geometryPBC::differencesTwoBody(const geometryPBC::particles_t & data1,const geometryPBC::particles_t & data2) const 
 	{
-		int N1 = data1.dimensions()[0];
-		int N2 = data2.dimensions()[0];
+	  int N1 = data1.rows();
+	  int N2 = data2.rows();
+	  
+	  constexpr int D=difference_t::ColsAtCompileTime;
+	  
 
-		int D=data1.dimensions()[1];
-
-		assert( data1.dimensions()[1] == data2.dimensions()[1]);
+      
 		diff_t diffs(N1*N2,D);
 
 		int k=0;

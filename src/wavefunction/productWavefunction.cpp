@@ -1,5 +1,5 @@
 #include "productWavefunction.h"
-
+#include "tools.h"
 
 void productWavefunction::evaluateDerivatives(const productWavefunction::particles_t & states, productWavefunction::grads_t & grads, real_t & waveValue,real_t & lap)
 {
@@ -8,8 +8,8 @@ void productWavefunction::evaluateDerivatives(const productWavefunction::particl
 	real_t lapPartial,waveValuePartial;
 	for (int i=0;i< grads.size();i++)
 	 {
-	 	grads[i].resize(states[i].dimensions());
-	 	grads[i].setConstant(0.);
+	   grads[i].resize(getN(states[i]),getDimensions());
+	   grads[i].setConstant(0.);
 	 }
 	
 	for (int i=0;i< size();i++)
@@ -30,8 +30,8 @@ void productWavefunction::evaluateDerivatives(const productWavefunction::particl
 	grads.resize(states.size());
 	for (int i=0;i< grads.size();i++)
 	 {
-	 	grads[i].resize(states[i].dimensions());
-	 	grads[i].setConstant(0.);
+	   grads[i].resize( getN(states[i]),getDimensions( ));
+	   grads[i].setConstant(0.);
 	 }
 
 	

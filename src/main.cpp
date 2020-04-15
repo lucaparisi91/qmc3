@@ -13,23 +13,20 @@
 #include "driver.h"
 #include "dmcDriver.h"
 #include "branching.h"
-
 #include <nlohmann/json.hpp>
 
-using state_t = Eigen::Tensor<real_t, 2>;
-using states_t = std::vector<state_t>;
+
 
 
 real_t kineticEnergyGaussian(real_t alpha,distance_t dis)
 {
 
-	Eigen::Tensor<real_t,0> tmp=(dis * dis).sum();
+  auto tmp=(dis* dis ).sum();
 
 	//return -2.*alpha*alpha * tmp() +3*alpha*dis.dimensions()[0]; 
 
-	return -2.*alpha*alpha * tmp();
+  return -2.*alpha*alpha * tmp;
 }
-
 
 int main(int argc, char** argv)
 {

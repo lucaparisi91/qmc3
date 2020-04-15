@@ -24,7 +24,7 @@ template<class T>
 class vectorAccumulator
 {
 public:
-	using vec_t = Eigen::Tensor<T,1> ;
+  using vec_t = Eigen::VectorXd ;
 	using value_t = T ;
 	vectorAccumulator(){};
 
@@ -35,12 +35,12 @@ public:
 	vec_t average() {return sums/ns;}
 
 	const vec_t & sums() const {return _sums;}
-
+  
 	size_t size(){return  _sums.size();}
 	
 private:
-	T _sums;
-	Eigen::Tensor< real_t, 1> ns;
+	vec_t _sums;
+        Eigen::VectorXd ns;
 };
 
 

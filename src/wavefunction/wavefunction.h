@@ -2,10 +2,11 @@
 #define WAVEFUNCTION_H
 
 #include "traits.h"
-#include <unsupported/Eigen/CXX11/Tensor>
 #include "geometry.h"
 #include "wavefunction/jastrows/jastrow.h"
 #include "qmcExceptions.h"
+#include "tools.h"
+
 
 struct wavefunctionComponentCommands;
 class tableDistances;
@@ -17,10 +18,10 @@ class wavefunction
 	*/
 public:
 	using geometry_t = geometry;
-	using state_t = Eigen::Tensor<real_t, 2>;
-	using grad_t = state_t;
-	using states_t=std::vector<state_t>;
-	using grads_t = std::vector<grad_t>;
+  using state_t = ::state_t;
+  using grad_t = state_t;
+  using states_t= ::states_t;
+  using grads_t = ::states_t;
   
 	wavefunction(const geometry_t & geo_ );
         
@@ -82,8 +83,8 @@ template<class jastrow_t>
 class jastrowOneBodyWavefunction :  public wavefunction1b
 {
 public:
-	using diff_t = Eigen::Tensor<real_t,2>;
-	using distances_t= Eigen::Tensor<real_t,1>;
+  using diff_t = ::difference_t;
+  using distances_t= ::difference_t;
 
 	using wavefunction1b::operator();
 	using wavefunction1b::evaluateDerivatives;
@@ -94,22 +95,23 @@ public:
 	virtual real_t operator()(const state_t & state,const distance_t & dis) override 
 	{		
 		
-		int N=state.dimensions()[0];
-		real_t sum=0;
+	  int N=state.rows();
+	  real_t sum=0;
 
-		for(int i=0;i<N;i++)
-		{
-			sum+=J.d0(dis(i));
-		}
-		return sum;
+	  for(int i=0;i<N;i++)
+	    {
+	      sum+=J.d0(dis(i));
+	    }
+	  return sum;
 	};
   
 	virtual void evaluateDerivatives(const state_t & state, grad_t & gradient , real_t & waveValue, real_t & laplacian , const difference_t & differences,const distance_t & distances) override
 	{
 		real_t tmp=0,tmp1=0,tmp2=0;
 		waveValue=0;
-		int N=state.dimensions()[0];
-		int D=state.dimensions()[1];
+
+		const int N = getN(state);
+		constexpr int D = getDimensions();
 		
 		laplacian=0;
 		for (int i=0;i<N;i++)

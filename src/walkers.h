@@ -18,7 +18,7 @@ struct walker
 public:
 	using grads_t = states_t;
 	walker(){};
-	const  auto & getStates() const {return _states;}
+        const  auto & getStates() const {return _states;}
 	const auto & getTableDistances() const {return _tab;}
 	const auto & getLogWave() const {return _waveValue;}
 	const auto & getGradients() const {return _gradients;}

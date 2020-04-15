@@ -2,6 +2,9 @@
 #include "geometry.h"
 #include "tableDistances.h"
 #include <iostream>
+#include "tools.h"
+
+
 potential::potential(const geometry_t & geo_ ) : geo(&geo_)
 {
 
@@ -32,12 +35,12 @@ real_t harmonicPotential::operator()(const state_t & state,const distance_t & di
 {
 		
 	
-		int N=state.dimensions()[0];
-		real_t sum=0;
+  int N=getN(state);
+  real_t sum=0;
 
-		for(int i=0;i<N;i++)
-		{
-			sum+=0.5 * omega * omega * dis(i) * dis(i);
-		}
-		return sum;
+  for(int i=0;i<N;i++)
+    {
+      sum+=0.5 * omega * omega * dis(i) * dis(i);
+    }
+  return sum;
 };

@@ -5,7 +5,6 @@
 #include <tuple>
 #include <cmath>
 #include <initializer_list>
-#include <unsupported/Eigen/CXX11/Tensor>
 
 class geometry
 {
@@ -33,7 +32,7 @@ public:
 
 real_t norm(real_t x,real_t y, real_t z);
 
-Eigen::Tensor<real_t,1> norm( const Eigen::Tensor<real_t, 2> & diffs);
+distance_t norm( const difference_t & diffs);
 
 
 

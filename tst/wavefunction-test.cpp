@@ -6,10 +6,6 @@
 #include "potential.h"
 #include "energy.h"
 
-
-using state_t = Eigen::Tensor<real_t, 2>;
-using states_t = std::vector<state_t>;
-
 TEST(wavefunctionTest,oneBody)
 {
 	int N=100;
@@ -17,8 +13,7 @@ TEST(wavefunctionTest,oneBody)
  	state_t particleData(N , D);
  	state_t gradient(N , D);
  	real_t alpha=1.;
- 	//Eigen::Tensor<real_t, 2> diffs( (N * (N-1) )/2, 3);
-
+ 	
  	particleData.setRandom();
 
  	geometryPBC geo( 10., 10., 10.);
@@ -40,9 +35,9 @@ TEST(wavefunctionTest,oneBody)
 
  	auto psi_value = waveT(states);
 
- 	Eigen::Tensor<real_t,0> sum2 = (states[0]*states[0]).sum();
+ 	real_t sum2 = (states[0].array()*states[0].array()).sum();
  	
- 	EXPECT_NEAR(psi_value,sum2()*(-alpha),1e-5);
+ 	EXPECT_NEAR(psi_value,sum2*(-alpha),1e-5);
 
 }
 
@@ -53,7 +48,6 @@ TEST(wavefunctionTest,tableDistances)
  	state_t particleData(N , 3);
  	state_t gradient(N , 3);
 
- 	//Eigen::Tensor<real_t, 2> diffs( (N * (N-1) )/2, 3);
 
  	particleData.setRandom();
 
@@ -97,7 +91,6 @@ TEST(wavefunctionTest,oneBody_from_distances)
  	state_t particleData(N , D);
  	state_t gradient(N , D);
  	real_t alpha=1.;
- 	//Eigen::Tensor<real_t, 2> diffs( (N * (N-1) )/2, 3);
 
  	particleData.setRandom();
 

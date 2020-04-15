@@ -9,11 +9,11 @@
 class tableDistances
 {
 public:
-	using diff_t = Eigen::Tensor<real_t,2>;
-	using distances_t = Eigen::Tensor<real_t ,1>;
-	using state_t = Eigen::Tensor<real_t,2>;
-	using states_t = std::vector<state_t>;
-	
+  using diff_t = ::difference_t;
+  using distances_t = ::distance_t;
+  using state_t = ::state_t;
+  using states_t = ::states_t;
+  
 	tableDistances(){};
 	const auto & getGeometry() const {return *geo;}
 

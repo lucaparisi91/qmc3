@@ -39,7 +39,7 @@ real_t driftDiffusionFirstOrder::transitionProbabilityRatio(const dmcWalker & ne
 	const auto & old_driftForces = old_w.getGradients();
 	real_t q=0;
 
-	Eigen::array<Eigen::IndexPair<int>, 2> product_dims = { Eigen::IndexPair<int>(0, 0) ,  Eigen::IndexPair<int>(1, 1)};
+	
 
 	for (int i=0;i< new_positions.size();i++)
 	{
@@ -49,8 +49,8 @@ real_t driftDiffusionFirstOrder::transitionProbabilityRatio(const dmcWalker & ne
 		    ) ;
 	  auto b=( old_driftForces[i] + new_driftForces[i] ) ;
 
-	  Eigen::Tensor<real_t,0> res=a.contract(b,product_dims);
-	  q+=res();
+	  real_t res= (a.array() * b.array() ).sum();
+	  q+=res;
 	};
 	
 	return q;
