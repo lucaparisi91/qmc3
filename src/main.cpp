@@ -15,7 +15,7 @@
 #include "branching.h"
 #include <nlohmann/json.hpp>
 
-
+#include "wavefunction/jastrowWavefunctionOneBody.h"
 
 
 real_t kineticEnergyGaussian(real_t alpha,distance_t dis)

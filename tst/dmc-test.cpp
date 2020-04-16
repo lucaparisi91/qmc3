@@ -7,6 +7,7 @@
 #include "wavefunction/productWavefunction.h"
 #include "branching.h"
 #include <algorithm>
+#include "wavefunction/jastrowWavefunctionOneBody.h"
 
 TEST(dmcTest,branching_lower)
 {
@@ -22,9 +23,8 @@ TEST(dmcTest,branching_lower)
  	auto J=gaussianJastrow(alpha);
 	
  	jastrowOneBodyWavefunction<gaussianJastrow> wave(J,geo,0);
-
- 	productWavefunction psi{&wave};
 	
+ 	productWavefunction psi{&wave};
 	
  	harmonicPotential v(geo,1.,0);
 

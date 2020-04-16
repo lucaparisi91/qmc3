@@ -18,7 +18,7 @@ public:
 
 	potential(const geometry_t & geo_ );
 
-	virtual real_t operator()(const states_t & state ) = 0;
+        virtual real_t operator()(const states_t & state ) = 0;
 	virtual real_t operator()(const states_t & state , const tableDistances & tab) = 0;
 
 	const auto & getGeometry() {return *geo;}
@@ -61,6 +61,17 @@ public:
 private:
 
 	real_t omega;
+};
+
+
+class emptyPotential :  public potential1b
+{
+public:
+  using potential1b::operator();
+
+  emptyPotential(const geometry_t & geo) : potential1b(geo,0) {} ;
+
+  virtual real_t operator()(const state_t & state,const distance_t & dis) override {return 0.;}
 };
 
 

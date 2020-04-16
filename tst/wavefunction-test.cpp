@@ -5,6 +5,10 @@
 #include "initializer.h"
 #include "potential.h"
 #include "energy.h"
+#include "wavefunction/jastrowWavefunctionOneBody.h"
+#include "wavefunction/slaterDeterminant.h"
+#include "orbitals.h"
+#include "estimators.h"
 
 TEST(wavefunctionTest,oneBody)
 {
@@ -21,20 +25,23 @@ TEST(wavefunctionTest,oneBody)
 
  	auto J=gaussianJastrow(alpha);
  	jastrowOneBodyWavefunction<gaussianJastrow> wave(J,geo,0);
-
+	
  	productWavefunction waveT;
  	waveT.add(&wave);
-
- 	real_t e , ef , waveValue =0;
-
- 	states_t gradients {gradient};
+	
+ 	real_t e=0 , ef=0 , waveValue =0;
+	
  	states_t states {particleData};
- 	waveT.evaluateDerivatives( states, gradients, waveValue, e);
- 	
+	
+	walker w;
+	initializer::initialize(w,states,waveT);
+ 	waveT.evaluateDerivatives( w);
+	e=w.getLaplacianLog();
+	
  	EXPECT_EQ(e,-2*alpha*N*D);
 
- 	auto psi_value = waveT(states);
-
+ 	auto psi_value = waveT(w);
+	
  	real_t sum2 = (states[0].array()*states[0].array()).sum();
  	
  	EXPECT_NEAR(psi_value,sum2*(-alpha),1e-5);
@@ -84,41 +91,7 @@ TEST(wavefunctionTest,tableDistances)
 
 }
 
-TEST(wavefunctionTest,oneBody_from_distances)
-{
-	int N=100;
-	int D= 3;
- 	state_t particleData(N , D);
- 	state_t gradient(N , D);
- 	real_t alpha=1.;
 
- 	particleData.setRandom();
-
- 	geometryPBC geo( 10., 10., 10.);
-
-
- 	auto J=gaussianJastrow(alpha);
- 	jastrowOneBodyWavefunction<gaussianJastrow> wave(J,geo,0);
-
- 	productWavefunction waveT;
- 	waveT.add(&wave);
-
- 	real_t e , ef , waveValue =0;
-
- 	states_t gradients {gradient};
- 	states_t states {particleData};
-
- 	tableDistances tab(geo);
-
- 	tab.add(0);
-
- 	tab.update(states);
-
- 	waveT.evaluateDerivatives( states, gradients, waveValue, e,tab);
- 	
- 	EXPECT_EQ(e,-2*alpha*N*D);
- 	
-}
 
 TEST(wavefunctionTest,harmonic_oscillator_3d)
 {
@@ -155,3 +128,47 @@ TEST(wavefunctionTest,harmonic_oscillator_3d)
  	EXPECT_NEAR(e,150.,1e-5);
  	
  }
+
+TEST(fermions,slaterWavefunctionEnergy)
+{
+  std::vector<int> Ns{33};
+
+  real_t lBox=33.;
+  
+  geometryPBC geo(lBox,lBox,lBox);
+  states_t states;
+  
+  for (int i=0;i<Ns.size();i++)
+    {
+      state_t particleData(Ns[i] , getDimensions());
+      particleData.setRandom();
+      particleData=particleData*lBox - lBox/2.;
+      states.push_back(particleData);
+    }
+  
+  real_t alpha=1.;
+  
+  orbitalSet<sinOrbital> sineCosBasis;
+  
+  fillFermiSea(sineCosBasis.getOrbitals(),Ns[0],lBox); // fills a fermi see with the given orbital based
+
+  
+  slaterDeterminantWavefunction<decltype(sineCosBasis)> wave(&sineCosBasis,geo,0);
+
+  productWavefunction psi{&wave} ;
+  dmcWalker w;
+  
+  
+  emptyPotential v(geo);
+  
+  energy eO(&v);
+  forceEnergy efO(&v);
+  
+  realScalarEstimator m("energy",&eO);
+  realScalarEstimator m2("forceEnergy",&efO);
+  
+  initializer::initialize(w,states,psi,eO);
+  
+  EXPECT_NEAR( w.getEnergy() , sineCosBasis.energy() , 1E-5 );
+  
+}

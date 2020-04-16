@@ -1,6 +1,7 @@
 #include "tableDistances.h"
 #include "geometry.h"
 
+
 void tableDistances::add(int setA)
 {
 	auto index = _differences.size();
@@ -69,7 +70,6 @@ void tableDistances::update(const tableDistances::states_t & states)
 			}
 		_distances[element.second]=norm(_differences[element.second]);
 
-	}
-	
+	}	
 	
 }

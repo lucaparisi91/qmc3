@@ -1,53 +1,41 @@
 #include "productWavefunction.h"
 #include "tools.h"
+#include "wavefunction.h"
+#include "walkers.h"
 
-void productWavefunction::evaluateDerivatives(const productWavefunction::particles_t & states, productWavefunction::grads_t & grads, real_t & waveValue,real_t & lap)
+
+void productWavefunction::evaluateDerivatives(productWavefunction::walker_t & w)
 {
-	waveValue=0;lap=0;
-
-	real_t lapPartial,waveValuePartial;
-	for (int i=0;i< grads.size();i++)
-	 {
-	   grads[i].resize(getN(states[i]),getDimensions());
-	   grads[i].setConstant(0.);
-	 }
-	
-	for (int i=0;i< size();i++)
-		{
-			_logWaves[i]->evaluateDerivatives(states,grads,waveValuePartial,lapPartial);
-			waveValue+=waveValuePartial;
-			lap+=lapPartial;
-		}
+  auto & waveValue = w.getLogWave();
+  auto & lap = w.getLaplacianLog();
+  auto & grads = w.getGradients();
+  auto & states = w.getStates();
+  
+  lap=0;waveValue=0;
+  grads.resize(states.size());
+  
+  for (int i=0;i< grads.size();i++)
+    {
+      grads[i].resize(getN(states[i]),getDimensions());
+      grads[i].setConstant(0.);
+    }
+  
+  for (int i=0;i< size();i++)
+    {
+      _logWaves[i]->accumulateDerivatives(w);
+    }
 
 }
 
 
-void productWavefunction::evaluateDerivatives(const productWavefunction::particles_t & states, productWavefunction::grads_t & grads, real_t & waveValue,real_t & lap,const tableDistances & tab)
-{
-	waveValue=0;lap=0;
 
-	real_t lapPartial,waveValuePartial;
-	grads.resize(states.size());
-	for (int i=0;i< grads.size();i++)
-	 {
-	   grads[i].resize( getN(states[i]),getDimensions( ));
-	   grads[i].setConstant(0.);
-	 }
-
-	
-	for (int i=0;i< size();i++)
-		{
-			_logWaves[i]->evaluateDerivatives(states,grads,waveValuePartial,lapPartial,tab);
-			waveValue+=waveValuePartial;
-			lap+=lapPartial;
-		}
-
-}
-
-real_t productWavefunction::operator()(const productWavefunction::particles_t &states)
+real_t productWavefunction::operator()(const productWavefunction::walker_t &states)
 {
 	real_t waveValue=0;
 	for (const auto & wave: _logWaves) 
-		 waveValue+=(*wave)(states);
+	  waveValue+=(*wave)(states);
 	return waveValue;
 }
+
+
+const geometry_t & productWavefunction::getGeometry() const {return (_logWaves[0])->getGeometry();}

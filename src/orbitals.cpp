@@ -1,12 +1,16 @@
+#include "orbitals.h"
+#include "tools.h"
 
-
+#if DIMENSIONS == 3
 sinOrbital::sinOrbital(int n1,int n2,int n3,double lBox_) : lBox(lBox_) , ns{n1,n2,n3}
 {
-    k[0]=n1*2*M_PI/lBox;
-    k[1]=n2*2*M_PI/lBox;
-    k[2]=n3*2*M_PI/lBox;
-    
-    int isCos=1;
+  
+  k.resize(getDimensions() );
+  k[0]=n1*2*M_PI/lBox;
+  k[1]=n2*2*M_PI/lBox;
+  k[2]=n3*2*M_PI/lBox;
+  
+  int isCos=1;
     
     if (abs(n1)>0 )
       {
@@ -40,12 +44,27 @@ sinOrbital::sinOrbital(int n1,int n2,int n3,double lBox_) : lBox(lBox_) , ns{n1,
   }
 
 
-storeMatrixOrbitals(const state_t & states,matrix_t & matrix,std::vector<orbital_t> orbitals)
+template<class orbital_t>
+void orbitalSet<orbital_t>::storeEvaluate(const state_t & states,orbitalSet<orbital_t>::matrix_t & orbitalMatrix) const
 {
-  const int D = states.dimensions()[1];
-  
-  for (const auto & orbital : orbitals)
+  constexpr int D = getDimensions();
+  const int N = getN(states);
+  orbitalMatrix.resize(N,N);
+  assert(orbitals.size() >= N);
+  for (int j=0;j<N;j++)
     {
-      orbital(states)
+      auto & orbital = orbitals[j];
+      for (int i=0;i<N;i++)
+	{
+	  orbitalMatrix(i,j)=orbital(    states(i,0) , states(i,1),states(i,2)   );
+	  
+	}
     }
-}
+};
+
+
+
+
+template class orbitalSet<sinOrbital>;
+
+#endif

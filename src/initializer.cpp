@@ -3,6 +3,8 @@
 #include "tableDistances.h"
 #include "qmcExceptions.h"
 #include "walkers.h"
+#include "wavefunction/wavefunction.h"
+
 
 void initializer::registerDistances(tableDistances & tab,const wavefunction & wave)
 {
@@ -28,17 +30,29 @@ void initializer::registerDistances(tableDistances & tab,const productWavefuncti
 		registerDistances(tab,*wave);
 };
 
+void initializer::registerSlaterOrbitals(tableSlaters & tab,const productWavefunction & psi)
+{
+  for (const auto & wave : psi.waves() )
+    {
+      const auto  sets = wave->sets();
+      const auto  orbitals = wave->orbitals();
+
+      if (orbitals.size() == 1 and sets.size() == 1 )
+	{
+	  tab.add(sets[0],orbitals[0]);
+	}
+    }
+}
 
 void initializer::initialize(walker & w, const states_t & states ,  productWavefunction & psi)
 {
 	w.getStates()=states;
 
 	registerDistances(w.getTableDistances(),psi);
+	registerSlaterOrbitals(w.getTableSlaters(),psi);
 	w.getTableDistances().update(states);
-
-	real_t lap;	
-
-	psi.evaluateDerivatives(w.getStates(), w.getGradients(), w.getLogWave(),w.getLaplacianLog(),w.getTableDistances());
+	w.getTableSlaters().update(states);
+	psi.evaluateDerivatives( w);
 	
 }
 
@@ -46,7 +60,7 @@ void initializer::initialize(dmcWalker & w, const states_t & states ,  productWa
 {
   w.getStates()=states;
   registerDistances(w.getTableDistances(),psi);
-  w.getTableDistances().update(states);
+  registerSlaterOrbitals(w.getTableSlaters(),psi);
   updateForceGradientEnergy(w,psi,ob);
 }
 
