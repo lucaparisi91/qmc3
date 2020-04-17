@@ -5,6 +5,7 @@
 #include "parameters.h"
 #include <iostream>
 #include "qmcExceptions.h"
+#include <nlohmann/json.hpp>
 
 
 template<class T>
@@ -40,7 +41,7 @@ public:
 	 void addGradientParameter(real_t x,int sourceParameter,parameter & param, std::vector<real_t> & gradientParameter) {throw missingImplementation("Jastrow does not seem to support any parameter gradient.");} ;
 
 	 int nParameters() {return 0;}
-
+  
 
 protected:
 	jastrow(){}; // disalloes the instantation of base class. Only concrete jastrows shoulf derive from this class
@@ -53,13 +54,22 @@ class gaussianJastrow : public jastrow<gaussianJastrow>
 {
 	// J(x) = -alpha* x^2 
 public:
-	int nParameters() {return 1;}; // number of variational parameters supported
+  int nParameters() {return 1;}; // number of variational parameters supported
+  
+  gaussianJastrow(real_t alpha_) : alpha(alpha_){};
+  gaussianJastrow(const nlohmann::json  & j)
+  {
+    alpha=j["alpha"];
+  }
 
-	gaussianJastrow(real_t alpha_) : alpha(alpha_){};
-	
-	real_t d0(real_t x) {return -alpha*x*x;}
-	real_t d1(real_t x) {return -2.*alpha*x;}
-	real_t d2(real_t x) {return -2*alpha;}
+  
+  static std::string name() {return "gaussian"; }
+
+  
+  
+  real_t d0(real_t x) {return -alpha*x*x;}
+  real_t d1(real_t x) {return -2.*alpha*x;}
+  real_t d2(real_t x) {return -2*alpha;}
 
 
 	void addGradientParameter(real_t x,int sourceParameter,parameter & param, std::vector<real_t> & gradientParameter) 

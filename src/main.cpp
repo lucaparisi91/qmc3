@@ -13,20 +13,11 @@
 #include "driver.h"
 #include "dmcDriver.h"
 #include "branching.h"
-#include <nlohmann/json.hpp>
-
+#include <string>
 #include "wavefunction/jastrowWavefunctionOneBody.h"
 
+#include "factory.h"
 
-real_t kineticEnergyGaussian(real_t alpha,distance_t dis)
-{
-
-  auto tmp=(dis* dis ).sum();
-
-	//return -2.*alpha*alpha * tmp() +3*alpha*dis.dimensions()[0]; 
-
-  return -2.*alpha*alpha * tmp;
-}
 
 int main(int argc, char** argv)
 {
@@ -38,6 +29,12 @@ int main(int argc, char** argv)
   std::vector<int> Ns;
   Ns=j["N"].get<decltype(Ns)>();
   int D=lBox.size();
+
+  if ( D != getDimensions() )
+    {
+      throw invalidInput("Input file implies dimensionality different from " + std::to_string(getDimensions() ) );
+      
+    }
   
   geometryPBC geo( lBox[0], lBox[1], lBox[2]);
   
@@ -49,14 +46,17 @@ int main(int argc, char** argv)
       particleData.setRandom();
       states.push_back(particleData);
     }
+
+ 
   
-  tableDistances tab(geo);
-  real_t alpha=1.;
-  auto J=gaussianJastrow(alpha);
-
-  jastrowOneBodyWavefunction<gaussianJastrow> wave(J,geo,0);
-
-  productWavefunction psi{&wave};
+  getFactory().registerJastrow< gaussianJastrow >();
+  
+  
+  auto waves = getFactory().createWavefunctions( j["wavefunctions"],geo);
+  
+  
+  productWavefunction psi(waves);
+  
 
   harmonicPotential v(geo,1.,0);
   
@@ -65,7 +65,8 @@ int main(int argc, char** argv)
   
   realScalarEstimator m("energy",&eO);
   realScalarEstimator m2("forceEnergy",&efO);
-	
+  
+  
   // vmcDriver vmcO(&psi,1e-1);
   // vmcO.getStepsPerBlock()=100000.;
   // vmcO.getEstimators().push_back(&m);

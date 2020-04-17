@@ -19,7 +19,8 @@ public:
   
   productWavefunction(){};
   
-  productWavefunction(std::initializer_list<wavefunction *> waves) : _logWaves(waves) {}
+
+  productWavefunction(std::vector<wavefunction *> waves) : _logWaves(waves) {}
 
   real_t operator()(const walker_t & states); // evaluates \sum_i psi_i
 

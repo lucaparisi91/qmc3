@@ -5,6 +5,7 @@
 #include <random>
 class geometry;
 class productWavefunction;
+#include <nlohmann/json.hpp>
 
 #define DIMENSIONS 3
 
@@ -23,4 +24,5 @@ using distances_t = std::vector<distance_t>;
 using wavefunction_t = productWavefunction;
 
 using randomGenerator_t = std::ranlux24;
+using json_t =   nlohmann::json;
 #endif

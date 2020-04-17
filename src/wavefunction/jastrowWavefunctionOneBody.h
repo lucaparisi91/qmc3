@@ -1,4 +1,9 @@
+#ifndef JASTROW_ONE_BODY_WAVEFUNCTION_H
+#define JASTROW_ONE_BODY_WAVEFUNCTION_H
+
+
 #include "wavefunction.h"
+#include "walkers.h"
 
 template<class jastrow_t>
 class jastrowOneBodyWavefunction :  public wavefunction
@@ -11,6 +16,7 @@ public:
   
   jastrowOneBodyWavefunction(jastrow_t J_,const geometry_t  &geo_, int setA_=0) : setA(setA_), J(J_),wavefunction::wavefunction(geo_) {}
   
+  jastrowOneBodyWavefunction(const json_t & jInput,const geometry_t & geo) : wavefunction(geo) , J(jInput["jastrow"]){setA=jInput["set"] ;}
   virtual real_t operator()(const walker_t & walker) 
 	{		
 	  auto & dis = walker.getTableDistances().distances(setA);
@@ -61,8 +67,12 @@ public:
 
   virtual std::vector<int> sets() const {return {setA};}
 
+  static std::string name() {return "jastrow1b/" + jastrow_t::name();}
+  
 private:
   jastrow_t J;
   int setA;
 };
 
+
+#endif

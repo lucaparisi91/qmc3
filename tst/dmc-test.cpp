@@ -24,7 +24,7 @@ TEST(dmcTest,branching_lower)
 	
  	jastrowOneBodyWavefunction<gaussianJastrow> wave(J,geo,0);
 	
- 	productWavefunction psi{&wave};
+ 	productWavefunction psi({&wave});
 	
  	harmonicPotential v(geo,1.,0);
 
@@ -91,7 +91,7 @@ TEST(dmcTest,branching_upper)
 	
  	jastrowOneBodyWavefunction<gaussianJastrow> wave(J,geo,0);
 
- 	productWavefunction psi{&wave};
+ 	productWavefunction psi({&wave});
 	
 	
  	harmonicPotential v(geo,1.,0);

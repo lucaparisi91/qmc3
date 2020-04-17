@@ -13,11 +13,11 @@ void tableDistances::add(int setA)
 
 void tableDistances::add(int setA,int setB)
 {
-	auto index = _differences.size();
-	_differences.resize(_differences.size() + 1);
-	_distances.resize(_distances.size() + 1);
-
-	indices2b[ std::make_pair(setA,setB)] = index;
+  auto index = _differences.size();
+  _differences.resize(_differences.size() + 1);
+  _distances.resize(_distances.size() + 1);
+  
+  indices2b[ std::make_pair(setA,setB)] = index;
 };
 
 const tableDistances::diff_t & tableDistances::differences(int setA) const 
@@ -34,8 +34,8 @@ const tableDistances::distances_t & tableDistances::distances(int setA) const
 
 const tableDistances::diff_t & tableDistances::differences(int setA, int setB) const 
 {
-	int index= indices2b.at(std::make_pair(setA,setB));
-	return _differences[index];
+  int index= indices2b.at(std::make_pair(setA,setB));
+  return _differences[index];
 };
 
 const tableDistances::distances_t & tableDistances::distances(int setA,int setB) const 

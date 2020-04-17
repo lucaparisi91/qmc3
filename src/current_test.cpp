@@ -16,6 +16,8 @@
 #include <nlohmann/json.hpp>
 
 #include "wavefunction/jastrowWavefunctionOneBody.h"
+#include "wavefunction/jastrowWavefunctionTwoBody.h"
+
 #include "wavefunction/slaterDeterminant.h"
 
 #include "orbitals.h"
@@ -46,8 +48,8 @@ int main(int argc, char** argv)
 
   
   slaterDeterminantWavefunction<decltype(sineCosBasis)> wave(&sineCosBasis,geo,0);
-
-  productWavefunction psi{&wave} ;
+  
+  productWavefunction psi({&wave}) ;
   dmcWalker w;
   
   

@@ -91,9 +91,7 @@ TEST(wavefunctionTest,tableDistances)
 
 }
 
-
-
-TEST(wavefunctionTest,harmonic_oscillator_3d)
+TEST(wavefunctionTest,2b)
 {
 
 	int N=100;
@@ -109,25 +107,10 @@ TEST(wavefunctionTest,harmonic_oscillator_3d)
 
  	states_t states {particleData};
  	tableDistances tab(geo);
- 	real_t alpha=0.5;
- 	auto J=gaussianJastrow(alpha);
-
- 	jastrowOneBodyWavefunction<gaussianJastrow> wave(J,geo,0);
-
- 	productWavefunction psi{&wave};
-
- 	walker w;
- 	initializer::initialize(w,states,psi);
-
- 	harmonicPotential v(geo,1.,0);
-
- 	energy eO(&v);
-
- 	auto e = eO(w,psi);
- 	//auto ek = kineticEnergyGaussian(alpha, w.getTableDistances().distances(0));
- 	EXPECT_NEAR(e,150.,1e-5);
- 	
+	
  }
+
+
 
 TEST(fermions,slaterWavefunctionEnergy)
 {
@@ -155,7 +138,7 @@ TEST(fermions,slaterWavefunctionEnergy)
   
   slaterDeterminantWavefunction<decltype(sineCosBasis)> wave(&sineCosBasis,geo,0);
 
-  productWavefunction psi{&wave} ;
+  productWavefunction psi({&wave}) ;
   dmcWalker w;
   
   

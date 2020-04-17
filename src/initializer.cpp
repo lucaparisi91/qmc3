@@ -8,7 +8,6 @@
 
 void initializer::registerDistances(tableDistances & tab,const wavefunction & wave)
 {
-
 	const auto & sets = wave.sets();
 	tab.setGeometry(wave.getGeometry());
 	
@@ -17,10 +16,14 @@ void initializer::registerDistances(tableDistances & tab,const wavefunction & wa
 	{
 		tab.add(sets[0]);
 	}
-	else
+	else if (sets.size() == 2)
 	{
-		throw missingImplementation("Register distances: more then 1b wavefunctions.");
+	  tab.add(sets[0],sets[1]);
 	}
+	else
+	  {
+	    throw missingImplementation("More then 2b distances are not calculated");
+	  }
 };
 
 void initializer::registerDistances(tableDistances & tab,const productWavefunction & waves)

@@ -26,7 +26,7 @@ public:
   using walker_t = walker;
   
   wavefunction(const geometry_t & geo_ );
-  
+  wavefunction() {};
   virtual real_t operator()(const walker_t & state ) = 0;
   
   const auto & getGeometry() const {return *geo;}  
@@ -37,12 +37,11 @@ public:
 
   virtual std::vector<orbitalSetBase*> orbitals() const {return {} ;}
   
+  void setGeometry(const geometry_t & geo_) {geo=&geo_;}
 private:
   const geometry_t * geo;
-
+  
 };
-
-
 
 
 #endif

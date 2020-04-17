@@ -5,5 +5,18 @@
     "timeStep" : 1e-3,
     "stepsPerBlock" : 1000,
     "walkers" : 100,
-    "nBlocks" : 100000
+    "nBlocks" : 100000,
+    "wavefunctions" :
+    [
+	{
+	    "kind" : "jastrow1b",
+	    "set" : 0,
+	    "jastrow" : 
+	    {
+		"kind" : "gaussian",
+		"alpha" : 1.2
+	    }
+	    
+	}
+    ]
 }
