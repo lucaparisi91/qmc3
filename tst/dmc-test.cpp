@@ -27,8 +27,9 @@ TEST(dmcTest,branching_lower)
  	productWavefunction psi({&wave});
 	
  	harmonicPotential v(geo,1.,0);
+	sumPotentials pot({&v});
 
- 	energy eO(&v);
+ 	energy eO(&pot);
 
  	walkerContainer<dmcWalker> walkers;
 	walkerContainer<dmcWalker> newWalkers;
@@ -95,8 +96,9 @@ TEST(dmcTest,branching_upper)
 	
 	
  	harmonicPotential v(geo,1.,0);
+	sumPotentials pot({&v});
 
- 	energy eO(&v);
+ 	energy eO(&pot);
 
  	walkerContainer<dmcWalker> walkers;
 	walkerContainer<dmcWalker> newWalkers;
@@ -142,6 +144,5 @@ TEST(dmcTest,branching_upper)
 	    int n=std::count_if(newWalkers.begin(),newWalkers.end(),[&](dmcWalker & w){return w.getEnergy() == e;});
 	    
 	    ASSERT_EQ( nDescendants[i] , n );
-	  }
-	
+	  }	
  }

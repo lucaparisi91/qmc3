@@ -1,7 +1,6 @@
 #ifndef JASTROW_ONE_BODY_WAVEFUNCTION_H
 #define JASTROW_ONE_BODY_WAVEFUNCTION_H
 
-
 #include "wavefunction.h"
 #include "walkers.h"
 

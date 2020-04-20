@@ -1,22 +1,37 @@
 {
-    "N" : [1],
-    "lBox" : [1000,1000,1000],
-    "method" : "dmc",
-    "timeStep" : 1e-3,
-    "stepsPerBlock" : 1000,
+    "N" : [10],
+    "lBox" : [100,100,100],
+    "method" : "vmc",
+    "timeStep" : 1e-2,
+    "stepsPerBlock" : 100000,
     "walkers" : 100,
     "nBlocks" : 100000,
     "wavefunctions" :
     [
 	{
-	    "kind" : "jastrow1b",
-	    "set" : 0,
-	    "jastrow" : 
+	    "kind" : "jastrow2b",
+	    "sets" : [0,0],
+	    "jastrow" :
 	    {
-		"kind" : "gaussian",
-		"alpha" : 1.2
+		"kind" : "squareWell",
+		"V0" :  2.4674011002723395,
+		"R0" : 1.0,
+		"alpha" : 0.5,
+		"cut_off" : 50.,
+		"Rm" : 40.
 	    }
-	    
 	}
+    ],
+    
+    "potentials" :
+    [
+	{
+	    "kind" : "squareWell2b",
+	    "V0" :  2.4674011002723395,
+	    "R0" : 1.,
+	    "sets" : [0,0]
+	}
+	
     ]
+    
 }

@@ -3,7 +3,7 @@
 
 wavefunction::wavefunction(const geometry_t & geo_ ) : geo(&geo_)
 {
-
+  
 };
 
 

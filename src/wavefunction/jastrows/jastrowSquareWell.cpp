@@ -36,3 +36,7 @@ void jastrowSquareWell::initCoefficients()
      }
    
 }
+
+
+jastrowSquareWell::jastrowSquareWell(const json_t & j) :
+  jastrowSquareWell(j["V0"],j["R0"],j["Rm"],j["alpha"],j["cut_off"]){}

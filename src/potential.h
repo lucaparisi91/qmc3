@@ -5,6 +5,8 @@
 #include "traits.h"
 #include "qmcExceptions.h"
 
+class walker;
+
 class tableDistances;
 
 class potential
@@ -13,51 +15,64 @@ class potential
 	Represents the logarithm of the wavefunction. Supports wavefunctions acting on at most two different sets
 	*/
 public:
-	using states_t=::states_t;
-	using state_t = ::state_t;
+  using walker_t = walker;
+  using states_t=::states_t;
+  using state_t = ::state_t;
 
-	potential(const geometry_t & geo_ );
+  potential(const geometry_t & geo_ );
 
-        virtual real_t operator()(const states_t & state ) = 0;
-	virtual real_t operator()(const states_t & state , const tableDistances & tab) = 0;
-
-	const auto & getGeometry() {return *geo;}
+  virtual real_t operator()(const walker_t & state ) = 0;
+  const auto & getGeometry() {return *geo;}
+  virtual std::vector<int> sets() const = 0 ;
 
 private:
-	const geometry_t * geo;
+  const geometry_t * geo;
 };
+
+
+class sumPotentials
+{
+public:
+  using walker_t = potential::walker_t;
+  sumPotentials(std::vector<potential*> potentials);
+  const auto & potentials() const {return _potentials;}
+  virtual real_t operator()(const walker_t & state );
+  size_t size(){return _potentials.size();}
+private:
+  std::vector<potential*> _potentials;
+};
+
+
 
 class potential1b : public potential
 {
 public:
 
-	potential1b(const geometry_t & geo, int setA_); 
+  potential1b(const geometry_t & geo, int setA_);
+  
+  virtual real_t operator()(const walker_t & state)=0;
+  
+  virtual std::vector<int> sets() const {return {_setA};}
 
-	virtual real_t operator()(const states_t & states ){return (*this)(states[_setA]);}
-	virtual real_t operator()(const states_t & state,const tableDistances & tab ) ;
+  int setA() const {return _setA;}
 
-
-
-	virtual real_t operator()(const state_t & state);
-
-	virtual real_t operator()(const state_t & state,const distance_t & dis){throw missingImplementation("Evaluation on a single state from distances in one body potential.");}
-
-	const int & setA() const {return _setA;}
-
+  
 private:
 	int _setA;
-	distance_t distances;
-	difference_t differences;
 };
 
 class harmonicPotential :  public potential1b
 {
 public:
-	using potential1b::operator();
-
-	harmonicPotential(const geometry_t & geo,real_t freq , int setA ) ;
-
-	virtual real_t operator()(const state_t & state,const distance_t & dis) override;
+  using potential1b::operator();
+  
+  harmonicPotential(const geometry_t & geo,real_t freq , int setA ) ;
+  
+  harmonicPotential(const json_t & j, const geometry_t & geo);
+  
+  virtual real_t operator()(const walker_t & state) ;
+  
+  static std::string name() {return "harmonic1b";}
 private:
 
 	real_t omega;
@@ -71,8 +86,28 @@ public:
 
   emptyPotential(const geometry_t & geo) : potential1b(geo,0) {} ;
 
-  virtual real_t operator()(const state_t & state,const distance_t & dis) override {return 0.;}
+  virtual real_t operator()(const walker_t & w)  {return 0.;}
 };
 
+class squareWellPotential2b :  public potential
+{
+public:
+  using potential::operator();
+  
+  squareWellPotential2b(const geometry_t & geo,real_t V0_ , real_t R0_ , int setA_, int setB_ ) ;
+  
+  squareWellPotential2b(const json_t & j, const geometry_t & geo);
+  
+  virtual real_t operator()(const walker_t & state) ;
+  
+  static std::string name() {return "squareWell2b";}
 
+  virtual std::vector<int> sets() const {return {setA,setB};} ;
+private:
+  real_t R0;
+  real_t V0;
+  int setA;
+  int setB;
+  
+};
 #endif

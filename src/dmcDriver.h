@@ -3,7 +3,6 @@
 
 #include "walkers.h"
 
-class potential;
 class realScalarEstimator;
 class branchingControl;
 
@@ -63,7 +62,7 @@ class dmcDriver : public driver
 	using walker_t =dmcWalker;
 public:
   
-  dmcDriver(wavefunction_t * wave,potential * pot,real_t timeStep,size_t nWalkers);
+  dmcDriver(wavefunction_t * wave,potential_t * pot,real_t timeStep,size_t nWalkers);
   
   virtual void run( const std::vector<states_t> &states , size_t nBlocks );
 

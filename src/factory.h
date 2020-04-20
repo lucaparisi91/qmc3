@@ -1,9 +1,11 @@
 #include "wavefunction/wavefunctionFactory.h"
 #include "wavefunction/jastrowWavefunctionOneBody.h"
+#include "potentialFactory.h"
 
 /*
 Defines a singleton factory  which manages the creation of wavefunctions
 */
+
 
 class factory {
 private:
@@ -19,11 +21,21 @@ public:
     waveFacInstance.registerWavefunction<wave_t>();
   }
 
-  auto createWavefunctions(json_t & j,geometry_t & geo)
+  template<class pot_t>
+  void registerPotential()
+  {
+    potFacInstance.registerPotential<pot_t>();
+  }
+  
+  auto createWavefunctions(json_t & j,const geometry_t & geo)
   {
     return waveFacInstance.create(j,geo);
   }
 
+  auto createPotentials(json_t & j,const geometry_t & geo)
+  {
+    return potFacInstance.create(j,geo);
+  }
   
   template<class jastrow_t>
   void registerJastrow()
@@ -35,7 +47,10 @@ public:
 private:
   
   wavefunctionFactory waveFacInstance;
+  potentialFactory potFacInstance;
   
 };
 
 factory&  getFactory();
+
+std::string createId(const json_t & j);

@@ -22,7 +22,7 @@ class abstractFactory
   typedef map<idType,creatorType> creatorMap;
   
   template<class T=defaultAction>
-  object* create(const idType &id,const json_t & j , geometry_t & geo )
+  object* create(const idType &id,const json_t & j , const geometry_t & geo )
   {
     typename creatorMap::const_iterator i;
     i=creators.find(id);
@@ -47,5 +47,7 @@ class abstractFactory
   
   creatorMap creators;
 };
+
+std::string createId(const json_t & j);
 
 #endif

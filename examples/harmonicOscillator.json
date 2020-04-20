@@ -1,0 +1,33 @@
+{
+    "N" : [1],
+    "lBox" : [10000.0,10000.0,10000.0],
+    "method" : "dmc",
+    "timeStep" : 1e-3,
+    "stepsPerBlock" : 10000,
+    "walkers" : 400,
+    "nBlocks" : 100000,
+    
+    "wavefunctions" :
+    [
+	{
+	    "kind" : "jastrow1b",
+	    "set" : 0,
+	    "jastrow" :
+	    {
+		"kind" : "gaussian",
+		"alpha" : 1.0
+	    }
+	}
+    ],
+    
+    "potentials" :
+    [
+	{
+	    "kind" : "harmonic1b",
+	    "omega" : 1.0,
+	    "set" : 0
+	}
+	
+    ]
+    
+}

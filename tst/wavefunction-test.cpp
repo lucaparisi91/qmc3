@@ -141,11 +141,11 @@ TEST(fermions,slaterWavefunctionEnergy)
   productWavefunction psi({&wave}) ;
   dmcWalker w;
   
-  
   emptyPotential v(geo);
+  sumPotentials pot({&v});
   
-  energy eO(&v);
-  forceEnergy efO(&v);
+  energy eO(&pot);
+  forceEnergy efO(&pot);
   
   realScalarEstimator m("energy",&eO);
   realScalarEstimator m2("forceEnergy",&efO);

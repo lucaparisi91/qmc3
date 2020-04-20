@@ -86,6 +86,8 @@ void dmcDriver::out()
 	
 	auto & energyEst  = getEstimators()[0];
 	std::cout << "Acc. Ratio: " << accepter->getAcceptanceRatio() << std::endl;
+	std::cout << "Step: " << (getCurrentBlock()+1)*getStepsPerBlock()  << std::endl;
+
 	std::cout << ansiColor("cyan") << "Energy: " << ansiColor("default");
 	std::cout << std::scientific;
 	energyEst->write(std::cout);
@@ -101,7 +103,7 @@ void dmcDriver::out()
 
 }
 
-dmcDriver::dmcDriver(dmcDriver::wavefunction_t * wave, potential * pot,real_t timeStep,size_t nWalkers) :
+dmcDriver::dmcDriver(dmcDriver::wavefunction_t * wave, potential_t * pot,real_t timeStep,size_t nWalkers) :
   driver::driver(wave), energyOb(pot),
   dmcMover( new driftDiffusionFirstOrder(timeStep)),
   energyEst(new realScalarEstimator("energy",&energyAccFromWalker) ),

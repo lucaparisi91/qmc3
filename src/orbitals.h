@@ -28,6 +28,9 @@ public:
       }
     return e;
   }
+
+  static std::string name() {return orbital_t::name() ;}
+
 private:
   std::vector<orbital_t> orbitals;
 };
@@ -57,7 +60,9 @@ public:
   }
 
   virtual real_t energy() const  {return 0.5*(k[0]*k[0] + k[1]*k[1] + k[2]*k[2] );}
-  
+
+  static std::string name() {return "sinCos" ;}
+
 private:
   real_t delta;
   real_t lBox;

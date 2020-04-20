@@ -15,7 +15,6 @@
 #include "branching.h"
 #include <string>
 #include "wavefunction/jastrowWavefunctionOneBody.h"
-
 #include "factory.h"
 
 
@@ -57,36 +56,53 @@ int main(int argc, char** argv)
   
   productWavefunction psi(waves);
   
+  /* Potentials
+     First register implemented concrete potential classes and then create the local potential as sum of individual potentials
+*/
 
-  harmonicPotential v(geo,1.,0);
+  getFactory().registerPotential<harmonicPotential>();
+  getFactory().registerPotential<squareWellPotential2b>();
+
+  auto potentials = getFactory().createPotentials(j["potentials"],geo);
   
-  energy eO(&v);
-  forceEnergy efO(&v);
+  sumPotentials pot(potentials);
+  
+  energy eO(&pot);
+  forceEnergy efO(&pot);
   
   realScalarEstimator m("energy",&eO);
   realScalarEstimator m2("forceEnergy",&efO);
   
-  
-  // vmcDriver vmcO(&psi,1e-1);
-  // vmcO.getStepsPerBlock()=100000.;
-  // vmcO.getEstimators().push_back(&m);
-  
-  // vmcO.run(states,1000);
+  std::string method = j["method"];
 
-  
-  size_t nW=j["walkers"];
   real_t timeStep = j["timeStep"];
   size_t stepsPerBlock = j["stepsPerBlock"];
-  size_t nBlocks = j["nBlocks"];
-  dmcDriver dmcO(&psi,&v,timeStep,nW);
-  dmcO.getStepsPerBlock()=stepsPerBlock;
-  std::vector<states_t> dmcStates;
+  size_t nBlocks = j["nBlocks"];  
   
-  for(int i=0;i<nW;i++)
+  if (method == "vmc")
     {
-      dmcStates.push_back(states);
+      vmcDriver vmcO(&psi,timeStep);
+      vmcO.getStepsPerBlock()=stepsPerBlock;
+      vmcO.getEstimators().push_back(&m);
+      vmcO.getEstimators().push_back(&m2);
+      vmcO.run(states,nBlocks);
+
     }
+  else if ( method == "dmc")
+    {
+      size_t nW=j["walkers"];
+
   
-  dmcO.run(dmcStates,nBlocks);	
+      dmcDriver dmcO(&psi,&pot,timeStep,nW);
+      dmcO.getStepsPerBlock()=stepsPerBlock;
+      std::vector<states_t> dmcStates;
+  
+      for(int i=0;i<nW;i++)
+	{
+	  dmcStates.push_back(states);
+	}
+  
+      dmcO.run(dmcStates,nBlocks);
+    }
 
 }

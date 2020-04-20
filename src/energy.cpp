@@ -1,7 +1,7 @@
 #include "energy.h"
 #include "wavefunction/productWavefunction.h"
 #include "walkers.h"
-
+#include <iostream>
 real_t kineticEnergy::operator()(walker_t & w,wavefunction_t & psi)
 	{
 		real_t e=0;
@@ -22,9 +22,8 @@ real_t kineticEnergy::operator()(walker_t & w,wavefunction_t & psi)
 
 real_t energy::operator()(walker_t & w,wavefunction_t & psi)
 	{
-		auto v=(*_pot)(w.getStates(),w.getTableDistances());
-
-		return  kinE(w,psi) + v;
+		auto v=(*_pot)(w);
+		return  v + kinE(w,psi);
 	}; 
 
 real_t forceEnergy::operator()(walker_t & w,wavefunction_t & psi)
@@ -41,7 +40,7 @@ real_t forceEnergy::operator()(walker_t & w,wavefunction_t & psi)
 			ef+=tmp;	
 		}
 
-		auto v=(*_pot)(w.getStates(),w.getTableDistances());
+		auto v=(*_pot)(w);
 		return 0.5*(ef ) + v;
 	};
 

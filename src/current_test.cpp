@@ -51,12 +51,14 @@ int main(int argc, char** argv)
   
   productWavefunction psi({&wave}) ;
   dmcWalker w;
-  
+
+
   
   emptyPotential v(geo);
-  
-  energy eO(&v);
-  forceEnergy efO(&v);
+  sumPotentials pot({&v});
+
+  energy eO(&pot);
+  forceEnergy efO(&pot);
   
   realScalarEstimator m("energy",&eO);
   realScalarEstimator m2("forceEnergy",&efO);

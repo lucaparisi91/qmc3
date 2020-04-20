@@ -15,6 +15,9 @@ public:
   virtual std::vector<int> sets() const override {return {setA};}
   
   std::vector<orbitalSetBase*> orbitals() const override {return {_orbitals};}
+
+  static std::string name() {return "slater/" + orbitalSet_t::name();}
+
 private:
   grad_t tmpGrad;
   orbitalSet_t *_orbitals;

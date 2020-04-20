@@ -2,7 +2,6 @@
 #define TABLE_DISTANCES_H
 
 #include "traits.h"
-#include <unsupported/Eigen/CXX11/Tensor>
 #include <map>
 #include <unordered_map>
 

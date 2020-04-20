@@ -26,9 +26,9 @@ public:
 	size_t getCurrentBlock() const {return iBlock;}
 
 	size_t getCurrentSubStep() const  {return iSubStep;}
-
+  
 	auto & getEstimators() {return _estimators;}
-
+  
 	virtual void run(size_t nBlocks);
 	virtual void step()=0;
 	virtual void accumulate()=0;
@@ -36,7 +36,7 @@ public:
 
 	wavefunction_t & getWavefunction () {return (*_wave);}
 	const wavefunction_t & getWavefunction() const {return (*_wave);}
-
+  
 private:
 	wavefunction_t * _wave;
 	std::ranlux24 _rand;
