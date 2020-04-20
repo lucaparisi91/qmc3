@@ -26,7 +26,8 @@ public:
   virtual void dump();
   virtual std::string & getLabel() {return _label;}
   virtual std::string & getFileName() {return filename;}
-  
+
+  virtual void accumulateMPI(int root)=0;
   virtual ~ estimatorBase();
   
   virtual std::fstream & getFileDescriptor() {return f;}
@@ -47,6 +48,8 @@ public:
 	virtual void accumulate(walker_t & w,wave_t & psi) {ob->accumulate(w,psi,acc);}
 	virtual void write(std::ostream & stream);
 	virtual void clear(){acc.clear();}
+
+  virtual void accumulateMPI(int root) {acc.accumulateMPI(root);}
 
 private:
 	accumulator_t acc;

@@ -22,7 +22,8 @@ public:
 	auto & operator[](size_t i) {return _estimators[i];}
 	virtual void clear();
 	virtual void dump();
-	
+        virtual void accumulateMPI(int root=0);
+  
 private:
 	std::vector<estimatorBase*> _estimators;
 };

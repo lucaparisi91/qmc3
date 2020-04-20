@@ -2,8 +2,8 @@
 #define ACCUMULATORS_H
 
 #include "traits.h"
-
-
+#include "ptools.h"
+#include <iostream>
 template<class T>
 class scalarAccumulator
 {
@@ -15,6 +15,13 @@ public:
 
 	value_t average() const {return sum/n;}
 	void clear(){sum=0.;n=0.;}
+
+  void accumulateMPI(int root) // sum partial sums on all processors into the root processor
+  {
+    
+    sum=pTools::sum(sum,root);
+    n=pTools::sum(n,root);
+  }
 private:
 	value_t sum;
 	size_t n;

@@ -16,13 +16,47 @@
 #include <string>
 #include "wavefunction/jastrowWavefunctionOneBody.h"
 #include "factory.h"
-
 #include "wavefunction/jastrows/jastrowSquareWell.h"
+#include "ptools.h"
 
 int main(int argc, char** argv)
 {
+
+  /*
+    Reads input from standrard input and broadcast to all other mpi processes
+*/
+  pTools::init(argc,argv);
+
+  std::string jSonString="";  
+  
+  
+  if ( pTools::isMaster())
+    {
+      std::string line;
+      while (std::getline(std::cin, line))
+	{
+	  jSonString+=line;
+	}
+  
+    }
+  
+  pTools::broadcast(&jSonString,0);
+  
+  std::istringstream ss(jSonString);
+  
   nlohmann::json j;
-  std::cin >> j;
+
+  ss >> j;
+
+  
+  
+
+  if (pTools::isMaster())
+     {
+       std::cout << "MPI processes: " <<  pTools::nProcesses() << std::endl;
+     }
+  
+  
   std::vector<real_t> lBox;
   
   lBox=j["lBox"].get<decltype(lBox)>();
@@ -49,7 +83,6 @@ int main(int argc, char** argv)
   
   getFactory().registerJastrow< gaussianJastrow >();
   getFactory().registerJastrow< jastrowSquareWell >();
-
   
   auto waves = getFactory().createWavefunctions( j["wavefunctions"],geo);
   
@@ -62,7 +95,7 @@ int main(int argc, char** argv)
 
   getFactory().registerPotential<harmonicPotential>();
   getFactory().registerPotential<squareWellPotential2b>();
-
+  
   auto potentials = getFactory().createPotentials(j["potentials"],geo);
   
   sumPotentials pot(potentials);
@@ -78,6 +111,7 @@ int main(int argc, char** argv)
   real_t timeStep = j["timeStep"];
   size_t stepsPerBlock = j["stepsPerBlock"];
   size_t nBlocks = j["nBlocks"];  
+  int seed= j["seed"];
   
   if (method == "vmc")
     {
@@ -85,13 +119,16 @@ int main(int argc, char** argv)
       vmcO.getStepsPerBlock()=stepsPerBlock;
       vmcO.getEstimators().push_back(&m);
       vmcO.getEstimators().push_back(&m2);
-      vmcO.run(states,nBlocks);
-
+      vmcO.getRandomGenerator().seed(seed + pTools::rank() );
+      vmcO.run(states,nBlocks); 
     }
   else if ( method == "dmc")
     {
+      if (pTools::nProcesses() > 1)
+	{
+	  throw missingImplementation("Parallel DMC.");
+	}
       size_t nW=j["walkers"];
-
   
       dmcDriver dmcO(&psi,&pot,timeStep,nW);
       dmcO.getStepsPerBlock()=stepsPerBlock;
@@ -101,8 +138,10 @@ int main(int argc, char** argv)
 	{
 	  dmcStates.push_back(states);
 	}
-  
+      dmcO.getRandomGenerator().seed(seed + pTools::rank() );
       dmcO.run(dmcStates,nBlocks);
     }
 
+  pTools::finalize();
+  
 }

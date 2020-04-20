@@ -48,8 +48,6 @@ private:
 };
 
 
-
-
 void update(walker & w,productWavefunction & psi);
 
 class vmcDriver : public driver
@@ -67,7 +65,7 @@ public:
 
 	auto & currentWalker() {return current_walker;}
 	auto & oldWalker(){return old_walker;}
-
+  
 private:
 	walker_t current_walker;
 	walker_t old_walker;
@@ -75,6 +73,5 @@ private:
 	metropolis metropolisObj;
 	std::unique_ptr<mover> vmcMove;
 };
-
 
 #endif

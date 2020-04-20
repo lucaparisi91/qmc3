@@ -6,7 +6,7 @@
 #include <iostream>
 #include "tools.h"
 #include "moves/vmcMoves.h"
-
+#include "ptools.h"
 
 driver::driver(driver::wavefunction_t * wave) : _wave(wave), 
 iBlock(0),iSubStep(0),_stepsPerBlock(0)
@@ -87,8 +87,17 @@ void vmcDriver::accumulate()
 
 void vmcDriver::out()
 {
-	std::cout << ansiColor("green") << "Block: "<< ansiColor("default")<<getCurrentBlock()<<std::endl;
-	std::cout << "Acc. Ratio: " << metropolisObj.getAcceptanceRatio() << std::endl;
+  auto & ests = getEstimators();
+  ests.accumulateMPI(0.);
+  metropolisObj.accumulateMPI(0);
+
+  
+  if (pTools::isMaster() )
+    {
+
+      std::cout << ansiColor("green") << "Block: "<< ansiColor("default")<<getCurrentBlock()<<std::endl;
+      std::cout << "Acc. Ratio: " << metropolisObj.getAcceptanceRatio() << std::endl;
+      
 	// erase
 	
 	auto energyEst = getEstimators()[0];
@@ -96,10 +105,10 @@ void vmcDriver::out()
 	energyEst->write(std::cout);
 	std::cout << std::endl;
 	
-       
-	auto & ests = getEstimators();
+	
 	ests.dump();
+
+    }
 	ests.clear();
 	metropolisObj.clear();
-	 
 }

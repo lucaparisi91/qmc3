@@ -17,3 +17,12 @@ void estimatorCollection::dump()
 				est->dump();
 			}
 		}
+
+
+void estimatorCollection::accumulateMPI(int root)
+		{
+			for (auto est : _estimators)
+			{
+			  est->accumulateMPI(root);
+			}
+		}

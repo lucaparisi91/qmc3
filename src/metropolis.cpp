@@ -1,5 +1,5 @@
 #include "metropolis.h"
-
+#include "ptools.h"
 metropolis::metropolis() : n(0),nAccepted(0){}
 
 bool metropolis::acceptLog(real_t ratioLog,randomGenerator_t & randGen)
@@ -38,3 +38,10 @@ void metropolis::clear()
   nAccepted=0;
   n=0;
 }
+
+void metropolis::accumulateMPI(int root)
+{
+  n=pTools::sum(n,root);
+  nAccepted=pTools::sum(nAccepted,root);
+}
+
