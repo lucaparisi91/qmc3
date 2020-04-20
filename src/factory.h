@@ -1,6 +1,8 @@
 #include "wavefunction/wavefunctionFactory.h"
 #include "wavefunction/jastrowWavefunctionOneBody.h"
 #include "potentialFactory.h"
+#include "wavefunction/jastrowWavefunctionTwoBody.h"
+
 
 /*
 Defines a singleton factory  which manages the creation of wavefunctions
@@ -41,6 +43,7 @@ public:
   void registerJastrow()
   {
     registerWavefunction<jastrowOneBodyWavefunction<jastrow_t>  >() ;
+    registerWavefunction<jastrowTwoBodyWavefunctionIndistinguishable<jastrow_t>  >() ;
   }
 
 

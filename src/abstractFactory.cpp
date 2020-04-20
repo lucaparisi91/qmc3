@@ -10,7 +10,9 @@ std::string createId(const json_t & j)
       {
 	if ( element.is_structured() )
 	  {
-	    id+="/"+createId(element);
+	    auto id2 = createId(element);
+	    if (id2 != "")
+	      id+="/"+createId(element);
 	  }
 
       }

@@ -13,6 +13,8 @@ public:
   void initCoefficients();
 
   jastrowSquareWell(const json_t & j) ;
+
+  static std::string name() {return "squareWell";}
   
   inline real_t d0(const real_t & r){return r<=R0 ? logd0_1(r) :
                                              (   

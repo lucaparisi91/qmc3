@@ -1,11 +1,12 @@
 #include "wavefunction/wavefunction.h"
 
+
 template<class jastrow_t>
-class jastrowTwoBodyWavefunctionIndistinguishible : public wavefunction
+class jastrowTwoBodyWavefunctionDistinguishable : public wavefunction
 {
 public:
   
-  jastrowTwoBodyWavefunctionIndistinguishible(jastrow_t J_,const geometry_t  &geo_, int setA_=0,int setB_=0) : setA(setA_), setB(setB_),J(J_),wavefunction::wavefunction(geo_)
+  jastrowTwoBodyWavefunctionDistinguishable(jastrow_t J_,const geometry_t  &geo_, int setA_=0,int setB_=0) : setA(setA_), setB(setB_),J(J_),wavefunction::wavefunction(geo_)
   {
     if (setA == setB) throw invalidInput("setA == setB in distinguishable two body jastrow");
   }
@@ -75,5 +76,86 @@ private:
   int setA;
   int setB;
   jastrow_t J;
+  
+};
 
+template<class jastrow_t>
+class jastrowTwoBodyWavefunctionIndistinguishable : public wavefunction
+{
+public:
+  
+  jastrowTwoBodyWavefunctionIndistinguishable(jastrow_t J_,const geometry_t  &geo_, int setA_=0,int setB_=0) : setA(setA_), setB(setB_),J(J_),wavefunction::wavefunction(geo_)
+  {
+    if (setA != setB) throw invalidInput("setA != setB in indistinguishable two body jastrow");
+  }
+
+  jastrowTwoBodyWavefunctionIndistinguishable(const json_t & j,const geometry_t & geo ) : jastrowTwoBodyWavefunctionIndistinguishable( jastrow_t(j["jastrow"]), geo,j["sets"][0] ,j["sets"][1] ) {}
+
+  virtual std::vector<int> sets() const {return {setA,setB} ;}
+  
+  
+  virtual real_t operator()(const walker_t & walker) 
+	{		
+	  auto & dis = walker.getTableDistances().distances(setA,setB);
+	  
+	  int N=size(dis);
+	  real_t sum=0;
+
+	  for(int i=0;i<N;i++)
+	    {
+	      sum+=J.d0(dis(i));
+	    }
+	  return sum;
+	};
+  
+  virtual void accumulateDerivatives( walker_t & walker ) override
+  {
+    auto & state = walker.getStates()[setA];
+
+    auto & gradient = walker.getGradients()[setA];
+    
+    auto & laplacian = walker.getLaplacianLog();
+    auto & distances = walker.getTableDistances().distances(setA,setB);
+    auto & differences = walker.getTableDistances().differences(setA,setB);
+    auto & waveValue = walker.getLogWave();
+    
+    
+    const int N = getN(state);
+    constexpr int D = getDimensions();
+    
+    real_t  tmp,tmp1,tmp2;
+    
+    int k=0;
+    for (int i=0;i<N;i++)
+      {
+	for (int j=0;j<i;j++)
+	  {
+	    auto d = distances(k);
+	    
+	    J.evaluateDerivatives(d,tmp,tmp1,tmp2);
+	    
+	    laplacian+=2* (tmp2 + (D-1)*tmp1/d);
+	    waveValue+=tmp;
+	
+	    for(int id=0;id<D;id++)
+	      {
+		gradient(i,id)+=differences(k,id)/d * tmp1;
+		gradient(j,id)-=differences(k,id)/d * tmp1;
+	      }
+				
+	    k++;
+	  }
+		
+      
+      }
+  }
+
+  static std::string name()   {return "jastrow2b/" + jastrow_t::name();}
+    
+private:
+    
+  int setA;
+  int setB;
+  jastrow_t J;
+  
 };

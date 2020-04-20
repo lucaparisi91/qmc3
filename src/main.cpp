@@ -17,6 +17,7 @@
 #include "wavefunction/jastrowWavefunctionOneBody.h"
 #include "factory.h"
 
+#include "wavefunction/jastrows/jastrowSquareWell.h"
 
 int main(int argc, char** argv)
 {
@@ -45,11 +46,10 @@ int main(int argc, char** argv)
       particleData.setRandom();
       states.push_back(particleData);
     }
-
- 
   
   getFactory().registerJastrow< gaussianJastrow >();
-  
+  getFactory().registerJastrow< jastrowSquareWell >();
+
   
   auto waves = getFactory().createWavefunctions( j["wavefunctions"],geo);
   

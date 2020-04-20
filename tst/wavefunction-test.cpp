@@ -6,9 +6,12 @@
 #include "potential.h"
 #include "energy.h"
 #include "wavefunction/jastrowWavefunctionOneBody.h"
+#include "wavefunction/jastrowWavefunctionTwoBody.h"
+
 #include "wavefunction/slaterDeterminant.h"
 #include "orbitals.h"
 #include "estimators.h"
+#include "wavefunction/jastrows/jastrowSquareWell.h"
 
 TEST(wavefunctionTest,oneBody)
 {
@@ -94,19 +97,52 @@ TEST(wavefunctionTest,tableDistances)
 TEST(wavefunctionTest,2b)
 {
 
-	int N=100;
+	int N=2;
 	int D=3;
  	state_t particleData(N , 3);
  	state_t gradient(N , 3);
-
- 	//Eigen::Tensor<real_t, 2> diffs( (N * (N-1) )/2, 3);
-
+	real_t lBox=100;
+	
  	particleData.setRandom();
-
- 	geometryPBC geo( 10., 10., 10.);
-
+       
+	
+ 	geometryPBC geo( lBox,lBox,lBox);
+	
  	states_t states {particleData};
- 	tableDistances tab(geo);
+
+	real_t V0=2.4674011002723395 ;
+	real_t R0=1.0;
+	squareWellPotential2b v(geo, V0 , R0, 0., 0. ) ;
+
+	potential_t pot({&v});
+	real_t Rm=40.0;
+	real_t alpha=0.5;
+	
+        jastrowSquareWell J(V0,R0,Rm,alpha,lBox);
+
+	jastrowTwoBodyWavefunctionIndistinguishable<jastrowSquareWell> wave(J,geo);
+	productWavefunction psi({&wave});
+	dmcWalker w;
+
+	
+
+	energy eO(&pot);
+	states[0]*=Rm/(2.*sqrt(3));
+	
+	initializer::initialize(w,states,psi,eO);
+
+	double sum=0;
+	const auto & dis = w.getTableDistances().distances(0,0);
+	for ( int i=0;i<dis.size();i++  )
+	  {
+	    if (dis(i) <= R0 ) sum+=-V0;
+	  }
+
+	ASSERT_EQ(dis.size(),( N*(N-1) )/2);
+	auto sum2 = v(w);
+	
+	EXPECT_NEAR(sum,sum2,1e-5);
+	EXPECT_NEAR(eO(w,psi),0,1e-7 ) ;
 	
  }
 
@@ -149,9 +185,12 @@ TEST(fermions,slaterWavefunctionEnergy)
   
   realScalarEstimator m("energy",&eO);
   realScalarEstimator m2("forceEnergy",&efO);
+
   
   initializer::initialize(w,states,psi,eO);
   
   EXPECT_NEAR( w.getEnergy() , sineCosBasis.energy() , 1E-5 );
   
 }
+
+
