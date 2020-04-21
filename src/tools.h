@@ -15,5 +15,9 @@ inline size_t size(const distance_t & dis) {return dis.rows();}
 
 inline constexpr int getDimensions() { return DIMENSIONS; }
 
+
+
+
+
 //inline constexpr int getDimensions(const state_t & state) {return DIMENSIONS;}
 #endif

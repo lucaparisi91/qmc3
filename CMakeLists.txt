@@ -50,7 +50,7 @@ target_link_libraries(main )
 add_executable(current_test src/current_test.cpp)
 target_link_libraries(current_test main_lib ${MPI_LIBRARIES} )
 
-set(TEST_SOURCES  tst/parameters-test.cpp tst/jastrow-test.cpp tst/wavefunction-test.cpp tst/dmc-test.cpp)
+set(TEST_SOURCES  tst/parameters-test.cpp tst/jastrow-test.cpp tst/wavefunction-test.cpp tst/dmc-test.cpp tst/ptools-test.cpp)
 add_executable(tst tst/main.cpp ${TEST_SOURCES})
 target_include_directories(tst PUBLIC
                            "${PROJECT_BINARY_DIR}/../src"

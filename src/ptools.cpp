@@ -1,7 +1,6 @@
 #include "ptools.h"
-
 #include <iostream>
-
+#include <numeric>
 namespace pTools
 {
 
@@ -57,7 +56,6 @@ namespace pTools
     int status = MPI_Reduce (&sum,&tmp,1,MPI_DOUBLE,MPI_SUM,root,MPI_COMM_WORLD);
     return tmp;
   }
-
   
   int sum(const int & sum, int root )
   {
@@ -65,12 +63,108 @@ namespace pTools
     int status = MPI_Reduce (&sum,&tmp,1,MPI_INT,MPI_SUM,root,MPI_COMM_WORLD);
     return tmp;
   }
-
+  
   size_t sum(const size_t & sum, int root )
   {
     size_t tmp=0;
     int status = MPI_Reduce (&sum,&tmp,1,MPI_SIZE_T,MPI_SUM,root,MPI_COMM_WORLD);
     return tmp;
   }
+
+  void determineLoadBalanceComunicationsAliasMethod( std::vector<int> & populations,std::vector<int> & permutations,std::vector<int> & sources,std::vector<std::vector<int> > & destinations,std::vector<int> & amounts)
+  {
+  /* 
+Sources: filled with the rank of the processor it must receive from
+amounts: filled with number of walkers send by the source
+populations : current population distribution
+  */
+  
+  int size = std::accumulate(populations.begin(),populations.end(),0);
+  permutations.resize(size);
+  std::iota (std::begin(permutations), std::end(permutations), 0);
+  // sort such that A[i] < k all on the left of A[j] > k
+  int k= size/populations.size();
+  // add phantom tasks
+  int r=size%populations.size();
+  
+  int i=0;
+  while( (i < populations.size())  and ( populations[i] < k) )
+    {
+      i+=1;
+    }
+  
+  int j=i+1;
+  
+  while (j<populations.size() )
+    {
+      if (populations[j] < k )
+	{
+	  std::swap(populations[i],populations[j]);
+	  std::swap(permutations[i],permutations[j]);
+	  i+=1;
+	}
+      j+=1;
+      
+    }
+  
+  // alias algorithm to determine the amount of comunications
+  
+  j=0;
+  sources.resize(populations.size(),0);
+  amounts.resize(populations.size(),0);
+  destinations.resize(populations.size(),{});  
+  
+  int I,J;
+  auto balanced =  [&] ( int idx) {return  k + (1 ? idx < r : 0 );  } ;
+  
+  while ( i> j)
+    {
+      J = permutations[j];
+      I = permutations[i];
+      
+      sources[J]=I;
+      
+      amounts[J]=balanced(j)- populations[j];
+      populations[i]=populations[i] - amounts[J];
+      destinations[I].push_back(J);
+      
+      if (populations[i] < balanced(i) )
+	{
+	  ++i;
+	}
+      j++;
+    }
+  }  
+
+
+walkerDistribution::walkerDistribution()
+{
+  _currentRank=rank();
+  _nProcesses=nProcesses();
   
 }
+  
+void walkerDistribution::determineComm(const std::vector<int> & populations)
+{
+  tmpPopulations=populations;
+  pTools::determineLoadBalanceComunicationsAliasMethod( tmpPopulations, _permutations, _sources, _sendToRanks, nWalkersReceived);
+    }
+
+  int isend(double * p,int count,int dest,int tag,MPI_Request &req)
+  {
+    return MPI_Isend( p ,  count,MPI_DOUBLE, dest, tag,
+			  MPI_COMM_WORLD, &req);
+  }
+
+  
+  int isend(state_t & state,int toRank,int tag,MPI_Request &req)
+  {
+    auto data_ptr = state.data();
+    return isend(data_ptr,state.size(),toRank,tag,req);
+  }
+
+  
+
+  
+};
+

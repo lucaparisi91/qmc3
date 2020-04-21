@@ -1,6 +1,7 @@
 #include "estimatorCollection.h"
 #include "estimators.h"
 
+
 void estimatorCollection::clear()
 	{
 		for (auto est : _estimators)

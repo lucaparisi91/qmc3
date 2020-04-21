@@ -14,6 +14,8 @@ so on. Walkers own data memory
 */
 
 
+
+
 struct walker
 {
 public:
@@ -40,8 +42,8 @@ public:
   virtual real_t & getEnergy()  {throw missingImplementation("Energy not accessible from the walker");return _waveValue;};
   
 private:
-    states_t _states; // a vector of particle data
-    tableDistances _tab;
+  states_t _states; // a vector of particle data
+  tableDistances _tab;
   real_t _waveValue; // value of the wavefunction
   grads_t _gradients; // contains the gradient of the wavefunction. Just a temporary
   real_t _lapLog; // contains the laplacian of the logarithm of the wavefunction
