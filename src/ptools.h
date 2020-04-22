@@ -23,6 +23,7 @@
    #error "what is happening here?"
 #endif
 
+class dmcWalker;
 
 
 namespace pTools
@@ -54,17 +55,18 @@ namespace pTools
   
   int isend(state_t,int fromRank,int toRank);
   
+  int partialRecv(dmcWalker * w, int source,int tag);
+  int partialSend(dmcWalker & w,int destination,int tag);
   
-
   
   void determineLoadBalanceComunicationsAliasMethod( std::vector<int> & populations,std::vector<int> & permutations,std::vector<int> & sources,std::vector<std::vector<int> > & destinations,std::vector<int> & amounts)  ; // all operatans are modified
 
   
 
   template<class T>  class walkerContainer;
+  
 
-  class dmcWalker;
-
+  MPI_Datatype createDmcWalkerDataType();
   
   
 class walkerDistribution

@@ -1,6 +1,8 @@
 #include "ptools.h"
 #include <iostream>
 #include <numeric>
+#include "walkers.h"
+
 namespace pTools
 {
 
@@ -161,10 +163,21 @@ void walkerDistribution::determineComm(const std::vector<int> & populations)
   {
     auto data_ptr = state.data();
     return isend(data_ptr,state.size(),toRank,tag,req);
+  };
+
+  int partialSend(dmcWalker & w,int destination,int tag)
+  {
+    w.createMPIDataType();
+    return MPI_Send(MPI_BOTTOM, 1, w.getMPIDatatype(), destination, tag, MPI_COMM_WORLD);
   }
-
   
+  int partialRecv(dmcWalker * w, int source,int tag)
+  {
+    w->createMPIDataType();
+    MPI_Status status;
+    
+    return MPI_Recv(MPI_BOTTOM, 1, w->getMPIDatatype(), source, tag, MPI_COMM_WORLD, & status);
 
-  
+  }
 };
 

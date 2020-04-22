@@ -6,6 +6,7 @@
 #include "tableDistances.h"
 #include "qmcExceptions.h"
 #include "slaters.h"
+#include "ptools.h"
 /*
 A walker contains all the informiation
 on the current configurations. 
@@ -40,6 +41,10 @@ public:
   
   virtual const real_t & getEnergy() const {throw missingImplementation("Energy not accessible from the walker"); return _waveValue;};
   virtual real_t & getEnergy()  {throw missingImplementation("Energy not accessible from the walker");return _waveValue;};
+
+  auto &  getMPIDatatype() {return dtype;}
+  
+  virtual void createMPIDataType()  {throw missingImplementation("Creation of MPI walker data type");};
   
 private:
   states_t _states; // a vector of particle data
@@ -48,6 +53,8 @@ private:
   grads_t _gradients; // contains the gradient of the wavefunction. Just a temporary
   real_t _lapLog; // contains the laplacian of the logarithm of the wavefunction
   tableSlaters _slaters; // contains the matrix of slater determinants
+  MPI_Datatype dtype;
+
 };
 
 struct dmcWalker : public walker
@@ -56,7 +63,7 @@ struct dmcWalker : public walker
   
   virtual real_t & getEnergy() override {return _e;}
   virtual const real_t & getEnergy() const override {return _e;}
-
+  virtual void createMPIDataType() override;
   
 private:
   real_t _e=1E+20; // stores the energy of the current configuration
@@ -129,5 +136,6 @@ public:
   std::vector<T> walkers;
   size_t _size;
 };
+
 
 #endif

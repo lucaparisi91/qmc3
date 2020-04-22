@@ -25,48 +25,63 @@
 
 int main(int argc, char** argv)
 {
-  std::vector<int> Ns{33};
 
-  real_t lBox=33.;
+  pTools::init(argc,argv);
+  
+  std::vector<int> Ns{33};
+  
+  real_t lBox=10000.;
+  int seed=100;
+
   
   geometryPBC geo(lBox,lBox,lBox);
-  states_t states;
+  state_t state1(Ns[0],getDimensions() );
+  state_t state2(Ns[0],getDimensions());
+
+
+  srand((unsigned int) seed);
+
   
-  for (int i=0;i<Ns.size();i++)
-    {
-      state_t particleData(Ns[i] , getDimensions());
-      particleData.setRandom();
-      particleData=particleData*lBox - lBox/2.;
-      states.push_back(particleData);
-    }
+  state1.setRandom();
+  state2.setRandom();
+  
+  states_t states1{state1};
+  states_t states2{state2};
   
   real_t alpha=1.;
   
-  orbitalSet<sinOrbital> sineCosBasis;
+  auto J=gaussianJastrow(alpha);
+  jastrowOneBodyWavefunction<gaussianJastrow> wave(J,geo,0);
+	
+  productWavefunction psi;
+  psi.add(&wave);
   
-  fillFermiSea(sineCosBasis.getOrbitals(),Ns[0],lBox); // fills a fermi see with the given orbital based
-
-  
-  slaterDeterminantWavefunction<decltype(sineCosBasis)> wave(&sineCosBasis,geo,0);
-  
-  productWavefunction psi({&wave}) ;
-  dmcWalker w;
-
-
-  
-  emptyPotential v(geo);
+  harmonicPotential v(geo,1.,0);
   sumPotentials pot({&v});
 
   energy eO(&pot);
-  forceEnergy efO(&pot);
-  
-  realScalarEstimator m("energy",&eO);
-  realScalarEstimator m2("forceEnergy",&efO);
-  
-  initializer::initialize(w,states,psi,eO);
-  
-  std::cout << w.getEnergy() << std::endl;
 
-  std::cout << sineCosBasis.energy() << std::endl;
+  dmcWalker w1;
+  dmcWalker w2;
   
+  initializer::initialize(w1,states1,psi,eO);
+  initializer::initialize(w2,states2,psi,eO);
+  
+  if (pTools::rank() == 1)
+    {
+      pTools::partialSend(w1,0,0);
+    }
+  else if (pTools::rank()==0)
+    {
+      pTools::partialRecv(&w2,1,0);
+      std::cout << w1.getStates()[0] << std::endl;
+      std::cout << "-----------------" << std::endl;
+
+      std::cout << w2.getStates()[0] << std::endl;
+      
+    }
+
+  
+  pTools::finalize();
+
 }

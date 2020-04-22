@@ -29,4 +29,5 @@ using randomGenerator_t = std::ranlux24;
 using json_t =   nlohmann::json;
 
 using potential_t = sumPotentials;
+
 #endif
