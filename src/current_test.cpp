@@ -126,7 +126,7 @@ int main(int argc, char** argv)
   wd.isendReceive(walkers);
   wd.wait(walkers);
   auto newPopulation = wd.gatherPopulations(walkers.size() );
-
+  
   auto newEnergies = getEnergies(walkers);
    if (pTools::rank()==0)
      {

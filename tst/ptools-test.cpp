@@ -200,7 +200,6 @@ TEST(pToolsTest,walkerSend)
 TEST(pTools,walkerSend)
 {
   
-  
   std::vector<int> Ns{33};
   
   real_t lBox=10000.;
