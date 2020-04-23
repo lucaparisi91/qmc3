@@ -124,16 +124,12 @@ int main(int argc, char** argv)
     }
   else if ( method == "dmc")
     {
-      if (pTools::nProcesses() > 1)
-	{
-	  throw missingImplementation("Parallel DMC.");
-	}
       size_t nW=j["walkers"];
-  
+      
       dmcDriver dmcO(&psi,&pot,timeStep,nW);
       dmcO.getStepsPerBlock()=stepsPerBlock;
       std::vector<states_t> dmcStates;
-  
+      
       for(int i=0;i<nW;i++)
 	{
 	  dmcStates.push_back(states);

@@ -58,6 +58,23 @@ namespace pTools
     int status = MPI_Reduce (&sum,&tmp,1,MPI_DOUBLE,MPI_SUM,root,MPI_COMM_WORLD);
     return tmp;
   }
+
+  double sumAll(const double & sum)
+  {
+    double tmp;
+    int status = MPI_Allreduce( & sum, & tmp, 1,
+			       MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    return tmp;
+  }
+
+  int sumAll(const int & sum)
+  {
+    int tmp;
+    int status = MPI_Allreduce( & sum, & tmp, 1,
+			       MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+    return tmp;
+  }
+
   
   int sum(const int & sum, int root )
   {
@@ -114,7 +131,12 @@ populations : current population distribution
   j=0;
   sources.resize(populations.size(),0);
   amounts.resize(populations.size(),0);
-  destinations.resize(populations.size(),{});  
+  destinations.resize(0);
+  destinations.resize(populations.size(),{});
+  std::fill(sources.begin(),sources.end(),0);
+  std::fill(amounts.begin(),amounts.end(),0);
+  
+  
   
   int I,J;
   auto balanced =  [&] ( int idx) {return  k + (1 ? idx < r : 0 );  } ;
@@ -238,31 +260,39 @@ void walkerDistribution::isendReceive(walkerDistribution::walkers_t & walkers)
        {
      	int dest = destinations[i];
 	
-     	auto & amount = nWalkersReceived[dest];
+     	const auto & amount = nWalkersReceived[dest];
    	localSentWalkers+=amount;
 
-	//std::cout << _currentRank  << "-> " << dest << " " << amount << std::endl;
+	 // if (pTools::rank() == 0)
+	 //  {
+	 //    std::cout << _currentRank  << "-> " << dest << " " << amount << std::endl;
+	 //  }
+	
      	sendRequests.resize(sendRequests.size() + amount);
      	for(int j=0;j<amount;j++)
      	  {
 	    
      	    ipartialSend(walkers[walkers.size() -1 - k  ],dest,walker_tag + j,&sendRequests[k]);
      	    k++;
-       }
+	  }
 	
        }
     
      // non blocking receive
     
-     auto & amount = nWalkersReceived[_currentRank];
-
+     const auto & amount = nWalkersReceived[_currentRank];
+     
      if (amount!=0)
        {
-    	 //std::cout << _currentRank << "<-" << _sources[_currentRank] << " " << amount << std::endl;
+	  // if (pTools::rank() == 0 )
+	  //   {
+	  //     std::cout << _currentRank << "<-" << _sources[_currentRank] << " " << amount << std::endl;
+	  //   }
+	 
      	 walkers.reserve(walkers.size() + amount , walkers[walkers.size()-1]);
 	 for( int j=0;j < amount ; j++ )
 	   {
-     	ipartialRecv(& walkers[walkers.size() + j   ],_sources[_currentRank],walker_tag + j ,&receiveRequest);
+	     ipartialRecv(& walkers[walkers.size() + j   ],_sources[_currentRank],walker_tag + j ,&receiveRequest);
        }
 
         }
@@ -282,15 +312,31 @@ int walkerDistribution::wait(walkerDistribution::walkers_t & walkers)
     {
       MPI_Wait(&sendRequests[i],&status);
     }
+  // if (pTools::rank() == 1)
+  //   {
+  //     std::cout << "localSentWalkers: " << localSentWalkers << std::endl;
+  //     std::cout << "nAmount: " << amount << std::endl;    
+  //     std::cout << "last: " << walkers.size() + localSentWalkers + amount  << std::endl;    
+  //     std::cout << "eLast: " << walkers[ walkers.size() + localSentWalkers + amount - 1].getEnergy() << std::endl;    
+  //   }
   
-  auto it2= walkers.begin() + walkers.size() + localSentWalkers;
-  auto itend = std::min(it2, walkers.begin() + walkers.size() + amount );
-  for (auto it= walkers.begin() + walkers.size()  ; it < itend ;it++ )
-    {
-      *it=std::move(*it2);
-      it2++;
-    }
-  walkers.resize(walkers.size() + amount);
+      auto i2= walkers.size() + localSentWalkers;
+      auto n = std::min(localSentWalkers,   amount );
+      auto it2 = walkers.begin() + i2;
+      auto it = walkers.begin() + walkers.size();
+
+      
+      for ( int i=0;i<n;i++ )
+     {
+       //std::cout << (*it2)->getEnergy() << std::endl;
+       std::swap(*it2,*it);
+       it2++;
+       it++;
+     }
+
+    
+   walkers.resize(walkers.size() + amount);
+   
   return 0;
 }
   

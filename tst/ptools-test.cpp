@@ -199,8 +199,12 @@ TEST(pToolsTest,walkerSend)
 
 TEST(pTools,walkerSend)
 {
-  
-  std::vector<int> Ns{33};
+  int base_seed = 34;
+  for (  int idx = 0; idx < 1000  ; idx++    )
+    {
+      int seed = base_seed + idx;
+      
+      std::vector<int> Ns{33};
   
   real_t lBox=10000.;
 
@@ -225,11 +229,10 @@ TEST(pTools,walkerSend)
   pTools::walkerDistribution::walkers_t walkers;
 
   int nP = pTools::nProcesses();
-  int seed = 34;
   
   std::ranlux24 randGen(seed + pTools::rank() );
   srand(seed + pTools::rank());
-  std::uniform_int_distribution<int> disWalker(7,13);
+  std::uniform_int_distribution<int> disWalker(80,110);
 
   walkers.resize( disWalker(randGen) );
 
@@ -246,46 +249,52 @@ TEST(pTools,walkerSend)
     }
 
   auto oldPopulation = wd.gatherPopulations(walkers.size());
-
+  
   auto oldEnergies = getEnergies(walkers);
   
   wd.isendReceive(walkers);
+  
   wd.wait(walkers);
+  
   auto newPopulation = wd.gatherPopulations(walkers.size() );
-
+  
   auto newEnergies = getEnergies(walkers);
+  
+  
    if (pTools::rank()==0)
      {
+       
        int oldPopulationSize=0;
        for (auto & pop : oldPopulation)
-	 {
-	   oldPopulationSize+=pop;
-	 }
+   	 {
+   	   oldPopulationSize+=pop;
+   	 }
        int newPopulationSize=0;
        for (auto & pop : newPopulation)
-	 {
-	   newPopulationSize+=pop;
-	 }
+   	 {
+   	   newPopulationSize+=pop;
+   	 }
        
        int k = oldPopulationSize/pTools::nProcesses();
        
        for (int i=0;i<newPopulation.size();i++)
-	 {
-	   ASSERT_NEAR(newPopulation[i] ,k,1);
-	 }
+   	 {
+   	   ASSERT_NEAR(newPopulation[i] ,k,1);
+   	 }
 
        ASSERT_EQ( oldPopulationSize ,newPopulationSize);
-
-
+       
+       
        
        for (int i=0;i<oldEnergies.size();i++)
-	 {
-	   bool found = std::find(newEnergies.begin(),oldEnergies.end(), oldEnergies[i]) != newEnergies.end() ;
-	   ASSERT_EQ(found,1);
-	 }
+   	 {
+   	   bool found = std::find(newEnergies.begin(),oldEnergies.end(), oldEnergies[i]) != newEnergies.end() ;
+   	   ASSERT_EQ(found,1);
+   	 }
        
        
      }
+    }
 }
 
 

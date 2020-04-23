@@ -62,18 +62,21 @@ void branchingControl::setEnergyShift(const branchingControl::walkerContainer_t 
       energyShift+=w->getEnergy();
     }
   
-  energyShift/=walkers.size();
-
+  energyShift=pTools::sumAll(energyShift);
+  auto population=pTools::sumAll((int)walkers.size());
+  
+  energyShift/=population;
+  
   
   // restrict to window
 
-  if (walkers.size() > (meanWalkers + deltaWalkers))
+  if (population > (meanWalkers + deltaWalkers))
     {
       energyShift +=1./timeStep	* log (meanWalkers*1./(meanWalkers + deltaWalkers))
 	;
 	
     }
-  else if (walkers.size() < ( meanWalkers - deltaWalkers) )
+  else if (population < ( meanWalkers - deltaWalkers) )
   {
     energyShift +=1./timeStep
       * log (meanWalkers*1./(meanWalkers - deltaWalkers))

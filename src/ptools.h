@@ -45,10 +45,15 @@ namespace pTools
   int broadcast(std::string * data,int root);
 
   int sum(double * ob,int count,int root);
-
+  
+  
   int sum(double * send,double * recv ,int count,int root);
 
   double sum(const double & sum,int root);
+
+  double sumAll(const double & sum);
+  int sumAll(const int & sum);
+
   size_t sum(const size_t & sum, int root );
   int sum(const int & sum, int root );
 

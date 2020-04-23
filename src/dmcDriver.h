@@ -19,7 +19,8 @@ public:
   virtual real_t getAcceptanceRatio() const =0;
 
   virtual void clear()=0;
-  
+
+  virtual void accumulateMPI(int root)=0;
 };
 
 class noMetropolisPolicy : public acceptRejectPolicy
@@ -33,6 +34,7 @@ public:
 		randomGenerator_t & generator);
   virtual real_t getAcceptanceRatio() const ;
   virtual void clear() {};
+  virtual void accumulateMPI(int root) {};
 private:
   metropolis metropolisSampler;
   
@@ -51,7 +53,8 @@ public:
 		      );
   virtual real_t getAcceptanceRatio() const ;
   virtual void clear() ;
-  
+  virtual void accumulateMPI(int root);
+
 private:
   metropolis metropolisSampler;
   
@@ -68,6 +71,8 @@ public:
 
   virtual void step();
 
+  void update( dmcWalker & wNew,const dmcWalker & wOld);
+  
   virtual void out();
   virtual void accumulate();
 private:
@@ -79,4 +84,5 @@ private:
   std::unique_ptr<realScalarEstimator> energyEst;
   std::unique_ptr<acceptRejectPolicy> accepter;
   std::unique_ptr< branchingControl> brancher;
+  std::unique_ptr<pTools::walkerDistribution> walkerLoadBalancer;
 };

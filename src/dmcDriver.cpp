@@ -47,59 +47,112 @@ void metropolisPolicy::clear()
   return metropolisSampler.clear();
 }
 
+void metropolisPolicy::accumulateMPI(int root) 
+{
+  return metropolisSampler.accumulateMPI(root);
+}
+
+
+void dmcDriver::update(dmcWalker & wNew,const dmcWalker & wOld)
+{
+  dmcMover->move(wNew,wOld,getRandomGenerator());
+  updateForceGradientEnergy(wNew, getWavefunction(),energyOb);
+  
+  bool accepted=accepter->accept(*dmcMover,wNew,wOld,getWavefunction() ,getRandomGenerator());
+	  
+  if (!accepted)
+    {
+      wNew=wOld;
+    }
+  
+}
 
 
  void dmcDriver::step()
 {
         std::swap(current_walkers,old_walkers);
-        current_walkers.resize(old_walkers.size(),*(*(current_walkers.end() - 1)) );
-        brancher->setEnergyShift(old_walkers);
+        current_walkers.resize(old_walkers.size(),old_walkers[old_walkers.size()-1]);
 	
 	for (int i=0;i<old_walkers.size();i++)
 	{
-	  dmcMover->move(current_walkers[i],old_walkers[i],getRandomGenerator());
-	  updateForceGradientEnergy(current_walkers[i], getWavefunction(),energyOb);
-		
-	  bool accepted=accepter->accept(*dmcMover,current_walkers[i],old_walkers[i],getWavefunction() ,getRandomGenerator());
-	  
-	  if (!accepted)
-	    {
-	      current_walkers[i]=old_walkers[i];
-	    }
+	  update(current_walkers[i],old_walkers[i]);
+	}
+	auto oldSize=old_walkers.size();
+	walkerLoadBalancer->wait(old_walkers);
+
+	current_walkers.resize(old_walkers.size(),old_walkers[old_walkers.size()-1]);
+	
+	for (int i=oldSize;i<old_walkers.size();i++)
+	{
+	  update(current_walkers[i],old_walkers[i]);
+
 	}
 	
+	
 	brancher->branch(current_walkers,old_walkers,getRandomGenerator());
+
+	
+	//std::cout << "<-- " << current_walkers.size() << std::endl;
+
+	
+	brancher->setEnergyShift(current_walkers);
+	
+	walkerLoadBalancer->isendReceive(current_walkers);
+	
+
+
+
+	// for (int i=0;i<current_walkers.size();i++)
+	//   {
+	//     initializer::initialize(current_walkers[i],current_walkers[i].getStates(),getWavefunction(),energyOb);
+	//   }
+	//std::cout << "--> "<<  current_walkers.size() << std::endl;
+	
+
+	
+	
 }
 
 void dmcDriver::run( const std::vector<states_t> &states , size_t nBlocks )
 {
-
+  
   initializer::initialize(current_walkers,states,getWavefunction(),energyOb);
   initializer::initialize(old_walkers,states,getWavefunction(),energyOb);
+  brancher->setEnergyShift(current_walkers);
+  walkerLoadBalancer->isendReceive(current_walkers);
   
   driver::run(nBlocks);
 }
 
 void dmcDriver::out()
 {
-  	std::cout << ansiColor("green") << "Block: "<< ansiColor("default")<<getCurrentBlock()<<std::endl;
+  auto & ests = getEstimators();
+  ests.accumulateMPI(0.);
+  accepter->accumulateMPI(0.);
+  auto walkers_size = pTools::sum(current_walkers.size() , 0) ;
+
+  if (pTools::isMaster() )
+    {
+      std::cout << ansiColor("green") << "Block: "<< ansiColor("default")<<getCurrentBlock()<<std::endl;
 	
-	auto & energyEst  = getEstimators()[0];
-	std::cout << "Acc. Ratio: " << accepter->getAcceptanceRatio() << std::endl;
-	std::cout << "Step: " << (getCurrentBlock()+1)*getStepsPerBlock()  << std::endl;
+      auto & energyEst  = getEstimators()[0];
+      std::cout << "Acc. Ratio: " << accepter->getAcceptanceRatio() << std::endl;
+      std::cout << "Step: " << (getCurrentBlock()+1)*getStepsPerBlock()  << std::endl;
 
-	std::cout << ansiColor("cyan") << "Energy: " << ansiColor("default");
-	std::cout << std::scientific;
-	energyEst->write(std::cout);
-	std::cout << std::endl<<std::defaultfloat;
+      std::cout << ansiColor("cyan") << "Energy: " << ansiColor("default");
+      std::cout << std::scientific;
+      energyEst->write(std::cout);
+      std::cout << std::endl<<std::defaultfloat;
 
-	std::cout << ansiColor("cyan") << "Curr. Walkers: " << ansiColor("default") ;
-	std::cout << current_walkers.size() << std::endl;
+      std::cout << ansiColor("cyan") << "Curr. Walkers: " << ansiColor("default") ;
+      std::cout << walkers_size << std::endl;
 
 	
-	auto & ests = getEstimators();
-	ests.dump();
-	ests.clear();
+      
+      ests.dump();
+    }
+  ests.clear();
+  accepter->clear();
 
 }
 
@@ -110,7 +163,9 @@ dmcDriver::dmcDriver(dmcDriver::wavefunction_t * wave, potential_t * pot,real_t 
   accepter(new metropolisPolicy),
   brancher(
 	   new branchingControl(timeStep,nWalkers,int(0.1*nWalkers))
-	   )
+	   ),
+  walkerLoadBalancer(new pTools::walkerDistribution )
+  
 {
   getEstimators().push_back( energyEst.get() );
 }

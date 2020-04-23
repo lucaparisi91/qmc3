@@ -19,7 +19,7 @@ void driver::run(size_t nBlocks)
 
 	for (iBlock=0;iBlock<nBlocks;iBlock++)
 	{
-		for (size_t i=0;i<_stepsPerBlock;i++)
+		for (iSubStep=0;iSubStep<_stepsPerBlock;iSubStep++)
 		{
 			step(); 
 			accumulate();			
@@ -42,7 +42,7 @@ driver::driver(wave_),
 void vmcDriver::run(states_t & states,size_t nBlocks)
 {
 	wavefunction_t & wave= getWavefunction();
-
+	
 	initializer::initialize(current_walker,states,getWavefunction());
 	initializer::initialize(old_walker,states,wave);
 	initializer::initialize(tmp_walker,states,wave);

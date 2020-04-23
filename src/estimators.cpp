@@ -1,6 +1,8 @@
 #include "estimators.h"
 #include <fstream>
 #include "tools.h"
+#include "ptools.h"
+
 
 template<class observable_t>
 void estimator<observable_t>::write(std::ostream & stream)
@@ -32,7 +34,7 @@ realScalarEstimator::realScalarEstimator(std::string label_,realScalarObservable
   
   std::ifstream of;
   of.open(getFileName());
-  if (is_empty(of) )
+  if (is_empty(of) & pTools::rank() == 0 )
     {
       auto & f=getFileDescriptor();
       f << getLabel() << std::endl;

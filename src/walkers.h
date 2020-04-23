@@ -152,7 +152,8 @@ public:
   
   auto  cbegin() const {return walkers.cbegin();}
   auto cend() const {return walkers.cbegin() + _size;}
-  
+
+  auto data() {return walkers.data();}
   private:
   std::vector<std::unique_ptr<T> > walkers;
   size_t _size;

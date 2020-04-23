@@ -21,13 +21,18 @@ public:
 
 	auto & getRandomGenerator() {return _rand;}
 
-	size_t & getStepsPerBlock()  {return _stepsPerBlock;}
-
+	size_t  getStepsPerBlock() const  {return _stepsPerBlock;}
+        auto &  getStepsPerBlock()   {return _stepsPerBlock;}
+       
+        
 	size_t getCurrentBlock() const {return iBlock;}
 
 	size_t getCurrentSubStep() const  {return iSubStep;}
   
 	auto & getEstimators() {return _estimators;}
+
+  auto getCurrentStep() const  {return getCurrentBlock() * getStepsPerBlock() + getCurrentSubStep();}
+  
   
 	virtual void run(size_t nBlocks);
 	virtual void step()=0;
