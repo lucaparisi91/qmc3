@@ -143,7 +143,14 @@ walkerDistribution::walkerDistribution()
 {
   _currentRank=rank();
   _nProcesses=nProcesses();
-  
+  walker_tag=500;
+  populations.resize(_nProcesses);
+  nWalkersReceived.resize(_nProcesses);
+  _permutations.resize(_nProcesses);
+  tmpPopulations.resize(_nProcesses);
+  _sources.resize(_nProcesses);
+  _sendToRanks.resize(_nProcesses);
+  receiveRequest=0;
 }
   
 void walkerDistribution::determineComm(const std::vector<int> & populations)
@@ -179,5 +186,113 @@ void walkerDistribution::determineComm(const std::vector<int> & populations)
     return MPI_Recv(MPI_BOTTOM, 1, w->getMPIDatatype(), source, tag, MPI_COMM_WORLD, & status);
 
   }
+
+  
+  int ipartialSend(dmcWalker & w,int destination,int tag, MPI_Request * req)
+  {
+    w.createMPIDataType();
+    return MPI_Isend(MPI_BOTTOM, 1, w.getMPIDatatype(), destination, tag, MPI_COMM_WORLD,req);
+  }
+  
+  int ipartialRecv(dmcWalker * w, int source,int tag,MPI_Request * req)
+  {
+    w->createMPIDataType();
+    MPI_Status status;
+    
+    return MPI_Irecv(MPI_BOTTOM, 1, w->getMPIDatatype(), source, tag, MPI_COMM_WORLD, req);
+  }
+
+  
+    std::vector<int> walkerDistribution::gatherPopulations(int localPopulation)
+  {
+    std::vector<int> _populations;
+    _populations.resize(_nProcesses);
+    // every process contains the current population size
+    MPI_Allgather(
+		  & localPopulation,
+		  1,
+		  MPI_INT,
+		  _populations.data(),
+		  1,
+		  MPI_INT,
+		  MPI_COMM_WORLD);
+    return _populations;
+  }
+
+
+void walkerDistribution::isendReceive(walkerDistribution::walkers_t & walkers)
+  {
+    // all gather population ditribtuion accross processors
+    populations=gatherPopulations(walkers.size() );
+    // determine what to send to whom
+    tmpPopulations=populations;
+    determineComm(tmpPopulations);
+    
+    // // non blocking send
+     auto & destinations = _sendToRanks[_currentRank];
+    sendRequests.resize(0);
+    localSentWalkers=0;
+    int k=0;
+    
+     for (int i=0;i<destinations.size();i++)
+       {
+     	int dest = destinations[i];
+	
+     	auto & amount = nWalkersReceived[dest];
+   	localSentWalkers+=amount;
+
+	//std::cout << _currentRank  << "-> " << dest << " " << amount << std::endl;
+     	sendRequests.resize(sendRequests.size() + amount);
+     	for(int j=0;j<amount;j++)
+     	  {
+	    
+     	    ipartialSend(walkers[walkers.size() -1 - k  ],dest,walker_tag + j,&sendRequests[k]);
+     	    k++;
+       }
+	
+       }
+    
+     // non blocking receive
+    
+     auto & amount = nWalkersReceived[_currentRank];
+
+     if (amount!=0)
+       {
+    	 //std::cout << _currentRank << "<-" << _sources[_currentRank] << " " << amount << std::endl;
+     	 walkers.reserve(walkers.size() + amount , walkers[walkers.size()-1]);
+	 for( int j=0;j < amount ; j++ )
+	   {
+     	ipartialRecv(& walkers[walkers.size() + j   ],_sources[_currentRank],walker_tag + j ,&receiveRequest);
+       }
+
+        }
+     walkers.resize(walkers.size() - localSentWalkers);
+     
+  }
+
+int walkerDistribution::wait(walkerDistribution::walkers_t & walkers)
+{
+  MPI_Status status;
+  auto & amount = nWalkersReceived[_currentRank];
+  if (amount != 0)
+    MPI_Wait(&receiveRequest, &status);
+
+  
+  for(int i=0;i<sendRequests.size();i++)
+    {
+      MPI_Wait(&sendRequests[i],&status);
+    }
+  
+  auto it2= walkers.begin() + walkers.size() + localSentWalkers;
+  auto itend = std::min(it2, walkers.begin() + walkers.size() + amount );
+  for (auto it= walkers.begin() + walkers.size()  ; it < itend ;it++ )
+    {
+      *it=std::move(*it2);
+      it2++;
+    }
+  walkers.resize(walkers.size() + amount);
+  return 0;
+}
+  
 };
 

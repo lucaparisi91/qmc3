@@ -91,33 +91,54 @@ public:
   walkerContainer() : walkers(),_size(0) {};
   walkerContainer( std::vector<T> vec ) : walkers(vec),_size(vec.size()) {}
   
-  auto & operator[](size_t i) {return walkers[i];}
-  const auto & operator[](size_t i) const {return walkers[i];}
+  auto & operator[](size_t i) {return *(walkers[i]);}
+  const auto & operator[](size_t i) const {return *(walkers[i]);}
   
-  void push_back( T  w)
-  {
-    _size=_size +1;
+  void push_back(const T &  w)
+    {
+      _size=_size +1;
     
-    if (_size > capacity() )
+      if (_size > capacity() )
+	{
+	  walkers.push_back(std::unique_ptr<T>() );
+	  (*(walkers.end() -1 )).reset( new T(w));
+	}
+      else
+	{
+	  *(walkers[_size-1])=w;
+	}
+}
+
+
+  void resize(size_t size2, const T & w)
+  {
+    reserve(size2,w);
+    
+    _size=size2;
+  }
+  
+  void resize(size_t size2)
+  {
+    if (size2 > capacity()  )
       {
-	walkers.push_back(w);
+	
+	resize(size2,T());
       }
     else
       {
-	walkers[_size-1]=w;
+	_size=size2;
       }
   }
-  void resize(size_t size2)
-  {
-    if (size2 > capacity() ) walkers.resize(size2);
-    _size=size2;
-  }
 
-  void resize(size_t size2, T  w)
+  void reserve(size_t size2,const T & w)
   {
-    if (size2 > capacity() ) walkers.resize(size2,w);
+    auto oldCap = capacity();
+    if (size2 > capacity() ) walkers.resize(size2);
+    for (int i=oldCap ; i < capacity() ;i++)
+      {
+	walkers[i].reset(new T(w));
+      }
     
-    _size=size2;
   }
   
   size_t size() const {return _size;}
@@ -133,7 +154,7 @@ public:
   auto cend() const {return walkers.cbegin() + _size;}
   
   private:
-  std::vector<T> walkers;
+  std::vector<std::unique_ptr<T> > walkers;
   size_t _size;
 };
 

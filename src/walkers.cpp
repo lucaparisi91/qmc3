@@ -75,7 +75,7 @@ void dmcWalker::createMPIDataType()
   // MPI_Get_address(&getEnergy() , &offsets[4] );
 
   
-  
+
   
   
 }

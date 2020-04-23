@@ -30,7 +30,7 @@ void branchingControl::branch(branchingControl::walkerContainer_t & newWalkers,c
       
       if (n==0) // deleter walker : swap with last walker, do not advance the index
 	{
-	  std::swap(newWalkers[j1],*(newWalkers.end() - 1 ));
+	  std::swap(newWalkers[j1],*(*(newWalkers.end() - 1 )));
 	  _nDescendants[j1]=*(_nDescendants.end() - 1);
 	  newWalkers.resize(newWalkers.size()-1);
 	  _nDescendants.resize(_nDescendants.size()-1);
@@ -59,7 +59,7 @@ void branchingControl::setEnergyShift(const branchingControl::walkerContainer_t 
   
   for (const auto & w : walkers)
     {
-      energyShift+=w.getEnergy();
+      energyShift+=w->getEnergy();
     }
   
   energyShift/=walkers.size();

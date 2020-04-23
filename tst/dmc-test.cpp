@@ -70,8 +70,8 @@ TEST(dmcTest,branching_lower)
 	for (int i=0;i<walkers.size();i++)
 	  {
 	    real_t e=walkers[i].getEnergy();
-
-	    int n=std::count_if(newWalkers.begin(),newWalkers.end(),[&](dmcWalker & w){return w.getEnergy() == e;});
+	    
+	    int n=std::count_if(newWalkers.begin(),newWalkers.end(),[&](std::unique_ptr<dmcWalker> & w){return w->getEnergy() == e;});
 	    
 	    ASSERT_EQ( nDescendants[i] , n );
 	  }
@@ -141,7 +141,7 @@ TEST(dmcTest,branching_upper)
 	  {
 	    real_t e=walkers[i].getEnergy();
 
-	    int n=std::count_if(newWalkers.begin(),newWalkers.end(),[&](dmcWalker & w){return w.getEnergy() == e;});
+	    int n=std::count_if(newWalkers.begin(),newWalkers.end(),[&](std::unique_ptr<dmcWalker> & w){return w->getEnergy() == e;});
 	    
 	    ASSERT_EQ( nDescendants[i] , n );
 	  }	

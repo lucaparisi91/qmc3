@@ -24,8 +24,8 @@
 #endif
 
 class dmcWalker;
-
-
+template<class T>  class walkerContainer;
+  
 namespace pTools
 {
   int init(int argc,char** argv);
@@ -63,27 +63,24 @@ namespace pTools
 
   
 
-  template<class T>  class walkerContainer;
-  
-
-  MPI_Datatype createDmcWalkerDataType();
+ 
   
   
 class walkerDistribution
 {
 public:
-  using walkers_t = walkerContainer<dmcWalker>;
+  using walkers_t = ::walkerContainer<dmcWalker>;
   
   walkerDistribution();
-  void gatherPopulations(walkers_t & walkers); // allgather the populations  distribued across all processors
+  std::vector<int> gatherPopulations(int localPopulation); // allgather the populations  distribued across all processors
   
   void determineComm( const std::vector<int> & populations); // internally figure out the communications between the processors. Done redundantly on al processors
   
-  void isend(const walkers_t & walkers );
-  void ireceiv(const walkers_t & walkers);
-  
-  void wait(); // stall until walkers have been received
 
+  int wait(walkers_t & walkers); // stall until walkers have been received
+
+  void isendReceive(walkerDistribution::walkers_t & walkers);
+  
 private:
   int _currentRank;
   int _nProcesses;
@@ -92,7 +89,11 @@ private:
   std::vector< std::vector<int> > _sendToRanks;
   std::vector<int> tmpPopulations;
   std::vector<int> nWalkersReceived;
-  
+  std::vector<int> populations;
+  int walker_tag;
+  std::vector<int> sendRequests;
+  int receiveRequest;
+  int localSentWalkers;
 };
 
 };

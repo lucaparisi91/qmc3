@@ -52,7 +52,7 @@ void metropolisPolicy::clear()
  void dmcDriver::step()
 {
         std::swap(current_walkers,old_walkers);
-        current_walkers.resize(old_walkers.size(),*(old_walkers.end()-1));
+        current_walkers.resize(old_walkers.size(),*(*(current_walkers.end() - 1)) );
         brancher->setEnergyShift(old_walkers);
 	
 	for (int i=0;i<old_walkers.size();i++)
@@ -123,6 +123,6 @@ void dmcDriver::accumulate()
 	for( auto & est : getEstimators())
 	{
 	  for (auto & current_walker : current_walkers)
-		est->accumulate(current_walker,wave);
+		est->accumulate(*current_walker,wave);
 	}
 }

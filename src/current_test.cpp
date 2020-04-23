@@ -23,6 +23,52 @@
 #include "orbitals.h"
 
 
+auto getEnergies(const   pTools::walkerDistribution::walkers_t & walkers)
+{
+  /* Gather all energies on process 0 for this walker distribution */
+  std::vector<real_t> energies;
+  for (int i=0;i<walkers.size();i++)
+    {
+      energies.push_back(walkers[i].getEnergy() );
+    }
+
+  std::vector<int> populations;
+  populations.resize(pTools::nProcesses() , 0 );
+  int n = energies.size();
+  MPI_Gather( & n,1 , MPI_INT,
+	      populations.data(), 1, MPI_INT,
+	      0, MPI_COMM_WORLD);
+
+  
+  std::vector<real_t> totalEnergies;
+  int totN = 0;
+  for (int i=0;i<populations.size();i++)
+    {
+      totN+=populations[i];
+    }
+  std::vector<int> offsets;
+  offsets.resize(populations.size(),0);
+  
+  std::partial_sum(populations.begin(),populations.end() - 1,offsets.begin() + 1 );
+  totalEnergies.resize(totN);
+  
+  MPI_Gatherv(
+	      energies.data(),
+	      energies.size(),
+	      MPI_DOUBLE,
+	      totalEnergies.data(),
+	      populations.data(),
+	      offsets.data(),
+	      MPI_DOUBLE,
+	      0,
+	      MPI_COMM_WORLD
+	      );
+  return totalEnergies;
+  
+}
+
+
+
 int main(int argc, char** argv)
 {
 
@@ -31,22 +77,9 @@ int main(int argc, char** argv)
   std::vector<int> Ns{33};
   
   real_t lBox=10000.;
-  int seed=100;
 
   
   geometryPBC geo(lBox,lBox,lBox);
-  state_t state1(Ns[0],getDimensions() );
-  state_t state2(Ns[0],getDimensions());
-
-
-  srand((unsigned int) seed);
-
-  
-  state1.setRandom();
-  state2.setRandom();
-  
-  states_t states1{state1};
-  states_t states2{state2};
   
   real_t alpha=1.;
   
@@ -61,26 +94,76 @@ int main(int argc, char** argv)
 
   energy eO(&pot);
 
-  dmcWalker w1;
-  dmcWalker w2;
-  
-  initializer::initialize(w1,states1,psi,eO);
-  initializer::initialize(w2,states2,psi,eO);
-  
-  if (pTools::rank() == 1)
-    {
-      pTools::partialSend(w1,0,0);
-    }
-  else if (pTools::rank()==0)
-    {
-      pTools::partialRecv(&w2,1,0);
-      std::cout << w1.getStates()[0] << std::endl;
-      std::cout << "-----------------" << std::endl;
+  pTools::walkerDistribution wd;
 
-      std::cout << w2.getStates()[0] << std::endl;
+  pTools::walkerDistribution::walkers_t walkers;
+
+  int nP = pTools::nProcesses();
+  int seed = 34;
+  
+  std::ranlux24 randGen(seed + pTools::rank() );
+  srand(seed + pTools::rank());
+  std::uniform_int_distribution<int> disWalker(7,13);
+
+  walkers.resize( disWalker(randGen) );
+
+  
+  
+  
+  
+  for(int i=0;i<walkers.size();i++)
+    {
+      state_t state(Ns[0],getDimensions() );
+      state.setRandom();
       
+      initializer::initialize(walkers[i],{state},psi,eO);
     }
 
+  auto oldPopulation = wd.gatherPopulations(walkers.size());
+
+  auto oldEnergies = getEnergies(walkers);
+  
+  wd.isendReceive(walkers);
+  wd.wait(walkers);
+  auto newPopulation = wd.gatherPopulations(walkers.size() );
+
+  auto newEnergies = getEnergies(walkers);
+   if (pTools::rank()==0)
+     {
+       int oldPopulationSize=0;
+       for (auto & pop : oldPopulation)
+	 {
+	   oldPopulationSize+=pop;
+	 }
+       int newPopulationSize=0;
+       for (auto & pop : newPopulation)
+	 {
+	   newPopulationSize+=pop;
+	 }
+       
+       
+       for (int i=0;i<newPopulation.size();i++)
+	 {
+	   std::cout << i << " " << oldPopulation[i] << " => " << newPopulation[i] <<  std::endl;
+	 }
+
+       std::cout << oldPopulationSize << " " << newPopulationSize << std::endl;
+
+
+       for (int i=0;i<oldEnergies.size();i++)
+	 {
+	   std::cout << oldEnergies[i] << std::endl;
+	 }
+       for (int i=0;i<oldEnergies.size();i++)
+	 {
+	   bool found = std::find(newEnergies.begin(),oldEnergies.end(), oldEnergies[i]) != newEnergies.end() ;
+	   std::cout << found << std::endl;
+	 }
+       
+       
+     }
+  
+   
   
   pTools::finalize();
 
