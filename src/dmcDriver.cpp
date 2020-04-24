@@ -125,6 +125,7 @@ void dmcDriver::run( const std::vector<states_t> &states , size_t nBlocks )
   
   initializer::initialize(current_walkers,states,getWavefunction(),energyOb);
   initializer::initialize(old_walkers,states,getWavefunction(),energyOb);
+  //initializer::initialize(walkerLoadBalancer,getWavefunction(),energyOb);
   brancher->setEnergyShift(current_walkers);
   walkerLoadBalancer->isendReceive(current_walkers);
   

@@ -55,6 +55,22 @@ private:
 
 void update(walker & w,productWavefunction & psi);
 
+class configurationsSaver
+{
+  configurationsSaver();
+  virtual void dump(const walker & w,int i);
+  const auto & getFolder() const {return folderBase;}
+protected:
+  void dumpJson(json_t & json);
+  
+private:
+  std::string folderBase;
+  
+};
+
+
+
+
 class vmcDriver : public driver
 {
 public:

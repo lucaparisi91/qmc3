@@ -306,7 +306,6 @@ int walkerDistribution::wait(walkerDistribution::walkers_t & walkers)
   auto & amount = nWalkersReceived[_currentRank];
   if (amount != 0)
     MPI_Wait(&receiveRequest, &status);
-
   
   for(int i=0;i<sendRequests.size();i++)
     {
@@ -339,6 +338,11 @@ int walkerDistribution::wait(walkerDistribution::walkers_t & walkers)
    
   return 0;
 }
+
+
+
+
+
   
 };
 

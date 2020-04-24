@@ -3,6 +3,11 @@
 
 #include "traits.h"
 #include <fstream>
+#include <vector>
+
+
+json_t toJson(states_t & states);
+std::vector<states_t> readStates(json_t & jI);
 
 std::string ansiColor(const std::string & color_name);
 
@@ -15,8 +20,7 @@ inline size_t size(const distance_t & dis) {return dis.rows();}
 
 inline constexpr int getDimensions() { return DIMENSIONS; }
 
-
-
+std::vector<states_t> readStatesFromDirectory(std::string filename);
 
 
 //inline constexpr int getDimensions(const state_t & state) {return DIMENSIONS;}

@@ -7,6 +7,7 @@
     "stepsPerBlock" : 1000,
     "walkers" : 1,
     "nBlocks" : 10000,
+    "configurations" : "configurations",
     "wavefunctions" :
     [
 	{

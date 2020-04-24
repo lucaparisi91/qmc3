@@ -113,6 +113,13 @@ int main(int argc, char** argv)
   size_t stepsPerBlock = j["stepsPerBlock"];
   size_t nBlocks = j["nBlocks"];  
   int seed= j["seed"];
+  std::vector<states_t> configurations;
+
+  if (j.find("configurations") != j.end())
+    {
+      configurations=readStatesFromDirectory(j["configurations"]);
+    }
+
   
   if (method == "vmc")
     {
@@ -121,20 +128,34 @@ int main(int argc, char** argv)
       vmcO.getEstimators().push_back(&m);
       vmcO.getEstimators().push_back(&m2);
       vmcO.getRandomGenerator().seed(seed + pTools::rank() );
-      vmcO.run(states,nBlocks); 
+      states_t * initialConfiguration = &states;
+      if (configurations.size() > 0 )
+	{
+	  initialConfiguration = &(configurations[0]);
+	}
+      vmcO.run(*initialConfiguration,nBlocks); 
     }
+  
   else if ( method == "dmc" or method == "svmc")
     {
       size_t nW=j["walkers"];
       
       dmcDriver dmcO(&psi,&pot,timeStep,nW);
       dmcO.getStepsPerBlock()=stepsPerBlock;
-      std::vector<states_t> dmcStates;
+      std::vector<states_t> dmcStates(configurations);
+
       
-      for(int i=0;i<nW;i++)
+      
+      
+      if ( dmcStates.size() == 0 )
 	{
-	  dmcStates.push_back(states);
+	  for(int i=0;i<nW/pTools::nProcesses();i++)
+	    {
+	      dmcStates.push_back(states);
+	    }
+      
 	}
+      
       dmcO.getRandomGenerator().seed(seed + pTools::rank() );
       if (method == "svmc")
 	dmcO.disableBranching();

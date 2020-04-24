@@ -32,7 +32,6 @@ public:
   const auto & getTableSlaters()  const {return _slaters;}
 
 
-  json_t toJson() ;
   auto & getStates()  {return _states;}
   auto & getTableDistances()  {return _tab;}
   auto & getTableSlaters()  {return _slaters;}

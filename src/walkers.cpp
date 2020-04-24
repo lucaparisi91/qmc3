@@ -77,27 +77,12 @@ void dmcWalker::createMPIDataType()
   // MPI_Get_address(&getEnergy() , &offsets[4] );  
 }
 
-json_t walker::toJson()
-{
-  json_t j;
 
-  for (int i=0;i<getDimensions();i++)
-    {
-      const auto & x = getStates()[0].col(i);
 
-      std::vector<real_t> xCopy(x.data() , x.data() + x.size()) ;
-      
-      if (i==0)
-	j["x"]=xCopy;
-      if (i==1)
-	j["y"]=xCopy;
-      if (i==2)
-	j["z"]=xCopy;
-      
-      
-    }
-  return j;
-}
+
+
+
+
 
 template<class T>
 void walkerContainer<T>::push_back(const T &  w)
@@ -137,15 +122,14 @@ void walkerContainer<T>::dump(int i)
     
   }
 
-
 template<class T>
 json_t walkerContainer<T>::toJson()
   {
     json_t j;
-    j["walkers"]=json_t::array({});
+    j["configurations"]=json_t::array({});
     for (int i=0;i<walkers.size();i++)
       {
-	j["walkers"].push_back( (*this)[i].toJson() );
+	j["configurations"].push_back(::toJson((*this)[i].getStates()) );
       }
     return j;
   }
@@ -159,7 +143,6 @@ void walkerContainer<T>::reserve(size_t size2,const T & w)
       {
 	walkers[i].reset(new T(w));
       }
-    
   }
 
 
@@ -183,6 +166,7 @@ void walkerContainer<T>::resize(size_t size2, const T & w)
     reserve(size2,w);    
     _size=size2;
   }
+
 
 
 

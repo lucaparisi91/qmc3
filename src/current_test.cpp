@@ -71,98 +71,10 @@ auto getEnergies(const   pTools::walkerDistribution::walkers_t & walkers)
 
 int main(int argc, char** argv)
 {
-
   pTools::init(argc,argv);
-  
-  std::vector<int> Ns{33};
-  
-  real_t lBox=10000.;
 
+  auto initialConfigurations = readStatesFromDirectory("configurations");
   
-  geometryPBC geo(lBox,lBox,lBox);
-  
-  real_t alpha=1.;
-  
-  auto J=gaussianJastrow(alpha);
-  jastrowOneBodyWavefunction<gaussianJastrow> wave(J,geo,0);
-	
-  productWavefunction psi;
-  psi.add(&wave);
-  
-  harmonicPotential v(geo,1.,0);
-  sumPotentials pot({&v});
-
-  energy eO(&pot);
-
-  pTools::walkerDistribution wd;
-
-  pTools::walkerDistribution::walkers_t walkers;
-
-  int nP = pTools::nProcesses();
-  int seed = 34;
-  
-  std::ranlux24 randGen(seed + pTools::rank() );
-  srand(seed + pTools::rank());
-  std::uniform_int_distribution<int> disWalker(7,13);
-
-  walkers.resize( disWalker(randGen) );
-
-  
-  
-  
-  
-  for(int i=0;i<walkers.size();i++)
-    {
-      state_t state(Ns[0],getDimensions() );
-      state.setRandom();
-      
-      initializer::initialize(walkers[i],{state},psi,eO);
-    }
-
-  auto oldPopulation = wd.gatherPopulations(walkers.size());
-
-  auto oldEnergies = getEnergies(walkers);
-  
-  wd.isendReceive(walkers);
-  wd.wait(walkers);
-  auto newPopulation = wd.gatherPopulations(walkers.size() );
-  
-  auto newEnergies = getEnergies(walkers);
-   if (pTools::rank()==0)
-     {
-       int oldPopulationSize=0;
-       for (auto & pop : oldPopulation)
-	 {
-	   oldPopulationSize+=pop;
-	 }
-       int newPopulationSize=0;
-       for (auto & pop : newPopulation)
-	 {
-	   newPopulationSize+=pop;
-	 }
-       
-       
-       for (int i=0;i<newPopulation.size();i++)
-	 {
-	   std::cout << i << " " << oldPopulation[i] << " => " << newPopulation[i] <<  std::endl;
-	 }
-
-       std::cout << oldPopulationSize << " " << newPopulationSize << std::endl;
-
-
-       for (int i=0;i<oldEnergies.size();i++)
-	 {
-	   std::cout << oldEnergies[i] << std::endl;
-	 }
-       for (int i=0;i<oldEnergies.size();i++)
-	 {
-	   bool found = std::find(newEnergies.begin(),oldEnergies.end(), oldEnergies[i]) != newEnergies.end() ;
-	   std::cout << found << std::endl;
-	 }
-       
-       
-     }
-   
   pTools::finalize();
 
 }
