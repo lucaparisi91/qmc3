@@ -2,6 +2,8 @@
 #include "energy.h"
 #include "wavefunction/productWavefunction.h"
 #include "tools.h"
+#include <sys/stat.h>
+
 void updateForceGradientLaplacian(walker & w,productWavefunction & psi)
 {
 	/* Update forces ,laplacian and wavefunction value*/
@@ -96,3 +98,94 @@ json_t walker::toJson()
     }
   return j;
 }
+
+template<class T>
+void walkerContainer<T>::push_back(const T &  w)
+    {
+      _size=_size +1;
+    
+      if (_size > capacity() )
+	{
+	  walkers.push_back(std::unique_ptr<T>() );
+	  (*(walkers.end() -1 )).reset( new T(w));
+	}
+      else
+	{
+	  *(walkers[_size-1])=w;
+	}
+    }
+
+
+
+template<class T>
+void walkerContainer<T>::dump(int i)
+  {
+    std::ofstream f;
+    int pId =pTools::rank();
+
+    struct stat st = {0};
+
+    if (stat(baseDir.c_str(), &st) == -1) {
+      mkdir(baseDir.c_str(), 0700);
+}
+    
+    f.open(baseDir + "/walkers-Rank" + std::to_string(pId) + ".dat");
+
+    json_t j = toJson();
+    f << j;
+    f.close();
+    
+  }
+
+
+template<class T>
+json_t walkerContainer<T>::toJson()
+  {
+    json_t j;
+    j["walkers"]=json_t::array({});
+    for (int i=0;i<walkers.size();i++)
+      {
+	j["walkers"].push_back( (*this)[i].toJson() );
+      }
+    return j;
+  }
+
+template<class T>
+void walkerContainer<T>::reserve(size_t size2,const T & w)
+  {
+    auto oldCap = capacity();
+    if (size2 > capacity() ) walkers.resize(size2);
+    for (int i=oldCap ; i < capacity() ;i++)
+      {
+	walkers[i].reset(new T(w));
+      }
+    
+  }
+
+
+template<class T>
+void walkerContainer<T>::resize(size_t size2)
+  {
+    if (size2 > capacity()  )
+      {
+	
+	resize(size2,T());
+      }
+    else
+      {
+	_size=size2;
+      }
+  }
+
+template<class T>
+void walkerContainer<T>::resize(size_t size2, const T & w)
+  {
+    reserve(size2,w);    
+    _size=size2;
+  }
+
+
+
+
+
+#include "walkers.hpp"
