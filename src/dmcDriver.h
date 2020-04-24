@@ -75,6 +75,9 @@ public:
   
   virtual void out();
   virtual void accumulate();
+
+  virtual void disableBranching();
+  
 private:
   walkerContainer<dmcWalker> current_walkers;
   walkerContainer<dmcWalker> old_walkers;
@@ -85,4 +88,5 @@ private:
   std::unique_ptr<acceptRejectPolicy> accepter;
   std::unique_ptr< branchingControl> brancher;
   std::unique_ptr<pTools::walkerDistribution> walkerLoadBalancer;
+  bool performBranching;
 };

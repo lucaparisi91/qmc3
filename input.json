@@ -1,12 +1,12 @@
 {
-    "N" : [10],
-    "seed" : 342,
-    "lBox" : [100,100,100],
+    "N" : [100],
+    "seed" : 123,
+    "lBox" : [100.0,100.0,100.0],
     "method" : "vmc",
-    "timeStep" : 1e-2,
-    "stepsPerBlock" : 100000,
-    "walkers" : 100,
-    "nBlocks" : 100000,
+    "timeStep" : 1e-3,
+    "stepsPerBlock" : 1000,
+    "walkers" : 1,
+    "nBlocks" : 10000,
     "wavefunctions" :
     [
 	{

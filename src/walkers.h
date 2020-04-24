@@ -7,6 +7,8 @@
 #include "qmcExceptions.h"
 #include "slaters.h"
 #include "ptools.h"
+#include <fstream>
+
 /*
 A walker contains all the informiation
 on the current configurations. 
@@ -29,6 +31,8 @@ public:
   const auto & getLaplacianLog() const {return _lapLog;}
   const auto & getTableSlaters()  const {return _slaters;}
 
+
+  json_t toJson() ;
   auto & getStates()  {return _states;}
   auto & getTableDistances()  {return _tab;}
   auto & getTableSlaters()  {return _slaters;}
@@ -36,7 +40,6 @@ public:
   auto & getLogWave() {return _waveValue;}
   auto & getGradients()  {return _gradients;}
   auto & getLaplacianLog() {return _lapLog;}
-
   
   
   virtual const real_t & getEnergy() const {throw missingImplementation("Energy not accessible from the walker"); return _waveValue;};
@@ -88,7 +91,10 @@ public:
     Calling resize does not make old allocated data invalid.
 */
   
-  walkerContainer() : walkers(),_size(0) {};
+  walkerContainer() : walkers(),_size(0),baseDir("configurations")
+  {
+    
+  };
   walkerContainer( std::vector<T> vec ) : walkers(vec),_size(vec.size()) {}
   
   auto & operator[](size_t i) {return *(walkers[i]);}
@@ -154,9 +160,36 @@ public:
   auto cend() const {return walkers.cbegin() + _size;}
 
   auto data() {return walkers.data();}
+
+  auto toJson()
+  {
+    json_t j;
+    j["walkers"]=json_t::array({});
+    for (int i=0;i<walkers.size();i++)
+      {
+	j["walkers"].push_back( (*this)[i].toJson() );
+      }
+    return j;
+  }
+  
+  void dump(int i)
+  {
+    std::ofstream f;
+    int pId =pTools::rank();
+    
+    f.open(baseDir + "/walkers-Rank" + std::to_string(pId) + ".dat");
+
+    json_t j = toJson();
+    f << j;
+    f.close();
+    
+  }
+  
   private:
   std::vector<std::unique_ptr<T> > walkers;
   size_t _size;
+  std::string baseDir;
+  bool saveOnlyLastConfiguration;
 };
 
 

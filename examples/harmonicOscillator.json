@@ -1,12 +1,12 @@
 {
-    "N" : [1],
+    "N" : [10],
     "seed" : 342,
     "lBox" : [10000.0,10000.0,10000.0],
     "method" : "dmc", 
     "timeStep" : 5e-3,
     "stepsPerBlock" : 100,
     "walkers" : 1000,
-    "nBlocks" : 100000,
+    "nBlocks" : 100,
     "wavefunctions" :
     [
 	{

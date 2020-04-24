@@ -6,7 +6,7 @@
 #include "moves/dmcMoves.h"
 #include "estimators.h"
 #include "branching.h"
-
+#include "timer.h"
 
 bool noMetropolisPolicy::accept(
 		mover & move,
@@ -78,27 +78,34 @@ void dmcDriver::update(dmcWalker & wNew,const dmcWalker & wOld)
 	  update(current_walkers[i],old_walkers[i]);
 	}
 	auto oldSize=old_walkers.size();
-	walkerLoadBalancer->wait(old_walkers);
+
+	getTimers().get("waitWalkers").start();
+	walkerLoadBalancer->wait(old_walkers);	
+	getTimers().get("waitWalkers").stop();
 
 	current_walkers.resize(old_walkers.size(),old_walkers[old_walkers.size()-1]);
 	
 	for (int i=oldSize;i<old_walkers.size();i++)
 	{
 	  update(current_walkers[i],old_walkers[i]);
-
 	}
 	
-	
-	brancher->branch(current_walkers,old_walkers,getRandomGenerator());
+	if (performBranching)
+	  {
+	    brancher->branch(current_walkers,old_walkers,getRandomGenerator());
+	    getTimers().get("shiftEnergy").start();
+	    brancher->setEnergyShift(current_walkers);
+	    getTimers().get("shiftEnergy").stop();
+	  }
 
 	
 	//std::cout << "<-- " << current_walkers.size() << std::endl;
 
-	
-	brancher->setEnergyShift(current_walkers);
-	
+
+	getTimers().get("sendWalkers").start();
 	walkerLoadBalancer->isendReceive(current_walkers);
-	
+	getTimers().get("sendWalkers").stop();
+
 
 
 
@@ -152,6 +159,7 @@ void dmcDriver::out()
       ests.dump();
     }
   ests.clear();
+  current_walkers.dump(getCurrentBlock());
   accepter->clear();
 
 }
@@ -164,12 +172,21 @@ dmcDriver::dmcDriver(dmcDriver::wavefunction_t * wave, potential_t * pot,real_t 
   brancher(
 	   new branchingControl(timeStep,nWalkers,int(0.1*nWalkers))
 	   ),
-  walkerLoadBalancer(new pTools::walkerDistribution )
+  walkerLoadBalancer(new pTools::walkerDistribution ),
+  performBranching(true)
   
 {
   getEstimators().push_back( energyEst.get() );
+  getTimers().add("shiftEnergy");
+  getTimers().add("sendWalkers");
+  getTimers().add("waitWalkers");
+  
 }
 
+void dmcDriver::disableBranching()
+{
+  performBranching=false;
+}
 
 void dmcDriver::accumulate()
 {
@@ -181,3 +198,5 @@ void dmcDriver::accumulate()
 		est->accumulate(*current_walker,wave);
 	}
 }
+
+

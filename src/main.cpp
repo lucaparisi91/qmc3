@@ -78,6 +78,7 @@ int main(int argc, char** argv)
     {
       state_t particleData(Ns[i] , D);
       particleData.setRandom();
+      //particleData*=lBox[0]/2.;
       states.push_back(particleData);
     }
   
@@ -122,7 +123,7 @@ int main(int argc, char** argv)
       vmcO.getRandomGenerator().seed(seed + pTools::rank() );
       vmcO.run(states,nBlocks); 
     }
-  else if ( method == "dmc")
+  else if ( method == "dmc" or method == "svmc")
     {
       size_t nW=j["walkers"];
       
@@ -135,6 +136,8 @@ int main(int argc, char** argv)
 	  dmcStates.push_back(states);
 	}
       dmcO.getRandomGenerator().seed(seed + pTools::rank() );
+      if (method == "svmc")
+	dmcO.disableBranching();
       dmcO.run(dmcStates,nBlocks);
     }
 

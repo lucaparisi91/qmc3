@@ -1,7 +1,7 @@
 #include "walkers.h"
 #include "energy.h"
 #include "wavefunction/productWavefunction.h"
-
+#include "tools.h"
 void updateForceGradientLaplacian(walker & w,productWavefunction & psi)
 {
 	/* Update forces ,laplacian and wavefunction value*/
@@ -72,10 +72,27 @@ void dmcWalker::createMPIDataType()
   // MPI_Get_address(&getLogWave() , &offsets[1] );
   // MPI_Get_address(&getGradients() , &offsets[2] );
   // MPI_Get_address(&getLaplacianLog() , &offsets[3] );
-  // MPI_Get_address(&getEnergy() , &offsets[4] );
+  // MPI_Get_address(&getEnergy() , &offsets[4] );  
+}
 
-  
+json_t walker::toJson()
+{
+  json_t j;
 
-  
-  
+  for (int i=0;i<getDimensions();i++)
+    {
+      const auto & x = getStates()[0].col(i);
+
+      std::vector<real_t> xCopy(x.data() , x.data() + x.size()) ;
+      
+      if (i==0)
+	j["x"]=xCopy;
+      if (i==1)
+	j["y"]=xCopy;
+      if (i==2)
+	j["z"]=xCopy;
+      
+      
+    }
+  return j;
 }
