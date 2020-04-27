@@ -6,6 +6,7 @@
 #include "walkers.h"
 #include "estimatorCollection.h"
 #include "moves/move.h"
+#include <deque>
 
 class productWavefunction;
 
@@ -49,50 +50,11 @@ private:
 	size_t iBlock;
 	size_t iSubStep;
 	estimators_t _estimators;
-
-};
-
-
-void update(walker & w,productWavefunction & psi);
-
-class configurationsSaver
-{
-  configurationsSaver();
-  virtual void dump(const walker & w,int i);
-  const auto & getFolder() const {return folderBase;}
-protected:
-  void dumpJson(json_t & json);
-  
-private:
-  std::string folderBase;
-  
 };
 
 
 
 
-class vmcDriver : public driver
-{
-public:
-	using walker_t = walker;
 
-	vmcDriver(wavefunction_t * wave,real_t sigma_);
-	
-	void run(states_t & states,size_t nSamples);
-	void step(); // perform a mc step
-	void out(); // output summery of the blocks
-
-	virtual void accumulate() ; // accumulate measurements
-
-	auto & currentWalker() {return current_walker;}
-	auto & oldWalker(){return old_walker;}
-  
-private:
-	walker_t current_walker;
-	walker_t old_walker;
-	walker_t tmp_walker;
-	metropolis metropolisObj;
-	std::unique_ptr<mover> vmcMove;
-};
 
 #endif

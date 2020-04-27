@@ -24,7 +24,7 @@ bool is_empty(std::ifstream& pFile)
 }
 
 
-json_t toJson(states_t & states)
+json_t toJson(const states_t & states)
 {
   json_t jO=json_t::array({});
   

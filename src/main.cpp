@@ -10,8 +10,8 @@
 #include "walkers.h"
 #include "energy.h"
 #include "estimators.h"
-#include "driver.h"
 #include "dmcDriver.h"
+#include "vmcDriver.h"
 #include "branching.h"
 #include <string>
 #include "wavefunction/jastrowWavefunctionOneBody.h"
@@ -58,17 +58,35 @@ int main(int argc, char** argv)
   
   
   std::vector<real_t> lBox;
-  
+  std::vector<real_t> lBoxInitialCondition;
   lBox=j["lBox"].get<decltype(lBox)>();
   std::vector<int> Ns;
   Ns=j["N"].get<decltype(Ns)>();
   int D=lBox.size();
 
-  if ( D != getDimensions() )
+  if (j.find("initialConditionGenerator") != j.end() )
+    {
+      auto & confGenJ = j["initialConditionGenerator"];
+      if (confGenJ.find("lBox") != confGenJ.end() )
+	{
+	  lBoxInitialCondition=confGenJ["lBox"].get<decltype(lBoxInitialCondition)>() ;
+	}
+      else
+	{
+	  lBoxInitialCondition=lBox;
+	}
+	
+    }
+  else
+    {
+      lBoxInitialCondition = lBox;
+    }
+  if ( ( D != getDimensions() )or (lBoxInitialCondition.size() != getDimensions() ) )
     {
       throw invalidInput("Input file implies dimensionality different from " + std::to_string(getDimensions() ) );
       
     }
+  
   
   geometryPBC geo( lBox[0], lBox[1], lBox[2]);
   
@@ -78,6 +96,14 @@ int main(int argc, char** argv)
     {
       state_t particleData(Ns[i] , D);
       particleData.setRandom();
+
+      for (int i=0;i<getN(particleData);i++)
+	{
+	  for (int d=0;d<getDimensions();d++)
+	    {
+	      particleData(i,d)*=lBoxInitialCondition[d]*0.5;
+	    }
+	}
       //particleData*=lBox[0]/2.;
       states.push_back(particleData);
     }

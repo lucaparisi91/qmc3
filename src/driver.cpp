@@ -7,8 +7,10 @@
 #include "tools.h"
 #include "moves/vmcMoves.h"
 #include "ptools.h"
+#include  <filesystem>
 
 #include "timer.h"
+#include <sys/stat.h>
 
 
 driver::driver(driver::wavefunction_t * wave) : _wave(wave), 
@@ -49,87 +51,3 @@ void driver::run(size_t nBlocks)
   
 };
 
-
-
-
- vmcDriver::vmcDriver(vmcDriver::wavefunction_t * wave_,real_t sigma_) :
-driver::driver(wave_),
- metropolisObj(),
- vmcMove(new gaussianMover(sigma_))
- {
- 	
- }
-
-void vmcDriver::run(states_t & states,size_t nBlocks)
-{
-	wavefunction_t & wave= getWavefunction();
-	
-	initializer::initialize(current_walker,states,getWavefunction());
-	initializer::initialize(old_walker,states,wave);
-	initializer::initialize(tmp_walker,states,wave);
-	driver::run(nBlocks);
-
-};
-
-void update(walker & w,productWavefunction & psi)
-	{
-	  w.getTableDistances().update(w.getStates());
-	  w.getLogWave()=psi(w);
-	};
-
-
-void vmcDriver::step()
-{
-	auto & wave=getWavefunction();
-
-	std::swap(old_walker,current_walker);
-
-	vmcMove->move(current_walker,old_walker,getRandomGenerator());
-
-	// update distances and evaluates the wavefunction
-	update(current_walker,wave);
-	// accept or reject the walker
-	bool accept = metropolisObj.acceptLog(2* (current_walker.getLogWave() - old_walker.getLogWave()),getRandomGenerator());
-	if (!accept)
-	{
-		current_walker=old_walker;
-	}
-}
-
-void vmcDriver::accumulate()
-{
-	auto & wave=getWavefunction();
-
-	for( auto & est : getEstimators())
-	{
-		est->accumulate(current_walker,wave);
-	}
-}
-
-void vmcDriver::out()
-{
-  auto & ests = getEstimators();
-  ests.accumulateMPI(0.);
-  metropolisObj.accumulateMPI(0);
-
-  
-  if (pTools::isMaster() )
-    {
-
-      std::cout << ansiColor("green") << "Block: "<< ansiColor("default")<<getCurrentBlock()<<std::endl;
-      std::cout << "Acc. Ratio: " << metropolisObj.getAcceptanceRatio() << std::endl;
-      
-	// erase
-	
-	auto energyEst = getEstimators()[0];
-	std::cout << ansiColor("cyan") << "Energy: " << ansiColor("default");
-	energyEst->write(std::cout);
-	std::cout << std::endl;
-	
-	
-	ests.dump();
-
-    }
-	ests.clear();
-	metropolisObj.clear();
-}

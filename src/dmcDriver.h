@@ -37,7 +37,6 @@ public:
   virtual void accumulateMPI(int root) {};
 private:
   metropolis metropolisSampler;
-  
 };
 
 

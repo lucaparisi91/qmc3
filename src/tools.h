@@ -6,7 +6,7 @@
 #include <vector>
 
 
-json_t toJson(states_t & states);
+json_t toJson(const states_t & states);
 std::vector<states_t> readStates(json_t & jI);
 
 std::string ansiColor(const std::string & color_name);

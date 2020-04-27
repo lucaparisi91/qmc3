@@ -114,7 +114,7 @@ void walkerContainer<T>::dump(int i)
       mkdir(baseDir.c_str(), 0700);
 }
     
-    f.open(baseDir + "/walkers-Rank" + std::to_string(pId) + ".dat");
+    f.open(baseDir + "/walkers-Rank" + std::to_string(pId) + ".json");
 
     json_t j = toJson();
     f << j;
