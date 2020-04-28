@@ -148,4 +148,20 @@ void fillFermiSea(std::vector<orbital_t> & orbitals,int N,Args ... args)
 };
 
 
+
+#include "wavefunction/shell.h"
+template<class orbital_t, class ... Args >
+void fillFermiSeaByEnergy(std::vector<orbital_t> & orbitals,int N,Args ... args)
+{
+  std::vector<orbital_t> orbitalsInShell;
+  
+  fillFermiSea(orbitalsInShell,2*N,args ...);
+  std::sort(orbitalsInShell.begin(),orbitalsInShell.end(),[](orbital_t & a ,orbital_t & b){return a.energy() < b.energy();} );
+  for (int i=0;i<N;i++)
+   {
+      orbitals.push_back(orbitalsInShell[i]);
+    }
+};
+
+
 #endif

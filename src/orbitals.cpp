@@ -69,7 +69,7 @@ template<class orbital_t>
 {
   int n=j["n"];
   
-  fillFermiSea(getOrbitals() , n, j );
+  fillFermiSeaByEnergy(getOrbitals() , n, j );
   
 }
 
