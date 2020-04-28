@@ -72,6 +72,20 @@ template<class orbital_t>
   
 }
 
+
+planeWave::planeWave(int nx,int ny,int nz,real_t lBox,real_t teta)
+{
+  k.resize(getDimensions() );
+  k[0]=nx*2*M_PI/lBox + teta;
+  k[1]=ny*2*M_PI/lBox + teta;
+  k[2]=nz*2*M_PI/lBox + teta;
+  
+}
+
+
 template class orbitalSet<sinOrbital>;
+template class orbitalSet<planeWave>;
+
+
 
 #endif

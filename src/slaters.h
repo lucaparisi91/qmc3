@@ -14,7 +14,9 @@ std::complex<double> getLog(std::complex<double> a,int & sign);
 class tableSlaters
 {
 public:
-  using matrix_t = Eigen::MatrixXd;
+  using matrixReal_t = Eigen::MatrixXd;
+  using matrixComplex_t = Eigen::Matrix<std::complex<real_t>,Eigen::Dynamic,Eigen::Dynamic>;
+  
   using states_t = ::states_t;
   
   tableSlaters(){};
@@ -25,23 +27,50 @@ public:
   
   //void add(int setA, int setB,orbitalSetBase * orbitalSet);
   
-  const matrix_t & slaterMatrix(int setA) const { return slaterMatrices[indices1b.at(setA) ]; }
-  const matrix_t & slaterMatrixInverse(int setA) const { return slaterMatricesInverse[indices1b.at(setA) ]; }
-  
+  const matrixReal_t & slaterMatrixReal(int setA) const { return slaterMatricesReal[indices1bReal.at(setA) ]; }
+  const matrixReal_t & slaterMatrixRealInverse(int setA) const { return slaterMatricesRealInverse[indices1bReal.at(setA) ]; }
+
+  const matrixComplex_t & slaterMatrixComplex(int setA) const { return slaterMatricesComplex[indices1bComplex.at(setA) ]; }
+  const matrixComplex_t & slaterMatrixComplexInverse(int setA) const { return slaterMatricesComplexInverse[indices1bComplex.at(setA) ]; }
+
+
   
   //const slaterMatrix & slaterMatrix(int setA,int setB) const;
   
-  real_t logDeterminant(int setA) const {return logDeterminants[indices1b.at(setA)];}
-  size_t size() {return orbitalSets.size();}
+  real_t logDeterminantReal(int setA) const {return logDeterminantsReal[indices1bReal.at(setA)];}
+
+
+  std::complex<real_t> logDeterminantComplex(int setA) const {return logDeterminantsComplex[indices1bComplex.at(setA)];}
+  
+  size_t size() {return orbitalSetsReal.size() + orbitalSetsComplex.size();}
+  
 private:
+  
   const geometry_t *  geo;
-  std::vector<orbitalSetBase* > orbitalSets;
-  std::vector<matrix_t> slaterMatrices;
-  std::vector<matrix_t> slaterMatricesInverse;
-  std::unordered_map<int,int> indices1b;
-  std::vector<real_t> logDeterminants;
-  std::vector<int> signs;
-  Eigen::PartialPivLU<matrix_t> lud;  
+  std::vector<orbitalSetBase* > orbitalSetsReal;
+  std::vector<orbitalSetBase* > orbitalSetsComplex;
+  
+  
+  std::vector<matrixReal_t> slaterMatricesReal;
+  std::vector<matrixReal_t> slaterMatricesRealInverse;
+
+  std::vector<matrixComplex_t> slaterMatricesComplex;
+  std::vector<matrixComplex_t> slaterMatricesComplexInverse;
+  
+  
+  std::unordered_map<int,int> indices1bReal;
+  std::unordered_map<int,int> indices1bComplex;
+  
+  std::vector<real_t> logDeterminantsReal;
+  std::vector<std::complex<real_t> > logDeterminantsComplex;
+  
+  std::vector<int> signsReal;
+  std::vector<int> signsComplex;
+  
+  
+  Eigen::PartialPivLU<matrixReal_t> ludReal;
+  Eigen::PartialPivLU<matrixComplex_t> ludComplex;
+  
   //std::map<std::pair<int,int> , int> indices2b;
 };
 

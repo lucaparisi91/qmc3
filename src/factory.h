@@ -51,7 +51,10 @@ public:
   template<class orbital_t>
   void registerOrbital()
   {
-    registerWavefunction<slaterDeterminantWavefunction<orbitalSet<orbital_t> > >();
+    if (! orbital_t::isComplex() )
+      registerWavefunction<slaterDeterminantWavefunction<orbitalSet<orbital_t> > >();
+    else
+      registerWavefunction<slaterDeterminantWavefunctionComplex<orbitalSet<orbital_t> > >();
   }
 
 

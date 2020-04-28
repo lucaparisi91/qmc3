@@ -1,12 +1,23 @@
 #include "traits.h"
+#include <type_traits>
+#include "qmcExceptions.h"
+#include <complex>
+#include <iomanip>
+
+using namespace std::complex_literals;
 
 class orbitalSetBase
 {
 public:
-  using matrix_t = Eigen::MatrixXd;
+  using matrixReal_t = Eigen::MatrixXd;
+  using matrixComplex_t = Eigen::Matrix<std::complex<real_t> , Eigen::Dynamic,Eigen::Dynamic>;
   
-  virtual void storeEvaluate(const state_t & state,matrix_t & mat) const=0;
+  virtual void storeEvaluate(const state_t & state,matrixReal_t & mat) const {throw missingImplementation("StoreEvaluate on a real matrix type");};
+  virtual void storeEvaluate(const state_t & state,matrixComplex_t & mat) const { throw missingImplementation("StoreEvaluate on a complex matrix type");};
+  
   virtual real_t energy() const =0;
+  virtual bool isComplex() const = 0;
+  virtual bool isReal() const = 0;
 };
 
 
@@ -14,9 +25,16 @@ template<class orbital_t>
 class orbitalSet : public orbitalSetBase
 {
 public:
+  using value_t=typename orbital_t::value_t;
+  using matrix_t = Eigen::Matrix<value_t,Eigen::Dynamic,Eigen::Dynamic>;
+  
+  
+   virtual bool isComplex() const {return  std::is_same<value_t, std::complex<real_t> >::value  ;};
+  virtual bool isReal() const {return  std::is_same<value_t, real_t >::value  ;};
+  
   orbitalSet() {};
   orbitalSet(const json_t & j);
-  virtual void storeEvaluate(const state_t & state,matrix_t & matrix) const; // store in a matrix all orbitals
+  virtual void storeEvaluate(const state_t & state,matrix_t & matrix) const override; // store in a matrix all orbitals
   
   auto & getOrbitals() {return orbitals;}
   const auto & getOrbitals() const{return orbitals;}
@@ -44,6 +62,7 @@ class sinOrbital
 {
 public:
   using value_t = real_t;
+  static bool isComplex()  {return false;}
   
   sinOrbital(int nx,int ny,int nz,real_t lBox_);
   
@@ -58,11 +77,11 @@ public:
     dz=k[2]*tmp;
     laplacian=-(k[0]*k[0]+ k[1]*k[1]+ k[2]*k[2])*tmp1;
   }
-
+  
   virtual real_t energy() const  {return 0.5*(k[0]*k[0] + k[1]*k[1] + k[2]*k[2] );}
 
   static std::string name() {return "sinCos" ;}
-
+  
 private:
   real_t delta;
   real_t lBox;
@@ -70,6 +89,43 @@ private:
   std::vector<real_t> k;
   
 };
+
+class planeWave
+{
+public:
+  using value_t = std::complex<real_t>;
+  
+  planeWave(int nx,int ny,int nz,real_t lBox_,real_t teta=0);
+  static bool isComplex()  {return true;}
+  
+  std::complex<real_t> operator()(real_t x,real_t y,real_t z) const { return std::exp(1i * ( k[0]*x + k[1]*y + k[2]*z)) ; }
+  
+  inline void evaluateDerivatives(real_t x,real_t y, real_t z, value_t & dx, value_t & dy, value_t & dz ,value_t & laplacian ) const
+  {
+    auto tmp = std::exp(1i * (k[0]*x + k[1]*y +k[2]*z ) );
+    dx=1i*k[0]*tmp;
+    dy=1i*k[1]*tmp;
+    dz=1i*k[2]*tmp;
+    laplacian= -(k[0]*k[0]+ k[1]*k[1]+ k[2]*k[2])*tmp;
+    
+  }
+  
+  virtual real_t energy() const  {return 0.5*(k[0]*k[0] + k[1]*k[1] + k[2]*k[2] );}
+  
+  static std::string name() {return "planeWave" ;}
+  
+private:
+  real_t teta;
+  real_t lBox;
+  std::vector<int> ns;
+  std::vector<real_t> k;
+};
+
+
+
+
+
+
 
 #include "wavefunction/shell.h"
 template<class orbital_t>

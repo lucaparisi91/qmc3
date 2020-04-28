@@ -17,6 +17,12 @@ real_t kineticEnergy::operator()(walker_t & w,wavefunction_t & psi)
 			ef+=tmp;	
 		}
 		
+		for (const auto & grad : w.getPhaseGradients())
+		{
+		  real_t tmp = (grad.array() * grad.array() ).sum();
+		  ef-=tmp;	
+		}
+		
 		return -0.5*(ef + e);
 	};
 

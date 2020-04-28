@@ -123,7 +123,8 @@ int main(int argc, char** argv)
   getFactory().registerJastrow< gaussianJastrow >();
   getFactory().registerJastrow< jastrowSquareWell >();
   getFactory().registerOrbital<sinOrbital>();
-  
+  getFactory().registerOrbital<planeWave>();
+
   auto waves = getFactory().createWavefunctions( j["wavefunctions"],geo);
   
   

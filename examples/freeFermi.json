@@ -1,5 +1,5 @@
 {
-    "N" : [33,33],
+    "N" : [33],
     "seed" : 342,
     "lBox" : [404,404,404],    
     "method" : "vmc", 
@@ -12,39 +12,13 @@
     [
 	
 	{
-	    "kind" : "slater",
+	    "kind" : "slaterComplex",
 	    "set" : 0,
 	    "orbitalSet" :
 	    {
-		"kind" : "sinCos",
+		"kind" : "planeWave",
 		"n" : 33,
 		"lBox" : 404.0
-	    }
-	}
-    ,
-	
-	{
-	    "kind" : "slater",
-	    "set" : 1,
-	    "orbitalSet" :
-	    {
-		"kind" : "sinCos",
-		"n" : 33,
-		"lBox" : 404.0
-	    }
-	},
-
-	{
-	    "kind" : "jastrow2bDis",
-	    "sets" : [0,1],
-	    "jastrow" :
-	    {
-		"kind" : "squareWell",
-		"V0" :  2.4674011002723395,
-		"R0" : 1.0,
-		"alpha" : 0.5,
-		"cut_off" : 404.0,
-		"Rm" : 40.0
 	    }
 	}
 
@@ -52,13 +26,6 @@
     
     "potentials" :
     [
-	
-	{
-	    "kind" : "squareWell2b",
-	    "V0" :  2.4674011002723395,
-	    "R0" : 1.0,
-	    "sets" : [0,1]
-	}
 
     ]
     

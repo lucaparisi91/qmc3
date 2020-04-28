@@ -19,6 +19,8 @@ class sumPotentials;
 
 using difference_t = state_t;
 using differences_t = std::vector<difference_t>;
+using difference_complex_t = Eigen::Array<std::complex<real_t>,Eigen::Dynamic,DIMENSIONS> ;
+
 
 using distance_t = Eigen::VectorXd;
 using distances_t = std::vector<distance_t>;

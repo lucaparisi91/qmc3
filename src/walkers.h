@@ -38,6 +38,7 @@ public:
 
   auto & getLogWave() {return _waveValue;}
   auto & getGradients()  {return _gradients;}
+  auto & getPhaseGradients()  {return _phaseGradients;}
   auto & getLaplacianLog() {return _lapLog;}
   
   
@@ -56,6 +57,7 @@ private:
   real_t _lapLog; // contains the laplacian of the logarithm of the wavefunction
   tableSlaters _slaters; // contains the matrix of slater determinants
   MPI_Datatype dtype;
+  grads_t _phaseGradients; // contains the gradient of the wavefunction. Just a temporary
 
 };
 

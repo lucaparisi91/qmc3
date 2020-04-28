@@ -193,3 +193,46 @@ TEST(fermions,slaterWavefunctionEnergy)
 }
 
 
+TEST(fermions,slaterWavefunctionComplexEnergy)
+{
+  std::vector<int> Ns{33};
+
+  real_t lBox=33.;
+  
+  geometryPBC geo(lBox,lBox,lBox);
+  states_t states;
+  
+  for (int i=0;i<Ns.size();i++)
+    {
+      state_t particleData(Ns[i] , getDimensions());
+      particleData.setRandom();
+      particleData=particleData*lBox - lBox/2.;
+      states.push_back(particleData);
+    }
+  
+  real_t alpha=1.;
+  
+  orbitalSet<planeWave> basis;
+  
+  fillFermiSea(basis.getOrbitals(),Ns[0],lBox); // fills a fermi see with the given orbital based
+
+  
+  slaterDeterminantWavefunctionComplex<decltype(basis)> wave(basis,geo,0);
+  
+  productWavefunction psi({&wave}) ;
+  dmcWalker w;
+  
+  emptyPotential v(geo);
+  sumPotentials pot({&v});
+  
+  energy eO(&pot);
+  forceEnergy efO(&pot);
+  
+  realScalarEstimator m("energy",&eO);
+  realScalarEstimator m2("forceEnergy",&efO);
+  
+  initializer::initialize(w,states,psi,eO);
+  
+  EXPECT_NEAR( w.getEnergy() , basis.energy() , 1E-5 );
+  
+}

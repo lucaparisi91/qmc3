@@ -20,13 +20,13 @@ public:
   productWavefunction(){};
   
 
-  productWavefunction(std::vector<wavefunction *> waves) : _logWaves(waves) {}
+  productWavefunction(std::vector<wavefunction *> waves) ;
 
   real_t operator()(const walker_t & states); // evaluates \sum_i psi_i
 
   void evaluateDerivatives(walker_t & states); // computes the gradient and computes lap: log(\prod_i psi_i) and laplacian \nabla \psi = \prod_i exp(psi_i), lap_force : sum(grad**2) 
 
-  void add(wavefunction * wave) {_logWaves.push_back(wave);}
+  void add(wavefunction * wave) ;
 
 
   size_t size () const { return _logWaves.size();}
@@ -39,9 +39,11 @@ public:
 
   const geometry_t & getGeometry() const ;
 
-
+  bool isComplex() {return isAtLeatOneComponentComplex;}
+  
 private:
-	std::vector<wavefunction*> _logWaves;
+  std::vector<wavefunction*> _logWaves;
+  bool isAtLeatOneComponentComplex;
 };
 
 #endif
