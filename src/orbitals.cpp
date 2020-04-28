@@ -43,6 +43,8 @@ sinOrbital::sinOrbital(int n1,int n2,int n3,double lBox_) : lBox(lBox_) , ns{n1,
    
   }
 
+sinOrbital::sinOrbital(int n1,int n2,int n3,const json_t & j) : sinOrbital(n1,n2,n3,j["lBox"].get<real_t>()) {}
+
 template<class orbital_t>
 void orbitalSet<orbital_t>::storeEvaluate(const state_t & states,orbitalSet<orbital_t>::matrix_t & orbitalMatrix) const
 {
@@ -66,9 +68,8 @@ template<class orbital_t>
  orbitalSet<orbital_t>::orbitalSet(const json_t & j)
 {
   int n=j["n"];
-  real_t lBox = j["lBox"];
   
-  fillFermiSea(getOrbitals() , n,lBox );
+  fillFermiSea(getOrbitals() , n, j );
   
 }
 
@@ -76,11 +77,15 @@ template<class orbital_t>
 planeWave::planeWave(int nx,int ny,int nz,real_t lBox,real_t teta)
 {
   k.resize(getDimensions() );
-  k[0]=nx*2*M_PI/lBox + teta;
-  k[1]=ny*2*M_PI/lBox + teta;
-  k[2]=nz*2*M_PI/lBox + teta;
-  
+  k[0]=(nx*2*M_PI + teta)/lBox ;
+  k[1]=(ny*2*M_PI+teta)/lBox ;
+  k[2]=(nz*2*M_PI + teta)/lBox ;
 }
+
+
+
+planeWave::planeWave(int nx,int ny,int nz,const json_t & jI) : planeWave(nx,ny,nz,jI["lBox"],    jI.find("teta")!=jI.end() ? jI["teta"].get<real_t>() : 0  ) {}
+
 
 
 template class orbitalSet<sinOrbital>;

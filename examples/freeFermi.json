@@ -18,7 +18,8 @@
 	    {
 		"kind" : "planeWave",
 		"n" : 33,
-		"lBox" : 404.0
+		"lBox" : 404.0,
+		"teta" : 1.0
 	    }
 	}
 

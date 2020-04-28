@@ -65,7 +65,8 @@ public:
   static bool isComplex()  {return false;}
   
   sinOrbital(int nx,int ny,int nz,real_t lBox_);
-  
+  sinOrbital(int nx,int ny,int nz, const json_t & j);
+
   real_t operator()(real_t x,real_t y,real_t z) const { return std::sin(k[0]*x + k[1]*y + k[2]*z + delta) ; }
   
   inline void evaluateDerivatives(real_t x,real_t y, real_t z, real_t & dx, real_t & dy, real_t & dz ,real_t & laplacian ) const
@@ -96,6 +97,7 @@ public:
   using value_t = std::complex<real_t>;
   
   planeWave(int nx,int ny,int nz,real_t lBox_,real_t teta=0);
+  planeWave(int nx,int ny, int nz, const json_t & json);
   static bool isComplex()  {return true;}
   
   std::complex<real_t> operator()(real_t x,real_t y,real_t z) const { return std::exp(1i * ( k[0]*x + k[1]*y + k[2]*z)) ; }
@@ -128,8 +130,8 @@ private:
 
 
 #include "wavefunction/shell.h"
-template<class orbital_t>
-void fillFermiSea(std::vector<orbital_t> & orbitals,int N,double lBox)
+template<class orbital_t, class ... Args >
+void fillFermiSea(std::vector<orbital_t> & orbitals,int N,Args ... args)
 {
   int n=0;
   shellStructure sh(N);
@@ -139,7 +141,7 @@ void fillFermiSea(std::vector<orbital_t> & orbitals,int N,double lBox)
       for(int j=0;j<sh[i].capacity() and n < N;j++)
 	{
 	  auto indices=sh[i][j];
-	  orbitals.push_back(orbital_t(std::get<0>(indices),std::get<1>(indices),std::get<2>(indices),lBox));
+	  orbitals.push_back(orbital_t(std::get<0>(indices),std::get<1>(indices),std::get<2>(indices), args ...  ));
 	  n++;
 	}
     }    
