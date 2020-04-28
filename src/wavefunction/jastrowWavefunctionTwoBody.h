@@ -10,6 +10,8 @@ public:
     if (setA == setB) throw invalidInput("setA == setB in distinguishable two body jastrow");
   }
   
+  jastrowTwoBodyWavefunctionDistinguishable(const json_t & j,const geometry_t & geo ) : jastrowTwoBodyWavefunctionDistinguishable( jastrow_t(j["jastrow"]), geo,j["sets"][0] ,j["sets"][1] ) {}
+  
  virtual real_t operator()(const walker_t & walker) 
 	{		
 	  auto & dis = walker.getTableDistances().distances(setA,setB);
@@ -23,6 +25,8 @@ public:
 	    }
 	  return sum;
 	};
+
+  virtual std::vector<int> sets() const {return {setA,setB} ;}
   
   virtual void accumulateDerivatives( walker_t & walker ) override
   {
@@ -36,6 +40,7 @@ public:
     auto & distances = walker.getTableDistances().distances(setA,setB);
     auto & differences = walker.getTableDistances().differences(setA,setB);
     auto & waveValue = walker.getLogWave();
+
     
     
     const int NA = getN(stateA);
@@ -52,9 +57,9 @@ public:
 	    
 	    J.evaluateDerivatives(d,tmp,tmp1,tmp2);
 	    
-	    laplacian+=tmp2 + (D-1)*tmp1/d;
+	    laplacian+=2*(tmp2 + (D-1)*tmp1/d);
 	    waveValue+=tmp;
-	
+	    
 	    for(int id=0;id<D;id++)
 	      {
 		gradientA(i,id)+=differences(k,id)/d * tmp1;
@@ -69,9 +74,11 @@ public:
   }
 
   
+  static std::string name()   {return "jastrow2bDis/" + jastrow_t::name();}
+
     
 private:
-    
+  
   int setA;
   int setB;
   jastrow_t J;
@@ -79,16 +86,16 @@ private:
 };
 
 template<class jastrow_t>
-class jastrowTwoBodyWavefunctionIndistinguishable : public wavefunction
+class jastrowTwoBodyWavefunctionUndistinguishable : public wavefunction
 {
 public:
   
-  jastrowTwoBodyWavefunctionIndistinguishable(jastrow_t J_,const geometry_t  &geo_, int setA_=0,int setB_=0) : setA(setA_), setB(setB_),J(J_),wavefunction::wavefunction(geo_)
+  jastrowTwoBodyWavefunctionUndistinguishable(jastrow_t J_,const geometry_t  &geo_, int setA_=0,int setB_=0) : setA(setA_), setB(setB_),J(J_),wavefunction::wavefunction(geo_)
   {
-    if (setA != setB) throw invalidInput("setA != setB in indistinguishable two body jastrow");
+    if (setA != setB) throw invalidInput("setA != setB in undistinguishable two body jastrow");
   }
 
-  jastrowTwoBodyWavefunctionIndistinguishable(const json_t & j,const geometry_t & geo ) : jastrowTwoBodyWavefunctionIndistinguishable( jastrow_t(j["jastrow"]), geo,j["sets"][0] ,j["sets"][1] ) {}
+  jastrowTwoBodyWavefunctionUndistinguishable(const json_t & j,const geometry_t & geo ) : jastrowTwoBodyWavefunctionUndistinguishable( jastrow_t(j["jastrow"]), geo,j["sets"][0] ,j["sets"][1] ) {}
 
   virtual std::vector<int> sets() const {return {setA,setB} ;}
   
@@ -149,7 +156,7 @@ public:
       }
   }
 
-  static std::string name()   {return "jastrow2b/" + jastrow_t::name();}
+  static std::string name()   {return "jastrow2bUnDis/" + jastrow_t::name();}
     
 private:
     

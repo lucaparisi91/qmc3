@@ -31,6 +31,8 @@ void vmcDriver::run(states_t & states,size_t nBlocks)
 void update(walker & w,productWavefunction & psi)
 	{
 	  w.getTableDistances().update(w.getStates());
+	  w.getTableSlaters().update(w.getStates());
+	  
 	  w.getLogWave()=psi(w);
 	};
 

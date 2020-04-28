@@ -2,7 +2,8 @@
 #include "wavefunction/jastrowWavefunctionOneBody.h"
 #include "potentialFactory.h"
 #include "wavefunction/jastrowWavefunctionTwoBody.h"
-
+#include "wavefunction/slaterDeterminant.h"
+#include "orbitals.h"
 
 /*
 Defines a singleton factory  which manages the creation of wavefunctions
@@ -43,7 +44,14 @@ public:
   void registerJastrow()
   {
     registerWavefunction<jastrowOneBodyWavefunction<jastrow_t>  >() ;
-    registerWavefunction<jastrowTwoBodyWavefunctionIndistinguishable<jastrow_t>  >() ;
+    registerWavefunction<jastrowTwoBodyWavefunctionUndistinguishable<jastrow_t>  >() ;
+    registerWavefunction<jastrowTwoBodyWavefunctionDistinguishable<jastrow_t>  >() ;
+  }
+
+  template<class orbital_t>
+  void registerOrbital()
+  {
+    registerWavefunction<slaterDeterminantWavefunction<orbitalSet<orbital_t> > >();
   }
 
 

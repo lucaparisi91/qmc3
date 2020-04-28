@@ -3,7 +3,6 @@
 #include <cmath>
 #include <iostream>
 
-
 driftDiffusionFirstOrder::driftDiffusionFirstOrder(real_t timeStep) : 
 _timeStep(timeStep),diffusionMove(timeStep)
 {

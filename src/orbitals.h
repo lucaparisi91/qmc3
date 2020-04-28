@@ -14,8 +14,10 @@ template<class orbital_t>
 class orbitalSet : public orbitalSetBase
 {
 public:
+  orbitalSet() {};
+  orbitalSet(const json_t & j);
   virtual void storeEvaluate(const state_t & state,matrix_t & matrix) const; // store in a matrix all orbitals
-
+  
   auto & getOrbitals() {return orbitals;}
   const auto & getOrbitals() const{return orbitals;}
   
@@ -36,8 +38,6 @@ private:
 };
 
 #if DIMENSIONS == 3
-
-
 
 
 class sinOrbital

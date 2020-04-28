@@ -35,7 +35,7 @@ public:
   
   virtual std::vector<int> sets() const = 0 ;
 
-  virtual std::vector<orbitalSetBase*> orbitals() const {return {} ;}
+  virtual std::vector<orbitalSetBase*> orbitals() const {return {} ;}  
   
   void setGeometry(const geometry_t & geo_) {geo=&geo_;}
 private:

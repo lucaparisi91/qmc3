@@ -22,7 +22,7 @@ public:
   void update(const states_t & states); // update all registered distances
   
   void add(int setA ,orbitalSetBase * orbitalsSet); 
-
+  
   //void add(int setA, int setB,orbitalSetBase * orbitalSet);
   
   const matrix_t & slaterMatrix(int setA) const { return slaterMatrices[indices1b.at(setA) ]; }

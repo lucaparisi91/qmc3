@@ -19,6 +19,18 @@
 #include "wavefunction/jastrows/jastrowSquareWell.h"
 #include "ptools.h"
 
+bool check_n_particles(const states_t & states,const std::vector<int> & Ns)
+{
+  bool pass=true;
+  for (int i=0;i<Ns.size();i++)
+    {
+      pass=pass and ( getN(states[i]) == Ns[i] );
+    }
+  return pass;
+}
+
+
+
 int main(int argc, char** argv)
 {
 
@@ -110,6 +122,7 @@ int main(int argc, char** argv)
   
   getFactory().registerJastrow< gaussianJastrow >();
   getFactory().registerJastrow< jastrowSquareWell >();
+  getFactory().registerOrbital<sinOrbital>();
   
   auto waves = getFactory().createWavefunctions( j["wavefunctions"],geo);
   
@@ -145,7 +158,6 @@ int main(int argc, char** argv)
     {
       configurations=readStatesFromDirectory(j["configurations"]);
     }
-
   
   if (method == "vmc")
     {
@@ -159,6 +171,12 @@ int main(int argc, char** argv)
 	{
 	  initialConfiguration = &(configurations[0]);
 	}
+
+      if (! check_n_particles(*initialConfiguration,Ns) )
+	{
+	  throw invalidInput("Initial configuration does not math the numper of particles defined in the input file");
+	}
+      
       vmcO.run(*initialConfiguration,nBlocks); 
     }
   

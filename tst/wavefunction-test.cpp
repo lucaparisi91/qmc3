@@ -120,7 +120,7 @@ TEST(wavefunctionTest,2b)
 	
         jastrowSquareWell J(V0,R0,Rm,alpha,lBox);
 
-	jastrowTwoBodyWavefunctionIndistinguishable<jastrowSquareWell> wave(J,geo);
+	jastrowTwoBodyWavefunctionUndistinguishable<jastrowSquareWell> wave(J,geo);
 	productWavefunction psi({&wave});
 	dmcWalker w;
 
@@ -170,9 +170,8 @@ TEST(fermions,slaterWavefunctionEnergy)
   orbitalSet<sinOrbital> sineCosBasis;
   
   fillFermiSea(sineCosBasis.getOrbitals(),Ns[0],lBox); // fills a fermi see with the given orbital based
-
   
-  slaterDeterminantWavefunction<decltype(sineCosBasis)> wave(&sineCosBasis,geo,0);
+  slaterDeterminantWavefunction<decltype(sineCosBasis)> wave(sineCosBasis,geo,0);
 
   productWavefunction psi({&wave}) ;
   dmcWalker w;

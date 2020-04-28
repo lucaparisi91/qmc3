@@ -43,12 +43,12 @@ sinOrbital::sinOrbital(int n1,int n2,int n3,double lBox_) : lBox(lBox_) , ns{n1,
    
   }
 
-
 template<class orbital_t>
 void orbitalSet<orbital_t>::storeEvaluate(const state_t & states,orbitalSet<orbital_t>::matrix_t & orbitalMatrix) const
 {
   constexpr int D = getDimensions();
   const int N = getN(states);
+  
   orbitalMatrix.resize(N,N);
   assert(orbitals.size() >= N);
   for (int j=0;j<N;j++)
@@ -56,14 +56,21 @@ void orbitalSet<orbital_t>::storeEvaluate(const state_t & states,orbitalSet<orbi
       auto & orbital = orbitals[j];
       for (int i=0;i<N;i++)
 	{
-	  orbitalMatrix(i,j)=orbital(    states(i,0) , states(i,1),states(i,2)   );
-	  
+	  orbitalMatrix(i,j)=orbital(    states(i,0) , states(i,1),states(i,2)   );	  
 	}
     }
 };
 
 
-
+template<class orbital_t>
+ orbitalSet<orbital_t>::orbitalSet(const json_t & j)
+{
+  int n=j["n"];
+  real_t lBox = j["lBox"];
+  
+  fillFermiSea(getOrbitals() , n,lBox );
+  
+}
 
 template class orbitalSet<sinOrbital>;
 

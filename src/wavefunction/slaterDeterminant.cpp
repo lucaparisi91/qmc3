@@ -5,7 +5,7 @@
 
 
 template<class orbitalSet_t>
-slaterDeterminantWavefunction<orbitalSet_t>::slaterDeterminantWavefunction(orbitalSet_t * orbitals_,geometry_t & geo_,size_t setA_) : _orbitals(orbitals_),setA(setA_),wavefunction::wavefunction(geo_) {}
+slaterDeterminantWavefunction<orbitalSet_t>::slaterDeterminantWavefunction(const orbitalSet_t & orbitals_,const geometry_t & geo_,size_t setA_) : _orbitals( std::make_unique<orbitalSet_t>(orbitals_) ),setA(setA_),wavefunction::wavefunction(geo_) {}
 
 
 template<class orbitalSet_t>
@@ -63,6 +63,9 @@ void slaterDeterminantWavefunction<orbitalSet_t>::accumulateDerivatives(walker_t
   grad+=tmpGrad;
   w.getLogWave()+=(*this)(w);
 }
+
+template<class orbitalSet_t>
+ slaterDeterminantWavefunction<orbitalSet_t>::slaterDeterminantWavefunction(const json_t & j,const geometry_t & geo) : slaterDeterminantWavefunction( orbitalSet_t(j["orbitalSet"] ),geo,j["set"]) {}
 
 
 template class slaterDeterminantWavefunction<orbitalSet<sinOrbital> > ;
