@@ -213,8 +213,8 @@ TEST(fermions,slaterWavefunctionComplexEnergy)
   real_t alpha=1.;
   
   orbitalSet<planeWave> basis;
-  
-  fillFermiSea(basis.getOrbitals(),Ns[0],lBox); // fills a fermi see with the given orbital based
+  real_t teta=3.1;
+  fillFermiSea(basis.getOrbitals(),Ns[0],lBox,teta); // fills a fermi see with the given orbital based
 
   
   slaterDeterminantWavefunctionComplex<decltype(basis)> wave(basis,geo,0);

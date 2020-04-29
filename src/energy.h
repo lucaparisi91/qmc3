@@ -21,7 +21,7 @@ private:
 
 class forceEnergy : public realScalarObservable
 {
-	public:
+public:
   forceEnergy(potential_t * pot_) : _pot(pot_) {}
   virtual real_t operator()(walker_t & w,wavefunction_t & psi) override;
 private:

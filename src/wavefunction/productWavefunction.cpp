@@ -55,7 +55,7 @@ void productWavefunction::add(wavefunction * wave)
 {
   _logWaves.push_back(wave);
   isAtLeatOneComponentComplex=isAtLeatOneComponentComplex or wave->isComplex() ;
-  std::cout << wave->isComplex() << std::endl;
+  //std::cout << wave->isComplex() << std::endl;
 }
 
 productWavefunction::productWavefunction(std::vector<wavefunction *> waves) : productWavefunction()

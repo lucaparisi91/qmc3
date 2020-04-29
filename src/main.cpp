@@ -30,6 +30,20 @@ bool check_n_particles(const states_t & states,const std::vector<int> & Ns)
 }
 
 
+template<class T>
+auto   find( json_t & j,std::string key,const T & value)
+{
+  for (auto it = j.begin() ; it<j.end() ; it++ )
+    {
+      if ( (*it)[key] == value )
+	{
+	  return it;
+	}
+    }
+  
+  return j.end();
+}
+
 
 int main(int argc, char** argv)
 {
@@ -144,6 +158,7 @@ int main(int argc, char** argv)
   energy eO(&pot);
   forceEnergy efO(&pot);
   
+  
   realScalarEstimator m("energy",&eO);
   realScalarEstimator m2("forceEnergy",&efO);
   
@@ -165,7 +180,12 @@ int main(int argc, char** argv)
       vmcDriver vmcO(&psi,timeStep);
       vmcO.getStepsPerBlock()=stepsPerBlock;
       vmcO.getEstimators().push_back(&m);
-      vmcO.getEstimators().push_back(&m2);
+      
+      if ( find(j["measurements"],"kind","forceEnergy") != j["measurements"].end() )
+	{
+	  vmcO.getEstimators().push_back(&m2);
+	}
+      
       vmcO.getRandomGenerator().seed(seed + pTools::rank() );
       states_t * initialConfiguration = &states;
       if (configurations.size() > 0 )
@@ -187,10 +207,7 @@ int main(int argc, char** argv)
       
       dmcDriver dmcO(&psi,&pot,timeStep,nW);
       dmcO.getStepsPerBlock()=stepsPerBlock;
-      std::vector<states_t> dmcStates(configurations);
-
-      
-      
+      std::vector<states_t> dmcStates(configurations);      
       
       if ( dmcStates.size() == 0 )
 	{
@@ -203,7 +220,15 @@ int main(int argc, char** argv)
       
       dmcO.getRandomGenerator().seed(seed + pTools::rank() );
       if (method == "svmc")
-	dmcO.disableBranching();
+	{
+	  dmcO.disableBranching();
+
+	  if ( find(j["measurements"],"kind","forceEnergy") != j["measurements"].end() )
+	{
+	  dmcO.getEstimators().push_back(&m2);
+	}
+		
+	}
       dmcO.run(dmcStates,nBlocks);
     }
 

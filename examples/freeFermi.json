@@ -1,12 +1,12 @@
 {
-    "N" : [33],
+    "N" : [7],
     "seed" : 342,
     "lBox" : [404,404,404],    
-    "method" : "vmc", 
+    "method" : "svmc", 
     "timeStep" : 5e-1,
     "stepsPerBlock" : 10000,
-    "walkers" : 1000,
-    "nBlocks" : 1000,
+    "walkers" : 1,
+    "nBlocks" : 10000,
     "configurations" : "configurations",
     "wavefunctions" :
     [
@@ -19,7 +19,7 @@
 		"kind" : "planeWave",
 		"n" : 33,
 		"lBox" : 404.0,
-		"teta" : 1.0
+		"teta" : 0.0
 	    }
 	}
 
@@ -28,6 +28,12 @@
     "potentials" :
     [
 
+    ],
+    "measurements" :
+    [
+	{
+	    "kind" : "forceEnergy"
+	}
     ]
     
 }

@@ -151,8 +151,6 @@ TEST(pToolsTest,walkerSend)
   
 }
 
-
-
  auto getEnergies(const   pTools::walkerDistribution::walkers_t & walkers)
   {
   /* Gather all energies on process 0 for this walker distribution */
@@ -206,7 +204,7 @@ TEST(pTools,walkerSend)
       
       std::vector<int> Ns{33};
   
-  real_t lBox=10000.;
+      real_t lBox=10000.;
 
   
   geometryPBC geo(lBox,lBox,lBox);
@@ -217,13 +215,14 @@ TEST(pTools,walkerSend)
   jastrowOneBodyWavefunction<gaussianJastrow> wave(J,geo,0);
 	
   productWavefunction psi;
+  
   psi.add(&wave);
   
   harmonicPotential v(geo,1.,0);
   sumPotentials pot({&v});
 
   energy eO(&pot);
-
+  
   pTools::walkerDistribution wd;
 
   pTools::walkerDistribution::walkers_t walkers;
@@ -233,7 +232,7 @@ TEST(pTools,walkerSend)
   std::ranlux24 randGen(seed + pTools::rank() );
   srand(seed + pTools::rank());
   std::uniform_int_distribution<int> disWalker(80,110);
-
+  
   walkers.resize( disWalker(randGen) );
 
   

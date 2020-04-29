@@ -2,6 +2,7 @@
 #include "wavefunction/productWavefunction.h"
 #include "walkers.h"
 #include <iostream>
+
 real_t kineticEnergy::operator()(walker_t & w,wavefunction_t & psi)
 	{
 		real_t e=0;
@@ -44,6 +45,12 @@ real_t forceEnergy::operator()(walker_t & w,wavefunction_t & psi)
 		{
 		  real_t tmp = (grad.array() * grad.array() ).sum();
 			ef+=tmp;	
+		}
+		
+		for (const auto & grad : w.getPhaseGradients())
+		{
+		  real_t tmp = (grad.array() * grad.array() ).sum();
+		  ef+=tmp;	
 		}
 
 		auto v=(*_pot)(w);
