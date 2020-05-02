@@ -24,6 +24,10 @@ void vmcDriver::run(states_t & states,size_t nBlocks)
 	initializer::initialize(current_walker,states,getWavefunction());
 	initializer::initialize(old_walker,states,wave);
 	initializer::initialize(tmp_walker,states,wave);
+
+	initializer::addDistances(current_walker,getEstimators());
+	initializer::addDistances(old_walker,getEstimators());
+	
 	driver::run(nBlocks);
 
 };
@@ -80,7 +84,7 @@ void vmcDriver::out()
       
 	// erase
 	
-	auto energyEst = getEstimators()[0];
+	auto & energyEst = getEstimators()[0];
 	std::cout << ansiColor("cyan") << "Energy: " << ansiColor("default");
 	energyEst->write(std::cout);
 	std::cout << std::endl;

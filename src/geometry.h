@@ -26,7 +26,7 @@ public:
 	virtual diff_t differences(const particles_t & data) const { return differencesTwoBody(data);}
 
 	virtual diff_t differences(const particles_t & data1, const particles_t & data2 ) const { return differencesTwoBody(data1,data2);}
-
+        virtual real_t getLBox(int i) const {return 0;}
 };
 
 
@@ -51,6 +51,7 @@ public:
 
 	virtual diff_t differencesTwoBody(const particles_t & data1,const particles_t & data2) const ;
 
+        virtual real_t getLBox(int i) const override {return lBox[i];}
 private:
 	real_t lBox [3];
 	real_t lBoxInverse [3];

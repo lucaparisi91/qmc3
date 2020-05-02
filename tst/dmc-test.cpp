@@ -8,6 +8,7 @@
 #include "branching.h"
 #include <algorithm>
 #include "wavefunction/jastrowWavefunctionOneBody.h"
+#include "estimators.h"
 
 TEST(dmcTest,branching_lower)
 {

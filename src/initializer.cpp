@@ -4,26 +4,23 @@
 #include "qmcExceptions.h"
 #include "walkers.h"
 #include "wavefunction/wavefunction.h"
-
+#include "estimatorCollection.h"
+#include "estimators.h"
+void initializer::addDistances(walker & w,estimatorCollection & collection)
+{
+  for (auto & est : collection)
+    {
+      w.getTableDistances().add(est->sets());
+    }
+}
+ 
 
 void initializer::registerDistances(tableDistances & tab,const wavefunction & wave)
 {
 	const auto & sets = wave.sets();
 	tab.setGeometry(wave.getGeometry());
-	
+	tab.add(sets);
 
-	if (sets.size() == 1)
-	{
-		tab.add(sets[0]);
-	}
-	else if (sets.size() == 2)
-	{
-	  tab.add(sets[0],sets[1]);
-	}
-	else
-	  {
-	    throw missingImplementation("More then 2b distances are not calculated");
-	  }
 };
 
 void initializer::registerDistances(tableDistances & tab,const productWavefunction & waves)

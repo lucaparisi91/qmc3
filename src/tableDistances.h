@@ -24,12 +24,15 @@ public:
 	void add(int setA );  
 	void add(int setA, int setB);
 
+        void add(const std::vector<int> & sets);
+  
+        bool isAdded(int setA,int setB);
 	const diff_t & differences(int setA) const ;
 	const diff_t & differences(int setA,int setB) const;
 	const auto & differences()  const {return _differences;} 
 
 	const distances_t & distances(int setA) const;
-	const distances_t & distances(int setA,int setB) const;
+        const distances_t & distances(int setA,int setB) const;
 private:
 	std::vector<diff_t> _differences; // vectorial distances
 	std::vector<distances_t> _distances; // scalar distances

@@ -168,7 +168,7 @@ void dmcDriver::out()
 dmcDriver::dmcDriver(dmcDriver::wavefunction_t * wave, potential_t * pot,real_t timeStep,size_t nWalkers) :
   driver::driver(wave), energyOb(pot),
   dmcMover( new driftDiffusionFirstOrder(timeStep)),
-  energyEst(new realScalarEstimator("energy",&energyAccFromWalker) ),
+  energyEst(new realScalarEstimator("energy",new energyFromWalker) ),
   accepter(new metropolisPolicy),
   brancher(
 	   new branchingControl(timeStep,nWalkers,int(0.1*nWalkers))
@@ -177,7 +177,8 @@ dmcDriver::dmcDriver(dmcDriver::wavefunction_t * wave, potential_t * pot,real_t 
   performBranching(true)
   
 {
-  getEstimators().push_back( energyEst.get() );
+  
+  getEstimators().push_back( energyEst );
   getTimers().add("shiftEnergy");
   getTimers().add("sendWalkers");
   getTimers().add("waitWalkers");

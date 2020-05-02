@@ -62,7 +62,9 @@ namespace pTools
   
   int partialRecv(dmcWalker * w, int source,int tag);
   int partialSend(dmcWalker & w,int destination,int tag);
-  
+
+  Eigen::Matrix<real_t,Eigen::Dynamic,1> sum(  Eigen::Matrix<real_t,Eigen::Dynamic,1> & vec, int root );
+
   
   void determineLoadBalanceComunicationsAliasMethod( std::vector<int> & populations,std::vector<int> & permutations,std::vector<int> & sources,std::vector<std::vector<int> > & destinations,std::vector<int> & amounts)  ; // all operatans are modified
 

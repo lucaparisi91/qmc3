@@ -8,6 +8,8 @@
 #include "observables.h"
 #include <iostream>
 #include <fstream>     
+#include <memory>
+
 
 class productWavefunction;
 class walker;
@@ -29,6 +31,7 @@ public:
 
   virtual void accumulateMPI(int root)=0;
   virtual ~ estimatorBase();
+  virtual std::vector<int> sets() const = 0;
   
   virtual std::fstream & getFileDescriptor() {return f;}
   
@@ -50,19 +53,37 @@ public:
 	virtual void clear(){acc.clear();}
 
   virtual void accumulateMPI(int root) {acc.accumulateMPI(root);}
-
+  auto & getAccumulator() {return acc;}
+  
+  virtual std::vector<int> sets() const {return ob->sets();};
+  
 private:
-	accumulator_t acc;
-	observable_t *ob;
+  accumulator_t acc;
+  std::unique_ptr<observable_t> ob;
 };
 
 class realScalarEstimator : public estimator<realScalarObservable>
 {
 public:
+  
+  
   realScalarEstimator(std::string label_,realScalarObservable * ob_);
   using estimator<realScalarObservable>::estimator;
 };
 
+class realHistogramEstimator : public estimator<realHistogramObservable>
+{
+public:
 
+
+  
+  realHistogramEstimator(std::string label,realHistogramObservable * ob_,size_t size,real_t minx,real_t maxx);
+
+  realHistogramEstimator(realHistogramObservable * ob_,const json_t & j);
+  
+  virtual void write(std::ostream & stream) override;
+private:
+  std::vector<real_t> x;
+};
 
 #endif

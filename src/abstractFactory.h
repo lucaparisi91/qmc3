@@ -35,7 +35,24 @@ class abstractFactory
 	throw factoryIdNotRecorded(id);
       }
   };
-  
+
+
+
+    template<class T=defaultAction>
+  object* create(const idType &id,const json_t & j )
+  {
+    typename creatorMap::const_iterator i;
+    i=creators.find(id);
+    if (i!= creators.end())
+      {
+	return (i->second)( j  );
+      }
+    else
+      {
+	throw factoryIdNotRecorded(id);
+      }
+  };
+
   
   
   bool registerType(const idType &id, creatorType creator )

@@ -4,7 +4,7 @@
 
 void estimatorCollection::clear()
 	{
-		for (auto est : _estimators)
+		for (auto & est : _estimators)
 		{
 			est->clear();
 		}
@@ -13,7 +13,7 @@ void estimatorCollection::clear()
 
 void estimatorCollection::dump()
 		{
-			for (auto est : _estimators)
+			for (auto & est : _estimators)
 			{
 				est->dump();
 			}
@@ -22,7 +22,7 @@ void estimatorCollection::dump()
 
 void estimatorCollection::accumulateMPI(int root)
 		{
-			for (auto est : _estimators)
+			for (auto & est : _estimators)
 			{
 			  est->accumulateMPI(root);
 			}

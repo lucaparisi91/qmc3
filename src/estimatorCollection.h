@@ -3,7 +3,7 @@
 
 
 #include <vector>
-
+#include <memory>
 
 class estimatorBase;
 
@@ -17,7 +17,7 @@ public:
 	auto end() {return _estimators.end();}
 	const auto cend() const {return _estimators.end();}
 
-	void push_back(estimatorBase* est){_estimators.push_back(est);}
+        void push_back(estimatorBase* est){_estimators.emplace_back(est);}
 
 	auto & operator[](size_t i) {return _estimators[i];}
 	virtual void clear();
@@ -25,7 +25,7 @@ public:
         virtual void accumulateMPI(int root=0);
   
 private:
-	std::vector<estimatorBase*> _estimators;
+  std::vector<std::unique_ptr<estimatorBase> > _estimators;
 };
 
 #endif

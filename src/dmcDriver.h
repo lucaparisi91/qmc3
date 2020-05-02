@@ -82,8 +82,8 @@ private:
   walkerContainer<dmcWalker> old_walkers;
   std::unique_ptr<mover> dmcMover;
   energy energyOb;
-  energyFromWalker energyAccFromWalker;
-  std::unique_ptr<realScalarEstimator> energyEst;
+  
+  realScalarEstimator* energyEst;
   std::unique_ptr<acceptRejectPolicy> accepter;
   std::unique_ptr< branchingControl> brancher;
   std::unique_ptr<pTools::walkerDistribution> walkerLoadBalancer;

@@ -1,6 +1,6 @@
 #include "tableDistances.h"
 #include "geometry.h"
-
+#include "qmcExceptions.h"
 
 void tableDistances::add(int setA)
 {
@@ -13,12 +13,42 @@ void tableDistances::add(int setA)
 
 void tableDistances::add(int setA,int setB)
 {
-  auto index = _differences.size();
-  _differences.resize(_differences.size() + 1);
-  _distances.resize(_distances.size() + 1);
+  if (!isAdded(setA,setB) )
+    {
+      auto index = _differences.size();
+      _differences.resize(_differences.size() + 1);
+      _distances.resize(_distances.size() + 1);
   
-  indices2b[ std::make_pair(setA,setB)] = index;
+      indices2b[ std::make_pair(setA,setB)] = index;
+    }
 };
+
+void tableDistances::add(const std::vector<int> & sets)
+{
+  if (sets.size() == 1)
+    {
+      add(sets[0]);
+    }
+  else if (sets.size() == 2)
+    {
+      add(sets[0],sets[1]);
+    }
+  else if (sets.size() >=3)
+    {
+      throw missingImplementation("More then 2b distances are not calculated");
+    }
+  
+  
+};
+
+
+
+bool tableDistances::isAdded(int setA,int setB)
+{
+  return indices2b.find( std::make_pair(setA,setB)  )!=indices2b.end();
+};
+
+
 
 const tableDistances::diff_t & tableDistances::differences(int setA) const 
 {

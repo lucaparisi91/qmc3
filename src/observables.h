@@ -16,7 +16,7 @@ public:
 	using wavefunction_t = productWavefunction;
 	using walker_t = walker;
 
-	virtual void accumulate(walker_t & walker, wavefunction_t & wavefunction,  accumulator_t & acc)=0;	
+        virtual void accumulate(walker_t & walker, wavefunction_t & wavefunction,  accumulator_t & acc)=0;	
 };
 
 class realScalarObservable : public observable<realScalarAccumulator_t> 
@@ -26,8 +26,19 @@ public:
 	{
 		acc+=(*this)(w,wavefunction);
 	}
-
-	virtual real_t operator()(walker_t & walker,wavefunction_t & wave)=0;
+  
+  virtual real_t operator()(walker_t & walker,wavefunction_t & wave)=0;
+  virtual std::vector<int> sets() const  {return {}; }
+  
 };
+
+
+class realHistogramObservable : public observable<realHistogramAccumulator_t>
+{
+public:
+  virtual void accumulate(walker_t & w,wavefunction_t & wavefunction,accumulator_t & acc)=0;
+    virtual std::vector<int> sets() const  {return {}; }
+};
+
 
 #endif

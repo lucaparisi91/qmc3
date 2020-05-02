@@ -4,6 +4,7 @@
 #include "wavefunction/jastrowWavefunctionTwoBody.h"
 #include "wavefunction/slaterDeterminant.h"
 #include "orbitals.h"
+#include "estimatorsFactory.h"
 
 /*
 Defines a singleton factory  which manages the creation of wavefunctions
@@ -57,12 +58,22 @@ public:
       registerWavefunction<slaterDeterminantWavefunctionComplex<orbitalSet<orbital_t> > >();
   }
 
+  template<class ob_t>
+  void registerObservable()
+  {
+    estFac.registerObservable<ob_t>();
+  }
 
+  auto createEstimators(const json_t & j)
+  {
+    return estFac.create(j);
+  }
+  
 private:
   
   wavefunctionFactory waveFacInstance;
   potentialFactory potFacInstance;
-  
+  estimatorFactory estFac;
 };
 
 factory&  getFactory();

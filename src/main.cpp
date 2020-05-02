@@ -18,6 +18,8 @@
 #include "factory.h"
 #include "wavefunction/jastrows/jastrowSquareWell.h"
 #include "ptools.h"
+#include "pairCorrelation.h"
+
 
 bool check_n_particles(const states_t & states,const std::vector<int> & Ns)
 {
@@ -138,7 +140,7 @@ int main(int argc, char** argv)
   getFactory().registerJastrow< jastrowSquareWell >();
   getFactory().registerOrbital<sinOrbital>();
   getFactory().registerOrbital<planeWave>();
-
+  getFactory().registerObservable<pairCorrelation>();
   auto waves = getFactory().createWavefunctions( j["wavefunctions"],geo);
   
   
@@ -155,12 +157,12 @@ int main(int argc, char** argv)
   
   sumPotentials pot(potentials);
   
-  energy eO(&pot);
-  forceEnergy efO(&pot);
+  auto eO=new  energy(&pot);
+  auto efO= new forceEnergy(&pot);
   
   
-  realScalarEstimator m("energy",&eO);
-  realScalarEstimator m2("forceEnergy",&efO);
+  auto m = new realScalarEstimator("energy",eO);
+  auto m2= new realScalarEstimator("forceEnergy",efO);
   
   std::string method = j["method"];
 
@@ -174,17 +176,25 @@ int main(int argc, char** argv)
     {
       configurations=readStatesFromDirectory(j["configurations"]);
     }
+
+  auto ests = getFactory().createEstimators(j["measurements"]);
   
   if (method == "vmc")
     {
       vmcDriver vmcO(&psi,timeStep);
       vmcO.getStepsPerBlock()=stepsPerBlock;
-      vmcO.getEstimators().push_back(&m);
+      vmcO.getEstimators().push_back(m);
       
       if ( find(j["measurements"],"kind","forceEnergy") != j["measurements"].end() )
 	{
-	  vmcO.getEstimators().push_back(&m2);
+	  vmcO.getEstimators().push_back(m2);
 	}
+      
+      for (auto & est : ests)
+	{
+	  vmcO.getEstimators().push_back(est); 
+	}
+      
       
       vmcO.getRandomGenerator().seed(seed + pTools::rank() );
       states_t * initialConfiguration = &states;
@@ -222,10 +232,10 @@ int main(int argc, char** argv)
       if (method == "svmc")
 	{
 	  dmcO.disableBranching();
-
+	  
 	  if ( find(j["measurements"],"kind","forceEnergy") != j["measurements"].end() )
 	{
-	  dmcO.getEstimators().push_back(&m2);
+	  dmcO.getEstimators().push_back(m2);
 	}
 		
 	}

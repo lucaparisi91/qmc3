@@ -11,10 +11,12 @@ class tableSlaters;
 
 template<class T> class walkerContainer;
 
+class estimatorCollection;
 struct initializer
 {
   static void registerDistances(tableDistances & tab,const wavefunction & wave);
   static void registerDistances(tableDistances & tab,const productWavefunction & wave);
+  static void addDistances(walker & w,estimatorCollection & collection);
   
   static void initialize(walker & w, const states_t & states ,  productWavefunction & psi);
   static void initialize(dmcWalker & w, const states_t & states ,  productWavefunction & psi,energy & ob);

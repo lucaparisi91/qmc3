@@ -179,15 +179,13 @@ TEST(fermions,slaterWavefunctionEnergy)
   emptyPotential v(geo);
   sumPotentials pot({&v});
   
-  energy eO(&pot);
+  energy  eO(&pot);
   forceEnergy efO(&pot);
   
-  realScalarEstimator m("energy",&eO);
-  realScalarEstimator m2("forceEnergy",&efO);
-
   
   initializer::initialize(w,states,psi,eO);
-  
+   
+
   EXPECT_NEAR( w.getEnergy() , sineCosBasis.energy() , 1E-5 );
   
 }
@@ -228,8 +226,6 @@ TEST(fermions,slaterWavefunctionComplexEnergy)
   energy eO(&pot);
   forceEnergy efO(&pot);
   
-  realScalarEstimator m("energy",&eO);
-  realScalarEstimator m2("forceEnergy",&efO);
   
   initializer::initialize(w,states,psi,eO);
   
