@@ -5,13 +5,14 @@ import seaborn as sns
 import matplotlib.pylab as plt
 from math import *
 import json
+import itertools
 import os
 
 sns.set_style("whitegrid")
 
 
 def toVec(x):
-    if hasattr(x, '__iter__'):
+    if hasattr(x, '__iter__') and ( not isinstance(x,str)  ):
         return x
     else:
         return [x]
@@ -48,23 +49,29 @@ def createHueLabel(hueNames,hueValues):
     labels= [ str(name) + "=" + str(value) for name,value in zip(hueNames,hueValues) ]
 
     return ", ".join(labels)
-    
 
 
 def assemblePlot(func):
-    def assemble(data,hues=None,table=False,nCols=2,*args,**kwds):
+    def assemble(data,hues=None,table=False,nCols=2,width=10.,height=6.,x=None,y=None,delta=None,*args,**kwds):
         fig=plt.figure()
-
+        
         if hues is None:
             ax=fig.add_subplot(111)
-            func(data,ax=ax,*args,**kwds)
-            
+            for x1,y1,delta1 in itertools.zip_longest(toVec(x),toVec(y),toVec(delta)):
+                func(data,x=x1 ,y=y1 ,delta=delta1,ax=ax,label=y1,*args,**kwds)
+            ax.legend()
+
+            fig.set_size_inches(width, height)
+
         else:
             if not table :
                 ax=fig.add_subplot(111)
                 for hue,df in data.groupby(hues):
-                    func(df,label=createHueLabel(hues,hue),ax=ax,*args,**kwds)
+                    for x1,y1,delta1 in itertools.zip_longest(toVec(x),toVec(y),toVec(delta)):
+                        
+                        func(df,x=x1,y=y1,delta=delta1,label=y1 + ";"+createHueLabel(hues,hue),ax=ax,*args,**kwds)
                 ax.legend()
+                fig.set_size_inches(width, height )
             else:
                 groups=data.groupby(hues)
                 Nplots=len(groups)
@@ -72,11 +79,15 @@ def assemblePlot(func):
                 i=1
                 for hue,df in data.groupby(hues):
                     ax=fig.add_subplot(nRows,nCols,i)
-                    func(df,label=createHueLabel(hues,hue),ax=ax,*args,**kwds)
+                    for x1,y1,delta1 in itertools.zip_longest(toVec(x),toVec(y),toVec(delta)):
+                        func(df,x=x1,y=y1,delta=delta1,label=y1 + ";" +createHueLabel(hues,hue),ax=ax,*args,**kwds)
                     i+=1
                     ax.legend()
         
-        return fig
+                fig.set_size_inches(width, height/2. * len(groups) )
+        fig.tight_layout()
+        
+        
     return assemble
 
 
@@ -95,6 +106,7 @@ def plotVector(data,x,y,delta=None,label=None,ax=None):
 
 @assemblePlot
 def plotScalar(data,y,x=None,label=None,ax=None,delta=None):
+    
     if x is None:
         x1=np.arange(0,len(data[y]))
     else:
@@ -104,11 +116,17 @@ def plotScalar(data,y,x=None,label=None,ax=None,delta=None):
     else:
         ax.errorbar(x1,np.array(data[y]),yerr=np.array(data[delta]),label=label,marker="o",linestyle="dashed")
 
-
-
-def gatherByLabel(baseDir,label,jSonInput,getHues=None):
+        
+def gatherByLabel(baseDir,label,jSonInput,getHues=None,maxRows=None):
     filename=os.path.join(baseDir , label + ".dat")
     data=pd.read_csv(filename,sep=" ")
+
+    if (maxRows is not None) and (len(data) > maxRows) :
+        data.reset_index(drop=True)
+        k=len(data)//maxRows
+        data=data[data.index% k == 0]
+        
+
     if getHues is not None:
         hues=getHues(jSonInput)
         for name,value in hues.items():
@@ -117,7 +135,7 @@ def gatherByLabel(baseDir,label,jSonInput,getHues=None):
             
     
 
-def gather(dirname,label,hues=None):
+def gather(dirname,label,hues=None,maxRows=None):
     datas=[]
     json_file="input.json"
     
@@ -126,7 +144,19 @@ def gather(dirname,label,hues=None):
             
             with open(os.path.join(subdir,json_file)) as f:
                 j = json.load(f)
-            data=gatherByLabel(subdir,label,jSonInput=j,getHues=hues)
+            data=gatherByLabel(subdir,label,jSonInput=j,getHues=hues,maxRows=maxRows)
             datas.append(data)
     if datas != []:
-        return pd.concat(datas)
+        data=pd.concat(datas)
+        data=data.reset_index(drop=True)
+
+        return data
+
+def merge(datas,hues=None):
+    data=datas[0]
+    for i in  range(1,len(datas) ):
+        data=pd.merge(data,datas[i],left_index=True,right_index=True,on=hues,how="outer")
+        
+    return data
+            
+        
