@@ -10,7 +10,6 @@
 #include <fstream>     
 #include <memory>
 
-
 class productWavefunction;
 class walker;
 
@@ -41,41 +40,61 @@ private:
 	std::string filename;
 };
 
-template<class observable_t>
+template<class T>           
 class estimator : public estimatorBase
 {
 public:
-	using accumulator_t = typename observable_t::accumulator_t ;
-	estimator(std::string label,observable_t  * ob_) : 
-		estimatorBase::estimatorBase(label),ob(ob_) {}
-	virtual void accumulate(walker_t & w,wave_t & psi) {ob->accumulate(w,psi,acc);}
-	virtual void write(std::ostream & stream);
-	virtual void clear(){acc.clear();}
-
+  using accumulator_t = T;
+  
+  estimator(std::string label) : 
+		estimatorBase::estimatorBase(label) {}
+  virtual std::vector<int> sets() const { return { }; }
+  virtual void clear(){acc.clear();}
   virtual void accumulateMPI(int root) {acc.accumulateMPI(root);}
   auto & getAccumulator() {return acc;}
   
-  virtual std::vector<int> sets() const {return ob->sets();};
+  virtual void accumulate(walker_t & w,wave_t & psi) = 0;
+  virtual void write(std::ostream & stream);
+  
+private:
+  accumulator_t acc;
+
+};
+
+template<class observable_t>
+class estimatorObservable : public estimator<typename observable_t::accumulator_t>
+{
+public:
+  using accumulator_t = typename observable_t::accumulator_t ;
+  using walker_t = typename estimator<accumulator_t>::walker_t;
+  using wave_t = typename estimator<accumulator_t>::wave_t;
+
+  estimatorObservable(std::string label,observable_t  * ob_) : 
+    estimator<accumulator_t>::estimator(label),ob(ob_) {}
+  
+  virtual void accumulate(walker_t & w,wave_t & psi) {ob->accumulate(w,psi,this->getAccumulator());}
+  
+  virtual std::vector<int> sets() const override {return ob->sets();};
   
 private:
   accumulator_t acc;
   std::unique_ptr<observable_t> ob;
 };
 
-class realScalarEstimator : public estimator<realScalarObservable>
+class realScalarEstimator : public estimatorObservable<realScalarObservable>
 {
 public:
-  
   
   realScalarEstimator(std::string label_,realScalarObservable * ob_);
-  using estimator<realScalarObservable>::estimator;
+  realScalarEstimator(realScalarObservable * ob_,const json_t & j) ;
+  using estimatorObservable<realScalarObservable>::estimator;
+
+  
 };
 
-class realHistogramEstimator : public estimator<realHistogramObservable>
+class realHistogramEstimator : public estimatorObservable<realHistogramObservable>
 {
 public:
-
-
   
   realHistogramEstimator(std::string label,realHistogramObservable * ob_,size_t size,real_t minx,real_t maxx);
 
@@ -85,5 +104,6 @@ public:
 private:
   std::vector<real_t> x;
 };
+
 
 #endif

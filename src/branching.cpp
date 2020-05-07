@@ -41,6 +41,7 @@ void branchingControl::branch(branchingControl::walkerContainer_t & newWalkers,c
 
 	  for(int k=0;k<n-1;k++)
 	    {
+
 	      newWalkers.push_back(newWalkers[j1]);
 	      _nDescendants.push_back(1);
 	    }

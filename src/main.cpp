@@ -19,6 +19,7 @@
 #include "wavefunction/jastrows/jastrowSquareWell.h"
 #include "ptools.h"
 #include "pairCorrelation.h"
+#include "centerOfMassSquared.h"
 
 
 bool check_n_particles(const states_t & states,const std::vector<int> & Ns)
@@ -141,6 +142,9 @@ int main(int argc, char** argv)
   getFactory().registerOrbital<sinOrbital>();
   getFactory().registerOrbital<planeWave>();
   getFactory().registerObservable<pairCorrelation>();
+  getFactory().registerObservable<centerOfMassSquared>();
+  
+
   auto waves = getFactory().createWavefunctions( j["wavefunctions"],geo);
   
   
@@ -160,7 +164,6 @@ int main(int argc, char** argv)
   auto eO=new  energy(&pot);
   auto efO= new forceEnergy(&pot);
   
-  
   auto m = new realScalarEstimator("energy",eO);
   auto m2= new realScalarEstimator("forceEnergy",efO);
   
@@ -178,6 +181,8 @@ int main(int argc, char** argv)
     }
 
   auto ests = getFactory().createEstimators(j["measurements"]);
+  auto storers = getFactory().createStorers(j["measurements"]);
+  
   
   if (method == "vmc")
     {
@@ -239,6 +244,20 @@ int main(int argc, char** argv)
 	}
 		
 	}
+
+      
+      for (auto & st : storers)
+	{
+	  dmcO.getEstimators().push_back(st);
+	}
+      
+      
+      for (auto & est : ests)
+	{
+	  dmcO.getEstimators().push_back(est);
+	}
+      
+
       dmcO.run(dmcStates,nBlocks);
     }
 

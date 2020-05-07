@@ -62,6 +62,8 @@ public:
   void registerObservable()
   {
     estFac.registerObservable<ob_t>();
+    storerFac.registerObservable<ob_t>();
+    
   }
 
   auto createEstimators(const json_t & j)
@@ -69,11 +71,16 @@ public:
     return estFac.create(j);
   }
   
+  auto createStorers(const json_t & j)
+  {
+    return storerFac.create(j);
+  }
 private:
   
   wavefunctionFactory waveFacInstance;
   potentialFactory potFacInstance;
   estimatorFactory estFac;
+  storerFactory storerFac;
 };
 
 factory&  getFactory();

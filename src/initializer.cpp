@@ -6,6 +6,7 @@
 #include "wavefunction/wavefunction.h"
 #include "estimatorCollection.h"
 #include "estimators.h"
+
 void initializer::addDistances(walker & w,estimatorCollection & collection)
 {
   for (auto & est : collection)

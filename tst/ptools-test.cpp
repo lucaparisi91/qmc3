@@ -12,6 +12,8 @@
 #include "potential.h"
 #include "energy.h"
 #include "initializer.h"
+#include "centerOfMassSquared.h"
+#include "correlationEstimator.h"
 
 TEST(pToolsTest,alias_load_balancing_algorithm_test)
 {
@@ -297,3 +299,94 @@ TEST(pTools,walkerSend)
 }
 
 
+
+
+
+
+TEST(pTools,iWalkerSendReceive)
+{
+  
+   if ( pTools::nProcesses() >=2 )
+     {
+  
+      std::vector<int> Ns{33};
+  
+      real_t lBox=10000.;
+      int seed=100;
+
+  
+      geometryPBC geo(lBox,lBox,lBox);
+      state_t state1(Ns[0],getDimensions() );
+      state_t state2(Ns[0],getDimensions());
+
+
+      srand((unsigned int) seed);
+
+  
+      state1.setRandom();
+      state2.setRandom();
+  
+      states_t states1{state1};
+      states_t states2{state2};
+  
+      real_t alpha=1.;
+  
+      auto J=gaussianJastrow(alpha);
+      jastrowOneBodyWavefunction<gaussianJastrow> wave(J,geo,0);
+	
+      productWavefunction psi;
+      psi.add(&wave);
+      
+      harmonicPotential v(geo,1.,0);
+      sumPotentials pot({&v});
+
+      energy eO(&pot);
+
+      dmcWalker w1;
+      dmcWalker w2;
+      
+      initializer::initialize(w1,states1,psi,eO);
+      initializer::initialize(w2,states2,psi,eO);
+      centerOfMassSquared ob(0);
+      realScalarStorer storer( "cm2",new centerOfMassSquared(0) , 100 );
+      storer.reserve(w1);
+      storer.reserve(w2);
+      
+      for(int i=0;i<355;i++)
+	{
+	  w1.getStates()[0].setRandom();
+	  storer.store(w1,psi);
+	}
+      MPI_Request sendReq;
+      MPI_Request recvReq;
+
+      if ( pTools::rank() == 1 )
+	{
+	  pTools::ipartialSend(w1,0,0,&sendReq);
+	  MPI_Status status;
+
+	  MPI_Wait(&sendReq,&status);
+	}
+      else if (pTools::rank() == 0)
+	{
+	  pTools::ipartialRecv(&w2,1,0,&recvReq);
+	  MPI_Status status;
+	  MPI_Wait(&recvReq,&status);
+
+	  auto & data2 = w2.getStorageScalarCorrelators().at("cm2");
+	  auto & data1 = w1.getStorageScalarCorrelators().at("cm2");
+
+	  for (int i=0;i<data1.size();i++)
+	    {
+	      EXPECT_NEAR( data1(i) ,data2(i) , 1e-5 );
+	    }
+	  
+	  
+	  
+	}
+      
+     }
+      
+    
+      
+ }

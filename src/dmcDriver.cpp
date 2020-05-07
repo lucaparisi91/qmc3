@@ -53,16 +53,23 @@ void metropolisPolicy::accumulateMPI(int root)
 }
 
 
-void dmcDriver::update(dmcWalker & wNew,const dmcWalker & wOld)
+void dmcDriver::update(dmcWalker & wNew, dmcWalker & wOld)
 {
   dmcMover->move(wNew,wOld,getRandomGenerator());
   updateForceGradientEnergy(wNew, getWavefunction(),energyOb);
+
+  
   
   bool accepted=accepter->accept(*dmcMover,wNew,wOld,getWavefunction() ,getRandomGenerator());
 	  
   if (!accepted)
     {
       wNew=wOld;
+    }
+  else
+    {
+      std::swap(wOld.getStorageScalarCorrelators() ,wNew.getStorageScalarCorrelators() );
+      std::swap(wOld.getTimeIndex() ,wNew.getTimeIndex() );
     }
   
 }
@@ -125,6 +132,20 @@ void dmcDriver::run( const std::vector<states_t> &states , size_t nBlocks )
   
   initializer::initialize(current_walkers,states,getWavefunction(),energyOb);
   initializer::initialize(old_walkers,states,getWavefunction(),energyOb);
+  
+  for (auto & w : current_walkers)
+    {
+      getEstimators().reserve(*w);
+
+    }
+  
+  for (auto & w : old_walkers)
+    {
+      getEstimators().reserve(*w);
+
+    }
+  
+  
   //initializer::initialize(walkerLoadBalancer,getWavefunction(),energyOb);
   brancher->setEnergyShift(current_walkers);
   walkerLoadBalancer->isendReceive(current_walkers);
@@ -192,13 +213,12 @@ void dmcDriver::disableBranching()
 
 void dmcDriver::accumulate()
 {
-	auto & wave=getWavefunction();
-
-	for( auto & est : getEstimators())
-	{
+  auto & wave=getWavefunction();
 	  for (auto & current_walker : current_walkers)
-		est->accumulate(*current_walker,wave);
-	}
+	    {
+	      getEstimators().accumulate(*current_walker,wave);
+	    }
 }
+	
 
 

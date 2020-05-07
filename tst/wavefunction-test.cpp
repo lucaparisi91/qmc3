@@ -13,6 +13,9 @@
 #include "estimators.h"
 #include "wavefunction/jastrows/jastrowSquareWell.h"
 
+#include "centerOfMassSquared.h"
+#include "correlationEstimator.h"
+
 TEST(wavefunctionTest,oneBody)
 {
 	int N=100;
@@ -230,5 +233,74 @@ TEST(fermions,slaterWavefunctionComplexEnergy)
   initializer::initialize(w,states,psi,eO);
   
   EXPECT_NEAR( w.getEnergy() , basis.energy() , 1E-5 );
+  
+}
+
+
+TEST(measurementsTest,forwardWalkingCm2)
+{
+	
+  int N=100;
+  int D= 3;
+  state_t particleData(N , D);
+  state_t gradient(N , D);
+  real_t alpha=1.;
+  
+  particleData.setRandom();
+
+  geometryPBC geo( 10., 10., 10.);
+
+
+  auto J=gaussianJastrow(alpha);
+  jastrowOneBodyWavefunction<gaussianJastrow> wave(J,geo,0);
+	
+  productWavefunction waveT;
+  waveT.add(&wave);
+  
+  real_t e=0 , ef=0 , waveValue =0;
+	
+  states_t states {particleData};
+	
+  walker w;
+  initializer::initialize(w,states,waveT);
+  centerOfMassSquared ob(0);
+  realScalarStorer storer( "cm2",new centerOfMassSquared(0) , 100 );
+  std::vector<real_t> cm2s;
+  
+  storer.reserve(w);
+  for(int i=0;i<200;i++)
+    {
+      state_t particleData(N , D);
+      particleData.setRandom();
+      initializer::initialize(w,{particleData},waveT);
+      storer.store(w,waveT);
+      
+      cm2s.push_back(ob(w,waveT) );
+      
+    }
+
+  auto & storedCorrelators = w.getStorageScalarCorrelators()["cm2"];
+
+  for (int i=0; i< std::min((int)storedCorrelators.rows() ,(int) cm2s.size() ) ; i++)
+    {
+      auto j = wrapIndex(w.getTimeIndex().at("cm2") -1 - i,storedCorrelators.size());
+      EXPECT_NEAR(storedCorrelators(j) , cm2s[cm2s.size()-i-1] ,1e-5 )  ;
+      
+    }  
+
+
+  walker w2;
+
+  w2=w;
+
+  auto & storedCorrelators1 = w.getStorageScalarCorrelators()["cm2"];
+  auto & storedCorrelators2 = w2.getStorageScalarCorrelators()["cm2"];
+  
+  for (int i=0; i< storedCorrelators.rows() ; i++)
+    {
+      EXPECT_NEAR(storedCorrelators1(i) , storedCorrelators2(i) ,1e-7 )  ;
+
+    }  
+  EXPECT_EQ(w.getTimeIndex() , w2.getTimeIndex() )  ;
   
 }

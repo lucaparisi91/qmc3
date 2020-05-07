@@ -27,9 +27,8 @@ include_directories(SYSTEM ${MPI_INCLUDE_PATH})
 add_subdirectory(${PROJECT_BINARY_DIR}/../external/googletest)
 add_subdirectory(${PROJECT_BINARY_DIR}/../external/eigen)
 
-#find_package (Eigen3 3.3 REQUIRED NO_MODULE)
 
-set(SOURCES  src/geometry.cpp src/wavefunction/jastrows/jastrowSquareWell.cpp src/wavefunction/wavefunction.cpp src/wavefunction/productWavefunction.cpp src/tableDistances.cpp src/potential.cpp src/walkers.cpp src/initializer.cpp src/energy.cpp src/pairCorrelation.cpp src/estimators.cpp src/driver.cpp src/estimatorCollection.cpp src/tools.cpp src/moves/vmcMoves.cpp src/moves/dmcMoves.cpp src/dmcDriver.cpp src/vmcDriver.cpp src/metropolis.cpp src/branching.cpp src/orbitals.cpp src/slaters.cpp src/wavefunction/slaterDeterminant.cpp src/wavefunction/shell.cpp src/factory.cpp src/abstractFactory.cpp src/ptools.cpp src/timer.cpp src/estimatorsFactory.cpp)
+set(SOURCES  src/geometry.cpp src/wavefunction/jastrows/jastrowSquareWell.cpp src/wavefunction/wavefunction.cpp src/wavefunction/productWavefunction.cpp src/tableDistances.cpp src/potential.cpp src/walkers.cpp src/initializer.cpp src/energy.cpp src/pairCorrelation.cpp src/estimators.cpp src/driver.cpp src/estimatorCollection.cpp src/tools.cpp src/moves/vmcMoves.cpp src/moves/dmcMoves.cpp src/dmcDriver.cpp src/vmcDriver.cpp src/metropolis.cpp src/branching.cpp src/orbitals.cpp src/slaters.cpp src/wavefunction/slaterDeterminant.cpp src/wavefunction/shell.cpp src/factory.cpp src/abstractFactory.cpp src/ptools.cpp src/timer.cpp src/estimatorsFactory.cpp src/correlationEstimator.cpp src/centerOfMassSquared.cpp)
 
 
 add_library(main_lib STATIC ${SOURCES})

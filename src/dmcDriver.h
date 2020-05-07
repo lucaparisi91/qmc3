@@ -70,7 +70,7 @@ public:
 
   virtual void step();
 
-  void update( dmcWalker & wNew,const dmcWalker & wOld);
+  void update( dmcWalker & wNew, dmcWalker & wOld);
   
   virtual void out();
   virtual void accumulate();

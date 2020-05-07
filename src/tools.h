@@ -23,5 +23,8 @@ inline constexpr int getDimensions() { return DIMENSIONS; }
 std::vector<states_t> readStatesFromDirectory(std::string filename);
 
 
+
+int wrapIndex(int i , int size);
+
 //inline constexpr int getDimensions(const state_t & state) {return DIMENSIONS;}
 #endif

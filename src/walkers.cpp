@@ -28,7 +28,8 @@ void dmcWalker::createMPIDataType()
   const int N = getStates().size();
   const int M= 2;
   const int NScalars= 3;
-  const int Ntot = N*M + NScalars;
+  const int NstorageScalarObservables=getStorageScalarCorrelators().size();
+  const int Ntot = N*M + NScalars + NstorageScalarObservables;
   MPI_Aint  offsets[Ntot] ;
   int blockCounts[Ntot];
   MPI_Datatype dtypes[Ntot];
@@ -46,26 +47,35 @@ void dmcWalker::createMPIDataType()
       MPI_Get_address(getGradients()[i].data(), &offsets[k]);
       blockCounts[k]=getStates()[i].size();
       dtypes[k]=MPI_DOUBLE;
+      k++;
     }
-  k++;
+  
   MPI_Get_address(&getLogWave(), &offsets[k]);
   blockCounts[k]=1;
   dtypes[k]=MPI_DOUBLE;
   k++;
+  
   MPI_Get_address(&getLaplacianLog(), &offsets[k]);
   blockCounts[k]=1;
   dtypes[k]=MPI_DOUBLE;
-
   k++;
+  
   MPI_Get_address(&getEnergy(), &offsets[k]);
   blockCounts[k]=1;
-  dtypes[k]=MPI_DOUBLE;
-
+  dtypes[k]=MPI_DOUBLE;  
+  k++;
   
-
+  auto it = getStorageScalarCorrelators().begin();
   
-  
-
+  while (it != getStorageScalarCorrelators().end() )
+    {
+      MPI_Get_address(it->second.data(), &offsets[k]);
+      blockCounts[k]=it->second.size();
+      dtypes[k]=MPI_DOUBLE;
+      k++;
+      it++;
+    }
+    
   
   MPI_Type_struct(Ntot, blockCounts, offsets, dtypes, &getMPIDatatype() );
   MPI_Type_commit(&getMPIDatatype());

@@ -162,3 +162,8 @@ std::vector<states_t> readStatesFromDirectory(std::string dirname)
   
   return states;
 }
+
+int wrapIndex(int i , int size)
+{
+  return (i>= 0 ) ? i%size : size  + i;
+}

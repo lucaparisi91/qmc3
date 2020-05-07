@@ -114,6 +114,8 @@ TEST(dmcTest,branching_upper)
 	    walkerStates.push_back ( {statetmp}); 
 	  }
 
+	
+	
 	initializer::initialize(walkers,walkerStates,psi,eO);
 	initializer::initialize(newWalkers,walkerStates,psi,eO);
 

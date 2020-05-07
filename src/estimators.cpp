@@ -6,10 +6,12 @@
 
 template<class observable_t>
 void estimator<observable_t>::write(std::ostream & stream)
-	{
-		stream << acc.average() ;
-	};
-template class estimator<realScalarObservable>;
+{
+  stream << acc.average() ;
+};
+
+
+template class estimatorObservable<realScalarObservable>;
 
 estimatorBase::estimatorBase(std::string label) : _label(label)
 {
@@ -29,7 +31,7 @@ void estimatorBase::dump()
 	f << std::endl;
 }
 
-realScalarEstimator::realScalarEstimator(std::string label_,realScalarObservable * ob_) : estimator<realScalarObservable>::estimator(label_,ob_)
+realScalarEstimator::realScalarEstimator(std::string label_,realScalarObservable * ob_) : estimatorObservable<realScalarObservable>::estimatorObservable(label_,ob_)
 {
   
   std::ifstream of;
@@ -42,7 +44,11 @@ realScalarEstimator::realScalarEstimator(std::string label_,realScalarObservable
   of.close();
 }
 
-realHistogramEstimator::realHistogramEstimator(std::string label,realHistogramObservable * ob_,size_t size,real_t minx,real_t maxx) : estimator<realHistogramObservable>::estimator(label,ob_)
+realScalarEstimator::realScalarEstimator(realScalarObservable * ob_,const json_t & j) : realScalarEstimator(j["label"].get<std::string>(),ob_ ){}
+
+
+
+realHistogramEstimator::realHistogramEstimator(std::string label,realHistogramObservable * ob_,size_t size,real_t minx,real_t maxx) : estimatorObservable<realHistogramObservable>::estimatorObservable(label,ob_)
 {
   getAccumulator()=accumulator_t(size,minx,maxx);
   

@@ -14,7 +14,7 @@
 #include "dmcDriver.h"
 #include "branching.h"
 #include <nlohmann/json.hpp>
-
+#include "centerOfMassSquared.h"
 #include "wavefunction/jastrowWavefunctionOneBody.h"
 #include "wavefunction/jastrowWavefunctionTwoBody.h"
 
@@ -73,8 +73,7 @@ int main(int argc, char** argv)
 {
   pTools::init(argc,argv);
 
-  auto initialConfigurations = readStatesFromDirectory("configurations");
-  
+
   pTools::finalize();
 
 }

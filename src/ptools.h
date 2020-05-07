@@ -63,6 +63,12 @@ namespace pTools
   int partialRecv(dmcWalker * w, int source,int tag);
   int partialSend(dmcWalker & w,int destination,int tag);
 
+  int ipartialSend(dmcWalker & w,int destination,int tag, MPI_Request * req);
+  int ipartialRecv(dmcWalker * w, int source,int tag,MPI_Request * req);
+
+
+
+  
   Eigen::Matrix<real_t,Eigen::Dynamic,1> sum(  Eigen::Matrix<real_t,Eigen::Dynamic,1> & vec, int root );
 
   

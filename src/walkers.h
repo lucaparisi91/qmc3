@@ -19,6 +19,7 @@ so on. Walkers own data memory
 
 
 
+
 struct walker
 {
 public:
@@ -35,11 +36,17 @@ public:
   auto & getStates()  {return _states;}
   auto & getTableDistances()  {return _tab;}
   auto & getTableSlaters()  {return _slaters;}
-
+  
   auto & getLogWave() {return _waveValue;}
   auto & getGradients()  {return _gradients;}
   auto & getPhaseGradients()  {return _phaseGradients;}
   auto & getLaplacianLog() {return _lapLog;}
+
+  auto & getStorageScalarCorrelators() {return storageScalarObservables;}
+  const auto & getStorageScalarCorrelators() const {return storageScalarObservables;}
+  
+  const auto & getTimeIndex() const {return correlatorCurrentTimeIndex;}
+  auto & getTimeIndex()  {return correlatorCurrentTimeIndex;}
   
   
   virtual const real_t & getEnergy() const {throw missingImplementation("Energy not accessible from the walker"); return _waveValue;};
@@ -58,7 +65,9 @@ private:
   tableSlaters _slaters; // contains the matrix of slater determinants
   MPI_Datatype dtype;
   grads_t _phaseGradients; // contains the gradient of the wavefunction. Just a temporary
-
+  std::map<std::string,Eigen::VectorXd> storageScalarObservables;
+  std::map<std::string,int> correlatorCurrentTimeIndex;
+  
 };
 
 struct dmcWalker : public walker

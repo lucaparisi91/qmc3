@@ -15,7 +15,7 @@ public:
 
 	value_t average() const {return sum/n;}
 	void clear(){sum=0.;n=0.;}
-
+  
   void accumulateMPI(int root) // sum partial sums on all processors into the root processor
   {
     
@@ -94,7 +94,6 @@ private:
   real_t deltax;
   real_t deltaxInverse;
 };
-
 
 using realScalarAccumulator_t = scalarAccumulator<real_t>;
 using realVectorAccumulator_t = vectorAccumulator<real_t>;

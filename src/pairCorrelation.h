@@ -5,7 +5,7 @@ class pairCorrelation : public realHistogramObservable
 public:
   pairCorrelation(int setA,int setB);
   virtual void accumulate(walker_t & w,wavefunction_t & wavefunction,accumulator_t & acc);
-
+  
   pairCorrelation(const json_t & j);
   
   std::vector<int> sets() {return {setA,setB};}
