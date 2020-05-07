@@ -10,11 +10,13 @@ void realScalarStorer::reserve(realScalarStorer::walker_t & w)
 {
   w.getStorageScalarCorrelators()[getLabel()].resize(recordSteps);
   w.getTimeIndex()[getLabel()]=0.;
+  w.getFillingStatus()[getLabel()]=true;
 }
 
 void realScalarStorer::reset(walker_t & w)
 {
   w.getTimeIndex().at(getLabel() )=0.;
+  w.getFillingStatus().at(getLabel())=true;
 }
 
 void realScalarStorer::store( walker_t & w, wavefunction_t & psi )
@@ -23,6 +25,10 @@ void realScalarStorer::store( walker_t & w, wavefunction_t & psi )
  
     w.getStorageScalarCorrelators().at(getLabel() )(i)=(*ob)(w,psi);
     i=(i+1)% recordSteps;
+    if (i==0)
+      {
+	w.getFillingStatus().at(getLabel())=false;
+      }
   }
 
 void realScalarForwardWalkingEstimator::accumulate(walker_t & w,wavefunction_t & psi)
@@ -35,15 +41,15 @@ void realScalarForwardWalkingEstimator::accumulate(walker_t & w,wavefunction_t &
     auto j =  wrapIndex(i - forwardWalkingSteps - 1 ,recordSteps ) ;
     const auto & v = data( j);
     
-    
-
-    getAccumulator()+=v;
+    if ( ! w.getFillingStatus().at(targetLabel) )
+      {
+	getAccumulator()+=v;
+      }
     
   }
 
 realScalarForwardWalkingEstimator::realScalarForwardWalkingEstimator(std::string label,std::string targetLabel_, int forwardWalkingSteps_) : estimator<realScalarAccumulator_t>(label),targetLabel(targetLabel_),forwardWalkingSteps(forwardWalkingSteps_)
 {
-  
   std::ifstream of;
   of.open(getFileName());
   if (is_empty(of) & pTools::rank() == 0 )
@@ -58,4 +64,13 @@ realScalarForwardWalkingEstimator::realScalarForwardWalkingEstimator(std::string
 realScalarForwardWalkingEstimator::realScalarForwardWalkingEstimator( const json_t & j) : realScalarForwardWalkingEstimator( j["label"] ,  j["targetLabel"].get<std::string>(), j["forwardWalkingSteps"].get<int>() )
 {
   
+}
+
+void realScalarForwardWalkingEstimator::write(std::ostream & stream)
+{
+    if ( getAccumulator().getWeight() > 0 )
+    {
+      estimator<realScalarAccumulator_t>::write(stream);
+    }
+
 }

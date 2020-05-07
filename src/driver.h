@@ -29,8 +29,13 @@ public:
 	size_t getCurrentBlock() const {return iBlock;}
 
 	size_t getCurrentSubStep() const  {return iSubStep;}
+
+  size_t getCorrelationSteps() const  {return correlationSteps;}
+
+  size_t & getCorrelationSteps()   {return correlationSteps;}
   
-	auto & getEstimators() {return _estimators;}
+  
+  auto & getEstimators() {return _estimators;}
 
   auto getCurrentStep() const  {return getCurrentBlock() * getStepsPerBlock() + getCurrentSubStep();}
   
@@ -44,12 +49,13 @@ public:
 	const wavefunction_t & getWavefunction() const {return (*_wave);}
   
 private:
-	wavefunction_t * _wave;
-	std::ranlux24 _rand;
-	size_t _stepsPerBlock;
-	size_t iBlock;
-	size_t iSubStep;
-	estimators_t _estimators;
+  wavefunction_t * _wave;
+  std::ranlux24 _rand;
+  size_t _stepsPerBlock;
+  size_t iBlock;
+  size_t iSubStep;
+  estimators_t _estimators;
+  size_t correlationSteps;
 };
 
 

@@ -169,7 +169,23 @@ class jastrowSquareWell(jastrow):
         
         return np.concatenate([y1,y2,y3,y4])
 
-registeredJastrows= {"squareWell" : "jastrowSquareWell"}
+
+class jastrowGaussian(jastrow):
+    inputParameters=["alpha"]
+    optimizationParameters=["alpha"]
+    def __init__(self,alpha=None):
+        jastrow.__init__(self)
+        self.parameters["alpha"]=alpha
+        
+    def process(self):
+        pass
+     
+    def __call__(self,x):
+        x=np.array(x)
+        return np.exp(-parameters["alpha"]*x**2)
+
+    
+registeredJastrows= {"squareWell" : "jastrowSquareWell","gaussian":"jastrowGaussian"}
 
 
 def updateJastrows(j):

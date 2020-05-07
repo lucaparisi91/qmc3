@@ -72,7 +72,8 @@ public:
   realScalarForwardWalkingEstimator(const json_t & j);
   
   virtual void accumulate(walker_t & w,wavefunction_t & psi) override;
-  
+
+  virtual void write(std::ostream & w) override;
 private:
 
   std::string targetLabel;

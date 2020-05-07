@@ -117,7 +117,7 @@ def plotScalar(data,y,x=None,label=None,ax=None,delta=None):
         ax.errorbar(x1,np.array(data[y]),yerr=np.array(data[delta]),label=label,marker="o",linestyle="dashed")
 
         
-def gatherByLabel(baseDir,label,jSonInput,getHues=None,maxRows=None):
+def gatherByLabel(baseDir,label,jSonInput,getHues=None,maxRows=None,minIndex=0):
     filename=os.path.join(baseDir , label + ".dat")
     data=pd.read_csv(filename,sep=" ")
 
@@ -131,11 +131,11 @@ def gatherByLabel(baseDir,label,jSonInput,getHues=None,maxRows=None):
         hues=getHues(jSonInput)
         for name,value in hues.items():
             data[name]=value
-    return data
+    return data[data.index >= minIndex]
             
     
 
-def gather(dirname,label,hues=None,maxRows=None):
+def gather(dirname,label,hues=None,maxRows=None,minIndex=0):
     datas=[]
     json_file="input.json"
     
@@ -144,7 +144,7 @@ def gather(dirname,label,hues=None,maxRows=None):
             
             with open(os.path.join(subdir,json_file)) as f:
                 j = json.load(f)
-            data=gatherByLabel(subdir,label,jSonInput=j,getHues=hues,maxRows=maxRows)
+            data=gatherByLabel(subdir,label,jSonInput=j,getHues=hues,maxRows=maxRows,minIndex=minIndex)
             datas.append(data)
     if datas != []:
         data=pd.concat(datas)

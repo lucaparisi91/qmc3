@@ -14,7 +14,7 @@
 
 
 driver::driver(driver::wavefunction_t * wave) : _wave(wave), 
-iBlock(0),iSubStep(0),_stepsPerBlock(0)
+						iBlock(0),iSubStep(0),_stepsPerBlock(0),correlationSteps(0)
 {
   getTimers().add("totalRunningTime");
   getTimers().add("outputTime");
@@ -27,8 +27,12 @@ void driver::run(size_t nBlocks)
 	{
 		for (iSubStep=0;iSubStep<_stepsPerBlock;iSubStep++)
 		{
-			step(); 
-			accumulate();			
+		  for (int iCorrelationStep=0;iCorrelationStep<correlationSteps;iCorrelationStep++)
+		    {
+		      step();
+		    }
+		  step();
+		  accumulate();			
 		};
 		getTimers().get("outputTime").start();
 		out();

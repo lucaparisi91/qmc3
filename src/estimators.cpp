@@ -85,3 +85,12 @@ void realHistogramEstimator::write(std::ostream & stream)
       stream << x[i] << " " <<  out[i] << std::endl ;
     }
 };
+
+void realScalarEstimator::write(std::ostream & stream)
+{
+  if ( getAccumulator().getWeight() > 0 )
+    {
+      estimatorObservable<realScalarObservable>::write(stream);
+    }
+  
+}

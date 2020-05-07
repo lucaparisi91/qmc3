@@ -55,6 +55,9 @@ public:
   auto &  getMPIDatatype() {return dtype;}
   
   virtual void createMPIDataType()  {throw missingImplementation("Creation of MPI walker data type");};
+
+  auto & getFillingStatus() {return isFilling;}
+  const auto & getFillingStatus() const {return isFilling;}
   
 private:
   states_t _states; // a vector of particle data
@@ -67,7 +70,7 @@ private:
   grads_t _phaseGradients; // contains the gradient of the wavefunction. Just a temporary
   std::map<std::string,Eigen::VectorXd> storageScalarObservables;
   std::map<std::string,int> correlatorCurrentTimeIndex;
-  
+  std::map<std::string,bool> isFilling;
 };
 
 struct dmcWalker : public walker

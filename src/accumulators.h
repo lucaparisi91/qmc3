@@ -8,20 +8,21 @@ template<class T>
 class scalarAccumulator
 {
 public:
-	using value_t = T;
-	scalarAccumulator() : sum(0.),n(0) {}
+  using value_t = T;
+  scalarAccumulator() : sum(0.),n(0) {}
 
-	void operator+=(value_t e){sum+=e;n+=1;};
-
-	value_t average() const {return sum/n;}
-	void clear(){sum=0.;n=0.;}
+  void operator+=(value_t e){sum+=e;n+=1;};
+  
+  value_t average() const {return sum/n;}
+  void clear(){sum=0.;n=0.;}
   
   void accumulateMPI(int root) // sum partial sums on all processors into the root processor
-  {
-    
+  {  
     sum=pTools::sum(sum,root);
     n=pTools::sum(n,root);
   }
+
+  const auto & getWeight() {return n;}
 private:
 	value_t sum;
 	size_t n;

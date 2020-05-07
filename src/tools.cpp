@@ -102,10 +102,7 @@ std::vector<states_t> readStatesFromDirectory(std::string dirname)
   json_t allStatesJ;
   if (!std::filesystem::exists(dirname) )
     {
-      if (pTools::rank() == 0 )
-	{
-	  std::cout << ansiColor("yellow") << "WARNING: Configurations directory does not esists" << ansiColor("default") << std::endl;
-	}
+     
       return states;
     }
 

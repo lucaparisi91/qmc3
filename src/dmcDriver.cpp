@@ -70,6 +70,7 @@ void dmcDriver::update(dmcWalker & wNew, dmcWalker & wOld)
     {
       std::swap(wOld.getStorageScalarCorrelators() ,wNew.getStorageScalarCorrelators() );
       std::swap(wOld.getTimeIndex() ,wNew.getTimeIndex() );
+      std::swap(wOld.getFillingStatus() ,wNew.getFillingStatus() );
     }
   
 }

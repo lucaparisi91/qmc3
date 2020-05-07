@@ -88,7 +88,7 @@ public:
   realScalarEstimator(std::string label_,realScalarObservable * ob_);
   realScalarEstimator(realScalarObservable * ob_,const json_t & j) ;
   using estimatorObservable<realScalarObservable>::estimator;
-
+  virtual void write(std::ostream & stream) override;
   
 };
 

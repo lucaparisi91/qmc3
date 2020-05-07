@@ -173,11 +173,28 @@ int main(int argc, char** argv)
   size_t stepsPerBlock = j["stepsPerBlock"];
   size_t nBlocks = j["nBlocks"];  
   int seed= j["seed"];
+  size_t correlationSteps=j["correlationSteps"];
+  
+  
   std::vector<states_t> configurations;
 
   if (j.find("configurations") != j.end())
     {
       configurations=readStatesFromDirectory(j["configurations"]);
+      if (
+	  (configurations.size() == 0)  and
+	  ( (j.find("initialConfigurations") != j.end()) )
+
+	  )
+	{
+	  configurations=readStatesFromDirectory(j["initialConfigurations"]);
+	}
+      
+      if(  (pTools::rank() == 0 ) and ( configurations.size() == 0) )
+	{
+	  std::cout << ansiColor("yellow") << "WARNING: Failed to load configurations from directory. Falling back to randomly generated configurations." << ansiColor("default") << std::endl;
+	}
+      
     }
 
   auto ests = getFactory().createEstimators(j["measurements"]);
@@ -188,6 +205,9 @@ int main(int argc, char** argv)
     {
       vmcDriver vmcO(&psi,timeStep);
       vmcO.getStepsPerBlock()=stepsPerBlock;
+      vmcO.getCorrelationSteps()=correlationSteps;
+      
+
       vmcO.getEstimators().push_back(m);
       
       if ( find(j["measurements"],"kind","forceEnergy") != j["measurements"].end() )
@@ -222,6 +242,8 @@ int main(int argc, char** argv)
       
       dmcDriver dmcO(&psi,&pot,timeStep,nW);
       dmcO.getStepsPerBlock()=stepsPerBlock;
+      dmcO.getCorrelationSteps()=correlationSteps;
+      
       std::vector<states_t> dmcStates(configurations);      
       
       if ( dmcStates.size() == 0 )
@@ -234,6 +256,7 @@ int main(int argc, char** argv)
 	}
       
       dmcO.getRandomGenerator().seed(seed + pTools::rank() );
+      
       if (method == "svmc")
 	{
 	  dmcO.disableBranching();

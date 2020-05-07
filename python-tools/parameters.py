@@ -139,11 +139,15 @@ class parameters:
         return "< {} >".format(msg)
 
 timeStep = parameter("timeStep", lambda j : j["timeStep"] , lambda j,x : j.__setitem__("timeStep",x) )
+walkers = parameter("walkers", lambda j : int(j["walkers"]) , lambda j,x : j.__setitem__("walkers",int(x) ) )
+
+
 lBox = parameter("lBox", lambda j : j["lBox"][0] , lambda j,x : j.__setitem__("timeStep",[x for i in range(3)]) )
 
 
 parameters.register(timeStep)
 parameters.register(lBox)
+parameters.register(walkers)
 
  #register("timeStep",timeStep )
 # register("walkers",lambda j : j["walkers"], lambda j,x : j.__setitem__("walkers",x) )
