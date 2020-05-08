@@ -5,7 +5,7 @@ class jastrowSquareWell  : public jastrow<jastrowSquareWell>
 {
 public:
   
-  jastrowSquareWell(real_t V0_,real_t R0_,real_t Rm_,real_t alpha_,real_t lBox_) : V0(V0_),R0(R0_),Rm(Rm_),alpha(alpha_),lBox(lBox_)
+  jastrowSquareWell(real_t V0_,real_t R0_,real_t Rm_,real_t alpha_,real_t aInverse_,real_t lBox_) : V0(V0_),R0(R0_),Rm(Rm_),alpha(alpha_),lBox(lBox_),aInverse(aInverse_)
   {
     initCoefficients();
   }

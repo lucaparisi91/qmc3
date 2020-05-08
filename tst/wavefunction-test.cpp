@@ -112,7 +112,7 @@ TEST(wavefunctionTest,2b)
  	geometryPBC geo( lBox,lBox,lBox);
 	
  	states_t states {particleData};
-
+	real_t aInverse=0;
 	real_t V0=2.4674011002723395 ;
 	real_t R0=1.0;
 	squareWellPotential2b v(geo, V0 , R0, 0., 0. ) ;
@@ -121,7 +121,7 @@ TEST(wavefunctionTest,2b)
 	real_t Rm=40.0;
 	real_t alpha=0.5;
 	
-        jastrowSquareWell J(V0,R0,Rm,alpha,lBox);
+        jastrowSquareWell J(V0,R0,Rm,alpha,aInverse,lBox);
 
 	jastrowTwoBodyWavefunctionUndistinguishable<jastrowSquareWell> wave(J,geo);
 	productWavefunction psi({&wave});

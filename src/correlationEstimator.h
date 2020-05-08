@@ -63,7 +63,6 @@ private:
   int recordSteps;
 };
 
-
 class realScalarForwardWalkingEstimator : public estimator<realScalarAccumulator_t>
 {
 public:

@@ -91,11 +91,11 @@ void tableDistances::update(const tableDistances::states_t & states)
 		int setB= element.first.second;
 		if (setA == setB)
 			{
-				_differences[element.second]=geo->differences(states[setA]);
+				_differences[element.second]=geo->differencesTwoBody(states[setA]);
 			}
 			else
 			{
-				_differences[element.second]=geo->differences(states[setA],states[setB]);
+				_differences[element.second]=geo->differencesTwoBody(states[setA],states[setB]);
 
 			}
 		_distances[element.second]=norm(_differences[element.second]);

@@ -7,26 +7,42 @@ from math import *
 import json
 import itertools
 import os
-
+import re
 sns.set_style("whitegrid")
 
 
 def toVec(x):
+    if x is None:
+        return []
     if hasattr(x, '__iter__') and ( not isinstance(x,str)  ):
         return x
     else:
         return [x]
 
 
-def average(data,labels):
+def average(data,labels=None,hues=None,minIndex=None):
+
+    if minIndex is not None:
+        data=data[data.index >= minIndex]
+    
+    if labels is None:
+        labels=list(data.columns)
 
     
-    hues = list( set(data.columns) -set(labels) )
+    if hues is None:
+        hues = list( set(data.columns) -set(labels) )
+
     
     averagedData={label : []  for label in data.columns } 
     averagedData.update( { "delta" + label : [] for label in toVec(labels) })
 
-    for hue_values,df in data.groupby(hues):
+    if hues == []:
+        groups= { None : data }
+        groups=groups.items()
+    else:
+        groups = data.groupby(hues)
+    
+    for hue_values,df in groups:
                         
         for label in toVec(labels):
             x=np.array(df[label])
@@ -105,17 +121,38 @@ def plotVector(data,x,y,delta=None,label=None,ax=None):
 
 
 @assemblePlot
-def plotScalar(data,y,x=None,label=None,ax=None,delta=None):
+def plotScalar(data,y,x=None,label=None,ax=None,delta=None,alpha=0.5,trace=False,alpha_trace=1):
     
     if x is None:
         x1=np.arange(0,len(data[y]))
     else:
         x1=np.array(data[x])
     if delta is None:
-        ax.plot(x1,np.array(data[y]),label=label,marker="o",linestyle="dashed")
+        p=ax.plot(x1,np.array(data[y]),label=label,marker="o",linestyle="dashed",alpha=alpha)
     else:
-        ax.errorbar(x1,np.array(data[y]),yerr=np.array(data[delta]),label=label,marker="o",linestyle="dashed")
+        p=ax.errorbar(x1,np.array(data[y]),yerr=np.array(data[delta]),label=label,marker="o",linestyle="dashed",alpha=alpha)
+    if trace and (delta is None):
+        movingAverage=data[y].expanding().mean()
+        color=p[0].get_color()
+        
+        ax.plot(x1,np.array(movingAverage),linestyle="solid",alpha=alpha_trace,color=color)
+        
 
+
+def compare(data,ax=None):
+    columns=list(data.columns)
+    labels = [label for label in columns if ( (re.match("(?!delta).*",label) is not None) and ( ("delta"+label) in columns ) ) ]
+    
+    if ax is None:
+         fig=plt.figure()
+         ax=fig.add_subplot(111)
+    y=[   float(data[label]) for label in labels]
+    deltay=[   float(data["delta"+label]) for label in labels]
+    
+    ax.errorbar(labels,y,yerr=deltay,marker="o",linestyle="None")
+    
+    
+    
         
 def gatherByLabel(baseDir,label,jSonInput,getHues=None,maxRows=None,minIndex=0):
     filename=os.path.join(baseDir , label + ".dat")
@@ -152,10 +189,10 @@ def gather(dirname,label,hues=None,maxRows=None,minIndex=0):
 
         return data
 
-def merge(datas,hues=None):
+def merge(datas,hues=None,how="outer"):
     data=datas[0]
     for i in  range(1,len(datas) ):
-        data=pd.merge(data,datas[i],left_index=True,right_index=True,on=hues,how="outer")
+        data=pd.merge(data,datas[i],left_index=True,right_index=True,on=hues,how=how)
         
     return data
             

@@ -11,8 +11,6 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 #set(CMAKE_BUILD_TYPE Debug)
 
 
-
-
 # set the project name
 project(qmc VERSION 3.0)
 
