@@ -30,6 +30,7 @@ public:
   virtual void reserve(walker_t & w) = 0;
   virtual void store( walker_t & w,wavefunction_t & psi )=0;
   const auto & getLabel() {return label;}
+  virtual std::vector<int> sets() const {return {} ; };
 private:  
   std::string label;
 };
@@ -57,7 +58,8 @@ public:
   virtual void reserve(walker_t & w);
   
   virtual void store( walker_t & w, wavefunction_t & psi );
-  
+
+  virtual std::vector<int> sets() const override {return ob->sets();}
 private:
   std::unique_ptr<observable_t> ob;
   int recordSteps;

@@ -38,6 +38,8 @@ public:
   virtual void dump();
   virtual void accumulateMPI(int root=0);
   virtual void reserve(walker_t & w);
+
+  const auto & storers() const {return _storers;}
   
   
 private:

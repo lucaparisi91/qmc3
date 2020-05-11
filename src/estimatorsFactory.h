@@ -57,12 +57,12 @@ public:
   auto create(const json_t & j)
   {
     std::vector<estimatorBase*> estimators;
-
+    
     for (auto & estJson : j )
       {
 
 	std::string id = estJson["kind"];
-	
+	  
 	if  ( estJson.find("recordSteps") != estJson.end() )
 	  {
 	    

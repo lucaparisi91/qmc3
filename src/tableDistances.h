@@ -21,8 +21,8 @@ public:
 
 	void update(const states_t & states); // update all registered distances
 
-	void add(int setA );  
-	void add(int setA, int setB);
+        void add(int setA );  
+        void add(int setA, int setB);
 
         void add(const std::vector<int> & sets);
   

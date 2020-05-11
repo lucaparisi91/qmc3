@@ -129,7 +129,7 @@ class parameters:
         return self
         
     def __getitem__(self,name):
-        return self._parameters[name]
+        return self._parameters[name].value
     def __setitem__(self,name,x):
         self._parameters[name].value=x
     def __len__(self):

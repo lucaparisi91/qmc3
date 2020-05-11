@@ -4,6 +4,8 @@ import matplotlib.pylab as plt
 import scipy as sp
 from math import *
 from scipy import optimize
+import myExceptions
+
 
 class jastrow:
     def process(self):

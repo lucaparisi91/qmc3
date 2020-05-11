@@ -13,6 +13,12 @@ void initializer::addDistances(walker & w,estimatorCollection & collection)
     {
       w.getTableDistances().add(est->sets());
     }
+  
+  for (const auto & storeO : collection.storers())
+    {
+      w.getTableDistances().add(storeO->sets());
+    }
+  
 }
  
 

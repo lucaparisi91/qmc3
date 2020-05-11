@@ -137,12 +137,14 @@ void dmcDriver::run( const std::vector<states_t> &states , size_t nBlocks )
   for (auto & w : current_walkers)
     {
       getEstimators().reserve(*w);
+      initializer::addDistances(*w,getEstimators());
 
     }
   
   for (auto & w : old_walkers)
     {
       getEstimators().reserve(*w);
+      initializer::addDistances(*w,getEstimators());
 
     }
   

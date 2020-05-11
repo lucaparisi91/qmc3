@@ -20,6 +20,7 @@
 #include "ptools.h"
 #include "pairCorrelation.h"
 #include "centerOfMassSquared.h"
+#include "hyperRadius.h"
 
 
 bool check_n_particles(const states_t & states,const std::vector<int> & Ns)
@@ -143,8 +144,8 @@ int main(int argc, char** argv)
   getFactory().registerOrbital<planeWave>();
   getFactory().registerObservable<pairCorrelation>();
   getFactory().registerObservable<centerOfMassSquared>();
+  getFactory().registerObservable<trimerhyperRadius>();
   
-
   auto waves = getFactory().createWavefunctions( j["wavefunctions"],geo);
   
   

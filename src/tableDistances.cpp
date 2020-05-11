@@ -33,9 +33,12 @@ void tableDistances::add(const std::vector<int> & sets)
     {
       add(sets[0],sets[1]);
     }
-  else if (sets.size() >=3)
+  else if (sets.size() ==3)
     {
-      throw missingImplementation("More then 2b distances are not calculated");
+      add(sets[0],sets[2]);
+      add(sets[1],sets[2]);
+      add(sets[0],sets[1]);     
+      
     }
   
   

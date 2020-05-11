@@ -22,7 +22,6 @@ def disableForwardWalking(j):
             m.pop("recordSteps")
     
     j["measurements"]=new_ms
-
     
 def inputConfs(data,template,postProcess=None):
     js=[]
