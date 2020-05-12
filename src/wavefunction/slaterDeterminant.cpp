@@ -144,8 +144,10 @@ template<class orbitalSet_t>
 
 
 
-
+#if DIMENSIONS == 3
 
 
 template class slaterDeterminantWavefunction<orbitalSet<sinOrbital> > ;
 template class slaterDeterminantWavefunctionComplex<orbitalSet<planeWave> > ;
+
+#endif

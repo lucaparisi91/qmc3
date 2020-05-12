@@ -17,6 +17,7 @@
 #include "wavefunction/jastrowWavefunctionOneBody.h"
 #include "factory.h"
 #include "wavefunction/jastrows/jastrowSquareWell.h"
+#include "wavefunction/jastrows/jastrow_delta.h"
 #include "ptools.h"
 #include "pairCorrelation.h"
 #include "centerOfMassSquared.h"
@@ -93,7 +94,7 @@ int main(int argc, char** argv)
   std::vector<int> Ns;
   Ns=j["N"].get<decltype(Ns)>();
   int D=lBox.size();
-
+  
   if (j.find("initialConditionGenerator") != j.end() )
     {
       auto & confGenJ = j["initialConditionGenerator"];
@@ -117,8 +118,13 @@ int main(int argc, char** argv)
       
     }
   
-  
+#if DIMENSIONS == 3
   geometryPBC geo( lBox[0], lBox[1], lBox[2]);
+#endif
+#if DIMENSIONS == 1
+  geometryPBC geo( lBox[0] );
+#endif
+
   
   states_t states;
   
@@ -140,11 +146,16 @@ int main(int argc, char** argv)
   
   getFactory().registerJastrow< gaussianJastrow >();
   getFactory().registerJastrow< jastrowSquareWell >();
+  #if DIMENSIONS == 3
   getFactory().registerOrbital<sinOrbital>();
   getFactory().registerOrbital<planeWave>();
+  #endif
   getFactory().registerObservable<pairCorrelation>();
   getFactory().registerObservable<centerOfMassSquared>();
   getFactory().registerObservable<trimerhyperRadius>();
+  getFactory().registerJastrow<jastrow_delta_phonons>();
+  getFactory().registerJastrow<jastrow_delta_in_trap>();
+
   
   auto waves = getFactory().createWavefunctions( j["wavefunctions"],geo);
   
@@ -157,11 +168,11 @@ int main(int argc, char** argv)
 
   getFactory().registerPotential<harmonicPotential>();
   getFactory().registerPotential<squareWellPotential2b>();
-  
+
   auto potentials = getFactory().createPotentials(j["potentials"],geo);
   
   sumPotentials pot(potentials);
-  
+
   auto eO=new  energy(&pot);
   auto efO= new forceEnergy(&pot);
   
@@ -178,7 +189,6 @@ int main(int argc, char** argv)
   
   
   std::vector<states_t> configurations;
-
   if (j.find("configurations") != j.end())
     {
       configurations=readStatesFromDirectory(j["configurations"]);

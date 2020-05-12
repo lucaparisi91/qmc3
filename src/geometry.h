@@ -11,7 +11,7 @@ class geometry
 public:
 	using particles_t = ::state_t;
 	using diff_t =  ::difference_t;
-
+  
 	virtual diff_t differencesTwoBody(const particles_t & data) const = 0; // distances between undistinguishible particles
 
 	virtual diff_t differencesTwoBody(const particles_t & data1, const particles_t & data2) const = 0; // distances between distinguishiblle particles
@@ -39,19 +39,23 @@ distance_t norm( const difference_t & diffs);
 class geometryPBC : public geometry
 {
 public:
-	geometryPBC(real_t lBoxx_,real_t lBoxy_,real_t lBoxz_) : lBox{ lBoxx_,lBoxy_,lBoxz_},lBoxInverse{1./lBoxx_,1./lBoxy_,1./lBoxz_} {} ;
+  geometryPBC(real_t lBoxx_,real_t lBoxy_,real_t lBoxz_) : lBox{ lBoxx_,lBoxy_,lBoxz_},lBoxInverse{1./lBoxx_,1./lBoxy_,1./lBoxz_} {} ;
 
-	real_t difference(real_t t, int i ) const {return ( t - std::round(t*lBoxInverse[i] )*lBox[i]);}
 
-	auto difference(real_t diffx,real_t diffy,real_t diffz) const { return std::make_tuple( difference(diffx,0) , difference(diffy,1) , difference(diffz,1)   );}
+  geometryPBC(real_t lBox ) : geometryPBC(lBox,lBox,lBox) {};
+  
+  real_t difference(real_t t, int i ) const {return ( t - std::round(t*lBoxInverse[i] )*lBox[i]);}
 
-	virtual diff_t differencesOneBody(const particles_t & particleData, const std::array<real_t,3> & x) const;
+  auto difference(real_t diffx,real_t diffy,real_t diffz) const { return std::make_tuple( difference(diffx,0) , difference(diffy,1) , difference(diffz,1)   );}
 
-	virtual diff_t differencesTwoBody(const particles_t & particleData) const ;
+  virtual diff_t differencesOneBody(const particles_t & particleData, const std::array<real_t,3> & x) const;
 
-	virtual diff_t differencesTwoBody(const particles_t & data1,const particles_t & data2) const ;
+  virtual diff_t differencesTwoBody(const particles_t & particleData) const ;
 
-        virtual real_t getLBox(int i) const override {return lBox[i];}
+  virtual diff_t differencesTwoBody(const particles_t & data1,const particles_t & data2) const ;
+  
+  virtual real_t getLBox(int i) const override {return lBox[i];}
+  
 private:
 	real_t lBox [3];
 	real_t lBoxInverse [3];

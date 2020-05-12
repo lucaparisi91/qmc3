@@ -13,7 +13,7 @@
 TEST(dmcTest,branching_lower)
 {
 	int N=100;
-	int D=3;
+	int D=getDimensions();
 	int nW=100;	
 	
  	geometryPBC geo( 10., 10., 10.);
@@ -82,7 +82,7 @@ TEST(dmcTest,branching_lower)
 TEST(dmcTest,branching_upper)
 {
 	int N=100;
-	int D=3;
+	int D=getDimensions();
 	int nW=100;	
 	
  	geometryPBC geo( 10., 10., 10.);

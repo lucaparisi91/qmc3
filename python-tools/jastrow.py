@@ -6,7 +6,6 @@ from math import *
 from scipy import optimize
 import myExceptions
 
-
 class jastrow:
     def process(self):
         pass
@@ -185,6 +184,87 @@ class jastrowGaussian(jastrow):
     def __call__(self,x):
         x=np.array(x)
         return np.exp(-parameters["alpha"]*x**2)
+
+class jastrow_delta_phonons(jastrow):
+    '''
+    args = (z,l,g)
+    '''
+    inputParameters=["g","z","lBox"]
+    
+    def __init__(self,z=None,l=None,g=None):
+        jastrow.__init__(self)        
+        
+        self.parameters["g"]=g
+        
+        self.parameters["z"]=z
+        self.parameters["lBox"]=l
+        self.parameters["beta"]=None
+        self.parameters["k"]=None
+        
+    def f_root(self,x):
+        z=self.parameters["z"]
+        g=self.parameters["g"]
+        l_box=self.parameters["lBox"]
+        # finds the root of a certain system
+        delta=atan(x/g)
+        beta=(x*tan((pi/l_box)*z))/( (pi/l_box)  * tan(x*z+delta))
+        return (sin(x*z+delta) - sin((pi/l_box)*z)**beta)
+    
+    def process(self,step_root=10**-4,a_root=10**-6,b_root=100):
+        
+        self.parameters["g"]=float(self.parameters["g"])
+        self.parameters["lBox"]=float(self.parameters["lBox"])
+        self.parameters["z"]=float(self.parameters["z"])
+        
+        self.parameters["k"]=self.find_root(step_root=step_root,a_root=a_root,b_root=10**6)
+        x=self.parameters["k"]
+        g=self.parameters["g"]
+        z=self.parameters["z"]
+        l_box=self.parameters["lBox"]
+        # set the delta parameter for the simulation
+        self.parameters["delta"]=atan(x/g )
+        
+        
+        self.parameters["beta"]=(x*tan(pi/l_box*z))/(pi/l_box  * tan(x*z+self.parameters["delta"]))
+        
+    def __call__(self,x):
+        k=self.parameters["k"]
+        z=self.parameters["z"]
+        delta=self.parameters["delta"]
+        l_box=self.parameters["lBox"]
+        beta=self.parameters["beta"]
+        y=abs(x)
+        if y < z:
+            return sin(k*y+delta)
+        else:
+            return sin(pi/l_box*y)**beta
+    def jastrow_1d(self,x):
+        k=self.parameters["k"]
+        z=self.parameters["z"]
+        delta=self.parameters["delta"]
+        l_box=self.parameters["lBox"]
+        beta=self.parameters["beta"]
+        y=abs(x)
+        if y < z:
+            return cos(k*y+delta)*k
+        else:
+            return beta*sin(pi/l_box*y)**(beta-1)*cos(pi/l_box*y)*pi/l_box
+    def jastrow_2d(self,x):
+        k=self.parameters["k"]
+        z=self.parameters["z"]
+        delta=self.parameters["delta"]
+        l_box=self.parameters["lBox"]
+        beta=self.parameters["beta"]
+        y=abs(x)
+        if y < z:
+            return -sin(k*y+delta)*(k**2)
+        else:
+            return beta*(beta - 1)*sin(pi/l_box*y)**(beta-2)*(cos(pi/l_box*y)*pi/l_box)**2 - beta*(pi/l_box)**2*sin(pi/l_box*y)**beta
+    
+
+
+
+
 
     
 registeredJastrows= {"squareWell" : "jastrowSquareWell","gaussian":"jastrowGaussian"}

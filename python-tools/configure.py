@@ -7,6 +7,8 @@ import json
 import itertools
 import pandas as pd
 import myExceptions
+import tqdm
+
 
 executable= "~/source/qmc3/build/main"
 
@@ -51,7 +53,7 @@ def defaultName(j):
     return str(abs(hash(str(j))))
     
 def createDirs(inputJsons,name = defaultName,baseDir=None,executable=None):
-    for j in inputJsons:
+    for j in tqdm.tqdm(inputJsons):
         folder=str(name(j) )
         folderPath=os.path.join(baseDir,folder)
         exst = os.path.exists(folderPath)  

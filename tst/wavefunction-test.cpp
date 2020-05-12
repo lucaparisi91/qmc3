@@ -19,15 +19,16 @@
 TEST(wavefunctionTest,oneBody)
 {
 	int N=100;
-	int D= 3;
+	int D= getDimensions();
+	
  	state_t particleData(N , D);
  	state_t gradient(N , D);
  	real_t alpha=1.;
  	
  	particleData.setRandom();
-
+	
  	geometryPBC geo( 10., 10., 10.);
-
+	
 
  	auto J=gaussianJastrow(alpha);
  	jastrowOneBodyWavefunction<gaussianJastrow> wave(J,geo,0);
@@ -57,10 +58,10 @@ TEST(wavefunctionTest,oneBody)
 TEST(wavefunctionTest,tableDistances)
 {
 	int N=100;
-	int D=3;
- 	state_t particleData(N , 3);
- 	state_t gradient(N , 3);
-
+	int D=getDimensions();
+ 	state_t particleData(N , D);
+ 	state_t gradient(N , D);
+	
 
  	particleData.setRandom();
 
@@ -99,11 +100,11 @@ TEST(wavefunctionTest,tableDistances)
 
 TEST(wavefunctionTest,2b)
 {
-
+#if DIMENSIONS == 3
 	int N=2;
-	int D=3;
- 	state_t particleData(N , 3);
- 	state_t gradient(N , 3);
+	int D=getDimensions();
+ 	state_t particleData(N , D);
+ 	state_t gradient(N , D);
 	real_t lBox=100;
 	
  	particleData.setRandom();
@@ -146,6 +147,8 @@ TEST(wavefunctionTest,2b)
 	
 	EXPECT_NEAR(sum,sum2,1e-5);
 	EXPECT_NEAR(eO(w,psi),0,1e-7 ) ;
+
+#endif
 	
  }
 
@@ -153,6 +156,7 @@ TEST(wavefunctionTest,2b)
 
 TEST(fermions,slaterWavefunctionEnergy)
 {
+  #if DIMENSIONS == 3
   std::vector<int> Ns{33};
 
   real_t lBox=33.;
@@ -190,12 +194,14 @@ TEST(fermions,slaterWavefunctionEnergy)
    
 
   EXPECT_NEAR( w.getEnergy() , sineCosBasis.energy() , 1E-5 );
-  
+
+  #endif
 }
 
 
 TEST(fermions,slaterWavefunctionComplexEnergy)
 {
+  #if DIMENSIONS == 3
   std::vector<int> Ns{33};
 
   real_t lBox=33.;
@@ -233,6 +239,8 @@ TEST(fermions,slaterWavefunctionComplexEnergy)
   initializer::initialize(w,states,psi,eO);
   
   EXPECT_NEAR( w.getEnergy() , basis.energy() , 1E-5 );
+
+  #endif
   
 }
 
@@ -241,7 +249,7 @@ TEST(measurementsTest,forwardWalkingCm2)
 {
 	
   int N=100;
-  int D= 3;
+  int D= getDimensions();
   state_t particleData(N , D);
   state_t gradient(N , D);
   real_t alpha=1.;
