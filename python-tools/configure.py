@@ -13,7 +13,6 @@ import tqdm
 executable= "~/source/qmc3/build/main"
 
 
-
 def update(j):
     jastrow.updateJastrows(j)
 
@@ -29,7 +28,7 @@ def disableForwardWalking(j):
 def inputConfs(data,template,postProcess=None):
     js=[]
     ps=parameters.parameters(data.columns)
-    for index,row in data.iterrows():
+    for index,row in tqdm.tqdm( data.iterrows()):
         j=copy.deepcopy(template)
         ps.load(j)
         for col,val in row.items():

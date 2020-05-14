@@ -109,12 +109,13 @@ def assemblePlot(func):
 
 
 @assemblePlot            
-def plotVector(data,x,y,delta=None,label=None,ax=None):
+def plotVector(data,x,y,delta=None,label=None,ax=None,*args,**kwds):
     
-    ax.plot(data[x],data[y],label=label)
     
     if delta is not None:
         ax.fill_between(data[x],data[y]-data[delta],data[y]+data[delta],alpha=0.5)
+    ax.plot(data[x],data[y],label=label,*args,**kwds)
+    
         
     ax.set_xlabel(x)
     ax.set_ylabel(y)

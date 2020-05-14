@@ -12,12 +12,12 @@ Defines a wavefunction factory. Does not anything about jastrows. Id are strings
 template<class T>
 struct observableTraits;
 
-
 typedef estimatorBase* (*estimatorCreatorFunc) ( const json_t & j);
 typedef storer* (*storerCreatorFunc) ( const json_t & j);
 
 realHistogramEstimator* createEstimatorFromOb(realHistogramObservable * ob,const json_t & j);
 realScalarEstimator* createEstimatorFromOb(realScalarObservable * ob,const json_t & j);
+realVectorEstimator* createEstimatorFromOb(realVectorObservable * ob,const json_t & j);
 
 template<class observable_t>
 estimatorBase * createEstimator(const json_t & j )

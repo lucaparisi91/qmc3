@@ -69,9 +69,10 @@ namespace pTools
 
 
   
-  Eigen::Matrix<real_t,Eigen::Dynamic,1> sum(  Eigen::Matrix<real_t,Eigen::Dynamic,1> & vec, int root );
+  Eigen::Matrix<real_t,Eigen::Dynamic,1> sum(  Eigen::Matrix<real_t,Eigen::Dynamic,1> & vec, int root=0 );
 
-  
+  Eigen::Array<real_t,Eigen::Dynamic,1> sum(  Eigen::Array<real_t,Eigen::Dynamic,1> & vec, int root=0 );
+
   void determineLoadBalanceComunicationsAliasMethod( std::vector<int> & populations,std::vector<int> & permutations,std::vector<int> & sources,std::vector<std::vector<int> > & destinations,std::vector<int> & amounts)  ; // all operatans are modified
 
   

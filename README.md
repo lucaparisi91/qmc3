@@ -5,3 +5,4 @@ External Libraries used:
 - Eigen
 - Google test
 - nlohmann json
+- Boost

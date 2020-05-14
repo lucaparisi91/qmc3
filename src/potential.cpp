@@ -63,3 +63,36 @@ real_t squareWellPotential2b::operator()(const walker_t & w)
   return -nPairsInt*V0;
   
 };
+
+dipolarPotential2b::dipolarPotential2b(const geometry_t & geo,real_t D_, int setA_, int setB_) : setA(setA_),setB(setB_),D(D_),k(0),potential(geo) {}
+
+
+dipolarPotential2b::dipolarPotential2b(const json_t & j,const geometry_t & geo) : dipolarPotential2b::dipolarPotential2b(geo,j["D"].get<real_t>(),j["sets"][0].get<int>(), j["sets"][1].get<int>() ) {};
+
+real_t dipolarPotential2b::operator()(const walker_t & w)
+{
+  double v=0;
+  double d=0;
+
+  const auto & norms= w.getTableDistances().distances(setA,setB);
+  
+  double lBox=getGeometry().getLBox(0);
+   
+  for (auto i=0;i<norms.size();i++) 
+      {
+	double x = norms(i);
+	v+=D/(x*x*x);
+	
+	for (int n=1;n<=k;n++)
+	  {
+	    d=x + n*lBox;
+	    v+=D/(d*d*d);
+	    d= n*lBox-x;
+	    v+=D/(d*d*d);
+	    
+	  }
+      }
+    
+    return v;
+
+}

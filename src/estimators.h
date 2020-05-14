@@ -75,6 +75,11 @@ public:
   virtual void accumulate(walker_t & w,wave_t & psi) {ob->accumulate(w,psi,this->getAccumulator());}
   
   virtual std::vector<int> sets() const override {return ob->sets();};
+
+  
+  observable_t & getObservable() {return *ob;}
+  const observable_t & getObservable() const {return *ob;}
+
   
 private:
   accumulator_t acc;
@@ -104,6 +109,22 @@ public:
 private:
   std::vector<real_t> x;
 };
+
+
+class realVectorEstimator : public estimatorObservable<realVectorObservable>
+{
+public:
+  
+  realVectorEstimator(std::string label,realVectorObservable * ob_);
+  
+  realVectorEstimator(realVectorObservable * ob_,const json_t & j);
+  
+  virtual void write(std::ostream & stream) override;
+private:
+  
+};
+
+
 
 
 #endif

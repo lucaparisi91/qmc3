@@ -12,10 +12,10 @@ public:
   jastrow_delta_phonons(const json_t & j);
   
   
-  inline real_t  d0(const double & x) {return log (d0(x));}
+  inline real_t  d0(const double & x) {return log (d0Exp(x));}
+  
   inline real_t d1(const double & x) {return (x < parameters[3]) ? parameters[0]/tan(parameters[0]*x + parameters[1]) : k2*parameters[2]/tan(k2*x) ; }
   inline real_t d2(const double & x) {return (x < parameters[3]) ? -parameters[0]*parameters[0]/pow(sin(parameters[0]*x + parameters[1]),2) : -k2*k2*parameters[2]/pow(sin(k2*x),2) ; }
-
   
   void process();    
 
@@ -39,6 +39,12 @@ private:
   double k2;
   fRoot fR;
   std::vector<real_t> parameters;
+  
+  inline real_t d0Exp(const double &x)
+  {
+    return (x < parameters[3]) ? sin(parameters[0]*x + parameters[1]) :  pow(sin(k2*x),parameters[2]);
+  }
+
 };
 
 class jastrow_delta_in_trap : public jastrow<jastrow_delta_in_trap>
@@ -57,3 +63,28 @@ public:
 private:
   real_t a;
 };
+
+class jastrow_delta_bound_state_phonons : public jastrow<jastrow_delta_bound_state_phonons>
+{
+public:
+  jastrow_delta_bound_state_phonons(const json_t & j);
+
+  void process(real_t);
+  
+  inline real_t d0(const real_t x){return (x<xI) ? -k*x : logA + log(pow(sin(k2*x),beta));}
+  inline real_t d1(const real_t x){return (x<xI) ? -k : beta*k2/tan(k2*x);}
+  inline real_t d2(const real_t x){return (x<xI) ? 0 : -k2*beta*k2/pow(sin(k2*x),2);}
+  
+  static std::string name() {return "delta_bound_state_phonons";}
+private:
+  real_t lBox;
+  real_t xm;
+  real_t xI;
+  real_t A;
+  real_t k;
+  real_t k2;
+  real_t beta;
+  real_t g;
+  real_t logA;
+};
+

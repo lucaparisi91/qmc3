@@ -47,4 +47,19 @@ public:
 };
 
 
+
+class realVectorObservable : public observable<realVectorAccumulator_t>
+{
+public:
+  using vec_t = Eigen::VectorXd;
+  
+  virtual void accumulate(walker_t & w,wavefunction_t & wavefunction,accumulator_t & acc)=0;
+  virtual std::vector<int> sets() const  {return {}; }
+  static bool isScalar() {return false;}
+  virtual const vec_t & x() const = 0 ;
+private:
+  real_t _size;
+  
+};
+
 #endif

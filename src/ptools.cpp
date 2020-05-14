@@ -349,6 +349,14 @@ Eigen::Matrix<real_t,Eigen::Dynamic,1> sum(  Eigen::Matrix<real_t,Eigen::Dynamic
   }
 
 
+Eigen::Array<real_t,Eigen::Dynamic,1> sum(  Eigen::Array<real_t,Eigen::Dynamic,1> & vec, int root )
+  {
+    Eigen::Array<real_t,Eigen::Dynamic,1> res(vec.rows(),vec.cols() );
+    int status = MPI_Reduce (res.data(),vec.data(),vec.rows(),MPI_DOUBLE,MPI_SUM,root,MPI_COMM_WORLD);
+    return res;
+  }
+
+
   
 };
 

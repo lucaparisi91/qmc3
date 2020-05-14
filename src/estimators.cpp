@@ -94,3 +94,41 @@ void realScalarEstimator::write(std::ostream & stream)
     }
   
 }
+
+
+void realVectorEstimator::write(std::ostream & stream)
+{
+  auto out=getAccumulator().average();
+  auto & x = getObservable().x();
+  
+  for (int i=0;i<x.size();i++)
+    {
+      stream << x[i] << " " <<  out[i] << std::endl ;
+    }
+};
+
+
+
+realVectorEstimator::realVectorEstimator(std::string label,realVectorObservable * ob_) : estimatorObservable<realVectorObservable>::estimatorObservable(label,ob_)
+{
+  auto size= getObservable().x().size();
+  
+  getAccumulator()=accumulator_t(size);
+  
+  std::ifstream of;
+  of.open(getFileName());
+  if (is_empty(of) & pTools::rank() == 0 )
+    {
+      auto & f=getFileDescriptor();
+      f << "x " << getLabel() << std::endl;
+    }
+  
+  of.close();
+  
+}
+
+realVectorEstimator::realVectorEstimator(realVectorObservable * ob_,const json_t & j) : realVectorEstimator::realVectorEstimator(j["label"].get<std::string>(),ob_)
+{
+  
+}
+

@@ -108,6 +108,31 @@ private:
   real_t V0;
   int setA;
   int setB;
+};
+
+class dipolarPotential2b :  public potential
+{
+public:
+  using potential::operator();
+  
+  dipolarPotential2b(const geometry_t & geo,real_t D, int setA_, int setB_ ) ;
+  
+  dipolarPotential2b(const json_t & j, const geometry_t & geo);
+  
+  virtual real_t operator()(const walker_t & state) ;
+  
+  static std::string name() {return "dipolar2b";}
+
+  virtual std::vector<int> sets() const {return {setA,setB};} ;
+private:
+  real_t D;
+  int setA;
+  int setB;
+  int k;
+  
   
 };
+
+
+
 #endif

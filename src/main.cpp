@@ -22,6 +22,8 @@
 #include "pairCorrelation.h"
 #include "centerOfMassSquared.h"
 #include "hyperRadius.h"
+#include "wavefunction/jastrows/jastrowDipolar.h"
+#include "structureFactor.h"
 
 
 bool check_n_particles(const states_t & states,const std::vector<int> & Ns)
@@ -153,9 +155,15 @@ int main(int argc, char** argv)
   getFactory().registerObservable<pairCorrelation>();
   getFactory().registerObservable<centerOfMassSquared>();
   getFactory().registerObservable<trimerhyperRadius>();
+
+#if DIMENSIONS == 1
+  getFactory().registerObservable<structureFactor>();
+#endif
+  
   getFactory().registerJastrow<jastrow_delta_phonons>();
   getFactory().registerJastrow<jastrow_delta_in_trap>();
-
+  getFactory().registerJastrow<jastrow_delta_bound_state_phonons>();
+  getFactory().registerJastrow<jastrowDipolarRep>();
   
   auto waves = getFactory().createWavefunctions( j["wavefunctions"],geo);
   
@@ -168,11 +176,12 @@ int main(int argc, char** argv)
 
   getFactory().registerPotential<harmonicPotential>();
   getFactory().registerPotential<squareWellPotential2b>();
-
+  getFactory().registerPotential<dipolarPotential2b>();
   auto potentials = getFactory().createPotentials(j["potentials"],geo);
   
   sumPotentials pot(potentials);
 
+  
   auto eO=new  energy(&pot);
   auto efO= new forceEnergy(&pot);
   
@@ -186,7 +195,7 @@ int main(int argc, char** argv)
   size_t nBlocks = j["nBlocks"];  
   int seed= j["seed"];
   size_t correlationSteps=j["correlationSteps"];
-  
+
   
   std::vector<states_t> configurations;
   if (j.find("configurations") != j.end())
@@ -210,6 +219,7 @@ int main(int argc, char** argv)
 
   auto ests = getFactory().createEstimators(j["measurements"]);
   auto storers = getFactory().createStorers(j["measurements"]);
+
   
   
   if (method == "vmc")

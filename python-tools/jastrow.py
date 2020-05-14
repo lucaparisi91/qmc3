@@ -5,6 +5,8 @@ import scipy as sp
 from math import *
 from scipy import optimize
 import myExceptions
+import scipy
+
 
 class jastrow:
     def process(self):
@@ -36,7 +38,7 @@ class jastrow:
         self.process()
         
 # a class to find the root of a general continuos function
-    def find_root(self,step_root=10**-4,a_root=0.,b_root=10**6,eps=1e-12):
+    def find_root(self,step_root=10**-5,a_root=0.,b_root=10**8,eps=1e-12):
         
         lower_root=a_root
         upper_root=a_root + 2*step_root
@@ -122,7 +124,6 @@ class jastrowSquareWell(jastrow):
        
         self.parameters["R0"]=self.R0
         self.parameters["Rm"]=self.Rm
-        self.parameters["lBox"]=self.lBox
         self.parameters["aInverse"]=1./self.a
         
         
@@ -189,38 +190,37 @@ class jastrow_delta_phonons(jastrow):
     '''
     args = (z,l,g)
     '''
-    inputParameters=["g","z","lBox"]
+    inputParameters=["g","z","cut_off"]
     
-    def __init__(self,z=None,l=None,g=None):
+    def __init__(self,z=None,cut_off=None,g=None):
         jastrow.__init__(self)        
         
         self.parameters["g"]=g
         
         self.parameters["z"]=z
-        self.parameters["lBox"]=l
+        self.parameters["cut_off"]=cut_off
         self.parameters["beta"]=None
         self.parameters["k"]=None
         
     def f_root(self,x):
         z=self.parameters["z"]
         g=self.parameters["g"]
-        l_box=self.parameters["lBox"]
+        l_box=self.parameters["cut_off"]*2
         # finds the root of a certain system
         delta=atan(x/g)
         beta=(x*tan((pi/l_box)*z))/( (pi/l_box)  * tan(x*z+delta))
         return (sin(x*z+delta) - sin((pi/l_box)*z)**beta)
     
-    def process(self,step_root=10**-4,a_root=10**-6,b_root=100):
+    def process(self,step_root=10**-6,a_root=10**-6,b_root=100):
         
         self.parameters["g"]=float(self.parameters["g"])
-        self.parameters["lBox"]=float(self.parameters["lBox"])
         self.parameters["z"]=float(self.parameters["z"])
         
         self.parameters["k"]=self.find_root(step_root=step_root,a_root=a_root,b_root=10**6)
         x=self.parameters["k"]
         g=self.parameters["g"]
         z=self.parameters["z"]
-        l_box=self.parameters["lBox"]
+        l_box=self.parameters["cut_off"]*2
         # set the delta parameter for the simulation
         self.parameters["delta"]=atan(x/g )
         
@@ -231,7 +231,7 @@ class jastrow_delta_phonons(jastrow):
         k=self.parameters["k"]
         z=self.parameters["z"]
         delta=self.parameters["delta"]
-        l_box=self.parameters["lBox"]
+        l_box=self.parameters["cut_off"]*2
         beta=self.parameters["beta"]
         y=abs(x)
         if y < z:
@@ -242,7 +242,7 @@ class jastrow_delta_phonons(jastrow):
         k=self.parameters["k"]
         z=self.parameters["z"]
         delta=self.parameters["delta"]
-        l_box=self.parameters["lBox"]
+        l_box=self.parameters["cut_off"]*2
         beta=self.parameters["beta"]
         y=abs(x)
         if y < z:
@@ -253,7 +253,7 @@ class jastrow_delta_phonons(jastrow):
         k=self.parameters["k"]
         z=self.parameters["z"]
         delta=self.parameters["delta"]
-        l_box=self.parameters["lBox"]
+        l_box=self.parameters["cut_off"]*2
         beta=self.parameters["beta"]
         y=abs(x)
         if y < z:
@@ -267,7 +267,158 @@ class jastrow_delta_phonons(jastrow):
 
 
     
-registeredJastrows= {"squareWell" : "jastrowSquareWell","gaussian":"jastrowGaussian"}
+
+
+
+    
+
+
+        
+class jastrow_delta_bound_state_phonons(jastrow):
+    inputParameters=["g","beta","cut_off"]
+    def __init__(self,g=None,beta=None,cut_off=None):
+        jastrow.__init__(self)
+        
+        self.parameters["cut_off"]=cut_off
+        self.parameters["g"]=g
+        self.parameters["beta"]=beta
+        self.parameters["A"]=None
+        self.parameters["xI"]=None
+    def __call__(self,x,der=0):
+        k=self.parameters["k"]
+        xI=self.parameters["xI"]
+        
+        
+        beta=self.parameters["beta"]
+        lBox=self.parameters["cut_off"]*2
+        mask1=x*0 + 1
+        mask1[x>self.parameters["xI"]]=0
+        mask2=x*0 + 1
+        mask2[x<=self.parameters["xI"]]=0
+        
+        if der==0:
+                return np.exp(-k*x)*mask1 +  self.parameters["A"]*np.sin(pi*x*1./(self.parameters["cut_off"]*2))**self.parameters["beta"]*mask2
+        if der==1:
+            if x<self.parameters["xI"]:
+            
+                return -k*exp(-k*x)
+            else:
+                y=pi*x/(self.parameters["cut_off"]*2)
+                return self.parameters["A"]*sin(y)**(beta-1)*beta*cos(y)*pi/lBox
+        
+        
+    def process(self):
+        
+        a=float(2./self.parameters["g"])
+        
+        lBox=float(self.parameters["cut_off"]*2)
+        k=1/a
+        #print ("k:" + str(k) )
+        
+        self.parameters["k"]=k
+        beta=self.parameters["beta"]
+        
+        def froot2(x):
+            return beta/tan(pi*x/lBox)*pi/lBox+k
+        
+        xI=optimize.brentq(froot2,1e-4,lBox/2.)
+        
+        self.parameters["A"]=exp(-k*xI)/(sin(pi*xI/lBox)**beta)
+        #print (xI)
+        self.parameters["xI"]=xI
+    def plot(self,der=0):
+        
+        x=np.linspace(0,self.parameters["cut_off"],num=10000)
+        y=copy.copy(x)
+        for i in range(0,len(x)):
+            y[i]=self.__call__(x[i],der=der)
+        plt.plot(x,y)
+        #plt.show()
+        
+
+class jastrowDipolar(jastrow):
+    inputParameters=["D","cut_off","matching_point"]
+    optimizationParameters=["matching_point"]
+
+    def __init__(self,D=None,cut_off=None,matching_point=None,alpha=None):
+        jastrow.__init__(self)
+        self.parameters["D"]=D
+        self.parameters["cut_off"]=cut_off
+        self.parameters["matching_point"]=matching_point
+        self.parameters["alpha"]=alpha
+        self.parameters["C"]=None
+        
+    def dipolarFunction(self,x,der=0):
+        K1=lambda x1 : scipy.special.kv(1,x1)
+        K1p=lambda x1 : scipy.special.kvp(1,x1,n=1)
+        
+        y=np.sqrt(x)
+        d=self.parameters["D"]
+        
+        if der==0:
+            return y*K1(2*d/y )
+        if der==1:
+            return ( K1(2*d/y) - K1p(2*d/y)*2*d/y)*0.5/y 
+
+        
+    def phononTail(self,x,alpha,der=0):
+        k=pi/(self.parameters["cut_off"]*2)
+        if der==0:
+            return np.sin(k*x)**alpha
+        if der==1:
+            return alpha*np.sin(k*x)**(alpha-1)*np.cos(k*x)*k
+    
+
+    def froot(self,alpha):
+        matching_point=self.parameters["matching_point"]
+        c=self.phononTail(matching_point,alpha,der=0)/self.dipolarFunction(matching_point,der=0)
+        
+        return c*self.dipolarFunction(matching_point,der=1) - self.phononTail(matching_point,alpha,der=1)
+    
+    def process(self):
+        a=1e-4
+        self.parameters["D"]=np.sqrt(self.parameters["D"])
+        def find_b(a,maxiter=500,i=0):
+            b=2*a
+            if (self.froot(b)*self.froot(a)>=0) and i <=maxiter:
+                b=find_b(a*2.,i=i+1,maxiter=maxiter)
+
+                
+            return b
+            
+        b=find_b(a)
+        
+        #x1=np.linspace(a,b,num=1000)
+        #plt.plot(x1,self.froot(x1)  )
+        #plt.show()
+        matching_point=self.parameters["matching_point"]
+        if matching_point < self.parameters["cut_off"]:
+            alpha=scipy.optimize.brentq(self.froot, a, b)
+            #print("alpha: ",alpha)
+            self.parameters["alpha"]=alpha
+            
+            self.parameters["C"]=self.phononTail(matching_point,alpha,der=0)/self.dipolarFunction(matching_point,der=0)
+        else:
+            self.parameters["matching_point"]=self.parameters["cut_off"]*1.5
+            self.parameters["C"]=1./self.dipolarFunction(self.parameters["cut_off"],der=0)
+            #self.parameters["C"]=1.
+            self.parameters["alpha"]=0
+
+        self.parameters["D"]=self.parameters["D"]**2
+
+    def __call__(self,x,der=0):
+        
+        x1=x[x<self.parameters["matching_point"]]
+        y1=self.parameters["C"]*self.dipolarFunction(x1,der=der)
+
+        x2=x[x>=self.parameters["matching_point"]]
+        y2=self.phononTail(x2,self.parameters["alpha"],der=der)
+        
+        return np.concatenate([y1,y2])
+
+    
+registeredJastrows= {"squareWell" : "jastrowSquareWell","gaussian":"jastrowGaussian","dipolar_rep":"jastrowDipolar","delta_bound_state_phonons":"jastrow_delta_bound_state_phonons","delta_phonons": "jastrow_delta_phonons"}
+        
 
 
 def updateJastrows(j):

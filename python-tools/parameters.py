@@ -110,8 +110,11 @@ class parameters:
     
     @classmethod
     def register(cls,p):
-        cls.__known_parameters[p.name]=p        
-        
+        cls.__known_parameters[p.name]=p
+    @classmethod
+    def registered(cls):
+        return list(cls.__known_parameters.keys())
+    
     def __init__(self,parameters=[]):
         self._parameters={}
         for p in parameters:

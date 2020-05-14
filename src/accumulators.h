@@ -32,25 +32,36 @@ template<class T>
 class vectorAccumulator
 {
 public:
-  using vec_t = Eigen::Matrix<T,Eigen::Dynamic,1> ;
+  using vec_t = Eigen::Array<real_t,Eigen::Dynamic,1>;
   using value_t = T ;
   vectorAccumulator(){};
-
-  vectorAccumulator(size_t size) : _sums(size),ns(size) {_sums.setConstant(0);ns.setConstant(0);}
-
-  void accumulate(value_t a, size_t i) {ns[i]+=a;ns[i]+=1;}
-
-  vec_t average() {return sums/ns;}
+  vectorAccumulator(size_t size) : _sums(size),ns(size){
+    _sums.setConstant(0);
+    ns.setConstant(0);
+  }
+    
+  void accumulate(value_t a, size_t i,real_t weight=1) {_sums[i]+=a;ns[i]+=weight;}
+  
+  vec_t average() {return _sums/ns;}
 
   const vec_t & sums() const {return _sums;}
   
   size_t size(){return  _sums.size();}
 
-  
-  
+  void clear()
+  {
+    ns.setConstant(0);
+    _sums.setConstant(0);
+  }
+
+  void accumulateMPI(int root)
+  {
+    //_sums=pTools::sum(_sums,root);
+    //ns=pTools::sum(ns,root);
+  }
 private:
   vec_t _sums;
-  Eigen::VectorXd ns;
+  vec_t ns;
 };
 
 
@@ -79,11 +90,11 @@ public:
   real_t stepSize() const {return deltax;}
 
   void clear(){_sums.setConstant(0.);_weight=0.;}
-
+  
   void accumulateMPI(int root) // sum partial sums on all processors into the root processor
   {
     
-    //_sums=pTools::sum(_sums,root);
+    _sums=pTools::sum(_sums,root);
     _weight=pTools::sum(_weight,root);
   }
   

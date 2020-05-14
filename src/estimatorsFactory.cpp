@@ -1,6 +1,7 @@
 #include "estimatorsFactory.h"
 
 
+
 realHistogramEstimator* createEstimatorFromOb(realHistogramObservable * ob,const json_t & j)
 {
   return new realHistogramEstimator(ob,j);
@@ -9,6 +10,11 @@ realHistogramEstimator* createEstimatorFromOb(realHistogramObservable * ob,const
 realScalarEstimator* createEstimatorFromOb(realScalarObservable * ob,const json_t & j)
 {
   return new realScalarEstimator(ob,j);
+}
+
+realVectorEstimator* createEstimatorFromOb(realVectorObservable * ob,const json_t & j)
+{
+  return new realVectorEstimator(ob,j);
 }
 
 

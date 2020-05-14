@@ -14,19 +14,28 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 # set the project name
 project(qmc VERSION 3.0)
 
+if(NOT Boost_INCLUDE_DIR)
+  set(Boost_INCLUDE_DIR ${PROJECT_BINARY_DIR}/../external/boost )
+endif()
+
+
 find_package(MPI REQUIRED)
+find_package(Boost REQUIRED)
 
 set(CMAKE_CXX_COMPILE_FLAGS ${CMAKE_CXX_COMPILE_FLAGS} ${MPI_COMPILE_FLAGS})
 set(CMAKE_CXX_LINK_FLAGS ${CMAKE_CXX_LINK_FLAGS} ${MPI_LINK_FLAGS})
 
+
 include_directories(SYSTEM ${MPI_INCLUDE_PATH})
+include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 
 
 add_subdirectory(${PROJECT_BINARY_DIR}/../external/googletest)
 add_subdirectory(${PROJECT_BINARY_DIR}/../external/eigen)
 
 
-set(SOURCES  src/geometry.cpp src/wavefunction/jastrows/jastrowSquareWell.cpp src/wavefunction/wavefunction.cpp src/wavefunction/productWavefunction.cpp src/tableDistances.cpp src/potential.cpp src/walkers.cpp src/initializer.cpp src/energy.cpp src/pairCorrelation.cpp src/estimators.cpp src/driver.cpp src/estimatorCollection.cpp src/tools.cpp src/moves/vmcMoves.cpp src/moves/dmcMoves.cpp src/dmcDriver.cpp src/vmcDriver.cpp src/metropolis.cpp src/branching.cpp src/orbitals.cpp src/slaters.cpp src/wavefunction/slaterDeterminant.cpp src/wavefunction/shell.cpp src/factory.cpp src/abstractFactory.cpp src/ptools.cpp src/timer.cpp src/estimatorsFactory.cpp src/correlationEstimator.cpp src/centerOfMassSquared.cpp src/hyperRadius.cpp src/wavefunction/jastrows/jastrow_delta.cpp)
+
+set(SOURCES  src/geometry.cpp src/wavefunction/jastrows/jastrowSquareWell.cpp src/wavefunction/wavefunction.cpp src/wavefunction/productWavefunction.cpp src/tableDistances.cpp src/potential.cpp src/walkers.cpp src/initializer.cpp src/energy.cpp src/pairCorrelation.cpp src/estimators.cpp src/driver.cpp src/estimatorCollection.cpp src/tools.cpp src/moves/vmcMoves.cpp src/moves/dmcMoves.cpp src/dmcDriver.cpp src/vmcDriver.cpp src/metropolis.cpp src/branching.cpp src/orbitals.cpp src/slaters.cpp src/wavefunction/slaterDeterminant.cpp src/wavefunction/shell.cpp src/factory.cpp src/abstractFactory.cpp src/ptools.cpp src/timer.cpp src/estimatorsFactory.cpp src/correlationEstimator.cpp src/centerOfMassSquared.cpp src/hyperRadius.cpp src/wavefunction/jastrows/jastrow_delta.cpp src/wavefunction/jastrows/jastrowDipolar.cpp src/structureFactor.cpp)
 
 
 add_library(main_lib STATIC ${SOURCES})

@@ -1,38 +1,68 @@
 {
     "N" : [100],
-    "seed" : 123,
-    "lBox" : [100.0,100.0,100.0],
+    "seed" : 231,
+    "lBox" : [100],
+    "initialConditionGenerator" : 
+    {
+	"lBox" : [100]
+    },
     "method" : "vmc",
-    "timeStep" : 1e-3,
-    "stepsPerBlock" : 1000,
-    "walkers" : 1,
-    "nBlocks" : 10000,
     "configurations" : "configurations",
+    "correlationSteps": 10,
+    "timeStep" : 1e-2,
+    "stepsPerBlock" : 100,
+    "walkers" : 100,
+    "nBlocks" : 10000,    
     "wavefunctions" :
     [
 	{
-	    "kind" : "jastrow2b",
+	    "kind" : "jastrow2bUnDis",
 	    "sets" : [0,0],
 	    "jastrow" :
 	    {
-		"kind" : "squareWell",
-		"V0" :  2.4674011002723395,
-		"R0" : 1.0,
-		"alpha" : 0.5,
-		"cut_off" : 100.0,
-		"Rm" : 40.0
+		"kind" : "delta_phonons",
+		"g": "inf",
+		"z": 49.9,
+		"cut_off": 50,
+		"beta": 1,
+		"k":  0.03141592653589914,
+		"delta": 0.0
 	    }
-	}
+	}	
+
+	
     ],
     
     "potentials" :
     [
+	
+    ],
+    "measurements" :
+    [
 	{
-	    "kind" : "squareWell2b",
-	    "V0" :  2.4674011002723395,
-	    "R0" : 1.0,
-	    "sets" : [0,0]
+	    "kind" : "forceEnergy"
+	},
+	{
+	    "kind" : "pairCorrelation",
+	    "label" : "pairAA",
+	    "sets" : [0,0],
+	    "bins" : 1000,
+	    "minx" : 0,
+	    "maxx" : 50.0
+	},
+
+	{
+	    "kind" : "structureFactor",
+	    "label" : "sF",
+	    "sets" : [0,0],
+	    "bins" : 1000,
+	    "maxq" : 60,
+	    "lBox" : 100,
+	    "channel" : 1
 	}
+
+
+	
 	
     ]
     

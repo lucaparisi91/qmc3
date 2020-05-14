@@ -10,10 +10,19 @@ jastrow_delta_phonons::jastrow_delta_phonons(const json_t & j)
   parameters[1]=j["delta"];
   parameters[2]=j["beta"];
   parameters[3]=j["z"];
-  parameters[4]=j["lBox"];
-  parameters[5]=j["g"];
+  parameters[4]=j["cut_off"].get<real_t>()*2;
   
   k2=M_PI/parameters[4];
+  
+  if ( j["g"] != "inf")
+    {
+      parameters[5]=j["g"];
+    }
+  else
+    {
+      parameters[5]=0;
+    }
+  
 }
 
 
@@ -53,4 +62,16 @@ void jastrow_delta_phonons::process()
 jastrow_delta_in_trap::jastrow_delta_in_trap(const json_t & j) : jastrow_delta_in_trap::jastrow_delta_in_trap(j["a"].get<real_t>())
 {
   
+}
+
+jastrow_delta_bound_state_phonons::jastrow_delta_bound_state_phonons(const json_t & j)
+{  
+  xI=j["xI"];
+  g=j["g"];  
+  lBox=j["cut_off"].get<real_t>()*2;
+  k=j["k"];
+  A=j["A"];
+  logA=log(A);
+  beta=j["beta"];
+  k2=M_PI/lBox;
 }

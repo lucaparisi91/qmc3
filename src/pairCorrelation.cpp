@@ -24,7 +24,14 @@ void pairCorrelation::accumulate(walker_t & w,wavefunction_t & wave,pairCorrelat
     {
       if (norms(i) < acc.maxx() )
   	{
+#if DIMENSIONS == 3
   	  acc.accumulate(_normalizationFactor/(norms(i)*norms(i)),norms(i));
+#endif
+	  
+#if DIMENSIONS == 1
+  	  acc.accumulate(_normalizationFactor,norms(i));
+#endif
+	  
   	}
     }
   
@@ -37,6 +44,16 @@ void pairCorrelation::setNormalizationFactor(const walker_t & w , const wavefunc
   auto dx = acc.stepSize();
   auto  NA = getN(w.getStates()[setA]);
   auto NB = getN(w.getStates()[setB]);
-  _normalizationFactor=2*std::pow(lBox,3)/(dx*4*M_PI*NA*NB);
+#if DIMENSIONS == 3
+  _normalizationFactor=std::pow(lBox,3)/(dx*4*M_PI*NA*NB);
+#endif
+
+#if DIMENSIONS == 1
   
+  _normalizationFactor=std::pow(lBox,1)/(dx*NA*NB*2);   
+#endif
+  
+  _normalizationFactor = (setA == setB) ? 2*_normalizationFactor : _normalizationFactor;
+  
+
 }
