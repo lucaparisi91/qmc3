@@ -78,20 +78,48 @@ void dmcDriver::update(dmcWalker & wNew, dmcWalker & wOld)
 
  void dmcDriver::step()
 {
-        std::swap(current_walkers,old_walkers);
-        current_walkers.resize(old_walkers.size(),old_walkers[old_walkers.size()-1]);
+  bool allKilled=false;
+  
+  std::swap(current_walkers,old_walkers);
+
+  // if ( old_walkers.size() == 0 )
+  //   {
+  //     allKilled=true;
+  //     std::cout << ansiColor("red") << "All old walkers were killed on" << pTools::rank() << " at step "<< getCurrentStep() <<ansiColor("default")<< std::endl << std::flush;
+	   
+  //   }
+
 	
+  current_walkers.resize(old_walkers.size(),old_walkers[std::max(old_walkers.size()-1,(size_t)0)]);
+
 	for (int i=0;i<old_walkers.size();i++)
 	{
 	  update(current_walkers[i],old_walkers[i]);
 	}
-	auto oldSize=old_walkers.size();
+	
 
+	auto oldSize=old_walkers.size();
+	
 	getTimers().get("waitWalkers").start();
 	walkerLoadBalancer->wait(old_walkers);	
 	getTimers().get("waitWalkers").stop();
+	
+	// if (allKilled)
+	//   {
+	//     std::cout << ansiColor("yellow") << "old walkers resize on" << pTools::rank()<<" to " << old_walkers.size() <<ansiColor("default")<< std::endl << std::flush;
 
-	current_walkers.resize(old_walkers.size(),old_walkers[old_walkers.size()-1]);
+	//   }
+
+	
+	current_walkers.resize(old_walkers.size(),old_walkers[std::max(old_walkers.size()-1,(size_t)0)]);
+
+
+	// if (allKilled)
+	//   {
+	//     //std::cout << ansiColor("yellow") << "current walkers resize on" << pTools::rank()<<" to " << current_walkers.size() <<ansiColor("default")<< std::endl << std::flush;
+
+	//   }
+
 	
 	for (int i=oldSize;i<old_walkers.size();i++)
 	{
@@ -106,15 +134,27 @@ void dmcDriver::update(dmcWalker & wNew, dmcWalker & wOld)
 	    getTimers().get("shiftEnergy").stop();
 	  }
 
+	//std::cout << ansiColor("yellow") << "NW " << current_walkers.size() << "on "<< pTools::rank() << " at timeStep "<<getCurrentSubStep() << ansiColor("default")<< std::endl << std::flush;
+	MPI_Barrier(MPI_COMM_WORLD);
+
 	
-	//std::cout << "<-- " << current_walkers.size() << std::endl;
-
-
+	// if ( current_walkers.size() == 0 )
+	//   {
+	//     std::cout << ansiColor("red") << "All walkers killed on" << pTools::rank() << " at step "<< getCurrentStep() <<ansiColor("default")<< std::endl << std::flush;
+	    
+	//   }
+	// if (pTools::rank() == 1)
+	//   {
+	//     //std::cout << ansiColor("yellow") << "NW_c= " << current_walkers.capacity() << " on "<< pTools::rank() << " at step "<< getCurrentStep() <<ansiColor("default")<< std::endl << std::flush;
+	//   }
+	// //std::cout << ansiColor("yellow") << "init isend " << pTools::rank() <<ansiColor("default")<< std::endl << std::flush;
+	
 	getTimers().get("sendWalkers").start();
 	walkerLoadBalancer->isendReceive(current_walkers);
 	getTimers().get("sendWalkers").stop();
 
-
+	
+	//std::cout << ansiColor("yellow") << "ended isend" << pTools::rank() <<"at step"<< getCurrentSubStep() << ansiColor("default")<< std::endl << std::flush;
 
 
 	// for (int i=0;i<current_walkers.size();i++)
@@ -158,6 +198,7 @@ void dmcDriver::run( const std::vector<states_t> &states , size_t nBlocks )
 
 void dmcDriver::out()
 {
+  
   auto & ests = getEstimators();
   ests.accumulateMPI(0.);
   accepter->accumulateMPI(0.);
@@ -165,6 +206,7 @@ void dmcDriver::out()
 
   if (pTools::isMaster() )
     {
+      
       std::cout << ansiColor("green") << "Block: "<< ansiColor("default")<<getCurrentBlock()<<std::endl;
 	
       auto & energyEst  = getEstimators()[0];
@@ -189,13 +231,13 @@ void dmcDriver::out()
 
 }
 
-dmcDriver::dmcDriver(dmcDriver::wavefunction_t * wave, potential_t * pot,real_t timeStep,size_t nWalkers) :
+dmcDriver::dmcDriver(dmcDriver::wavefunction_t * wave, potential_t * pot,real_t timeStep,size_t nWalkers,size_t delta_walkers) :
   driver::driver(wave), energyOb(pot),
   dmcMover( new driftDiffusionFirstOrder(timeStep)),
   energyEst(new realScalarEstimator("energy",new energyFromWalker) ),
   accepter(new metropolisPolicy),
   brancher(
-	   new branchingControl(timeStep,nWalkers,int(0.1*nWalkers))
+	   new branchingControl(timeStep,nWalkers,delta_walkers)
 	   ),
   walkerLoadBalancer(new pTools::walkerDistribution ),
   performBranching(true)

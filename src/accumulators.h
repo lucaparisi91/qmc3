@@ -56,8 +56,8 @@ public:
 
   void accumulateMPI(int root)
   {
-    //_sums=pTools::sum(_sums,root);
-    //ns=pTools::sum(ns,root);
+    pTools::sum(_sums,root);
+    pTools::sum(ns,root);
   }
 private:
   vec_t _sums;
@@ -94,7 +94,7 @@ public:
   void accumulateMPI(int root) // sum partial sums on all processors into the root processor
   {
     
-    _sums=pTools::sum(_sums,root);
+    pTools::sum(_sums,root);
     _weight=pTools::sum(_weight,root);
   }
   

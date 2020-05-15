@@ -107,16 +107,15 @@ populations : current population distribution
   int r=size%populations.size();
   
   int i=0;
-  while( (i < populations.size())  and ( populations[i] < k) )
+  while( (i < populations.size())  and ( populations[i] <= k) )
     {
       i+=1;
     }
   
   int j=i+1;
-  
   while (j<populations.size() )
     {
-      if (populations[j] < k )
+      if (populations[j] <= k )
 	{
 	  std::swap(populations[i],populations[j]);
 	  std::swap(permutations[i],permutations[j]);
@@ -141,7 +140,8 @@ populations : current population distribution
   int I,J;
   auto balanced =  [&] ( int idx) {return  k + (1 ? idx < r : 0 );  } ;
   
-  while ( i> j)
+  
+  while ( (i> j) and (i< populations.size()) )
     {
       J = permutations[j];
       I = permutations[i];
@@ -178,7 +178,23 @@ walkerDistribution::walkerDistribution()
 void walkerDistribution::determineComm(const std::vector<int> & populations)
 {
   tmpPopulations=populations;
+  
   pTools::determineLoadBalanceComunicationsAliasMethod( tmpPopulations, _permutations, _sources, _sendToRanks, nWalkersReceived);
+
+  // if (rank() == 0)
+  //   {
+      
+  //     for (int i=0;i<_sendToRanks.size();i++)
+  // 	{
+  // 	  for(int j=0;j<_sendToRanks[i].size();j++)
+  // 	    {
+  // 	      int dest=_sendToRanks[i][j];
+  // 	      std::cout << i << " ->" << dest << " " << nWalkersReceived[dest] << std::endl;
+  // 	    }
+  // 	}
+
+      
+  //   }
     }
 
   int isend(double * p,int count,int dest,int tag,MPI_Request &req)
@@ -238,7 +254,17 @@ void walkerDistribution::determineComm(const std::vector<int> & populations)
 		  1,
 		  MPI_INT,
 		  MPI_COMM_WORLD);
-    return _populations;
+    
+    // if (rank()==0)
+    //   {
+    // 	for (auto &p : _populations)
+    // 	  {
+    // 	    std::cout << p <<" " ;
+    // 	  }
+    // 	std::cout << std::endl;
+    //   }
+
+    return _populations;  
   }
 
 
@@ -277,7 +303,7 @@ void walkerDistribution::isendReceive(walkerDistribution::walkers_t & walkers)
 	  }
 	
        }
-    
+     
      // non blocking receive
     
      const auto & amount = nWalkersReceived[_currentRank];
@@ -289,7 +315,7 @@ void walkerDistribution::isendReceive(walkerDistribution::walkers_t & walkers)
 	  //     std::cout << _currentRank << "<-" << _sources[_currentRank] << " " << amount << std::endl;
 	  //   }
 	 
-     	 walkers.reserve(walkers.size() + amount , walkers[walkers.size()-1]);
+     	 walkers.reserve(walkers.size() + amount , walkers[std::max(walkers.size()-1,(size_t)0)]);
 	 for( int j=0;j < amount ; j++ )
 	   {
 	     ipartialRecv(& walkers[walkers.size() + j   ],_sources[_currentRank],walker_tag + j ,&receiveRequest);
@@ -304,13 +330,36 @@ int walkerDistribution::wait(walkerDistribution::walkers_t & walkers)
 {
   MPI_Status status;
   auto & amount = nWalkersReceived[_currentRank];
+  
+  // if( pTools::rank() == 0)
+  //   {
+  //     std::cout << "lw: " << localSentWalkers << std::endl;
+  //     std::cout << "cap: " << walkers.capacity() << std::endl;
+  //     std::cout << "amount: " << amount << std::endl;
+  //     std::cout << "size: " << walkers.size() << std::endl;
+  //     std::cout << "receive_from "  <<  _sources[_currentRank]<<std::endl<<std::flush;
+  //     auto & destinations = _sendToRanks[_currentRank];
+  //     for (int i=0;i<destinations.size();i++)
+  // 	{
+	  
+  // 	  std::cout << _currentRank << "!->" << destinations[i] << std::endl<<std::flush;
+  // 	}
+  //   }
+  // MPI_Barrier(MPI_COMM_WORLD);
+
+  
   if (amount != 0)
     MPI_Wait(&receiveRequest, &status);
+
+    
   
   for(int i=0;i<sendRequests.size();i++)
     {
       MPI_Wait(&sendRequests[i],&status);
     }
+
+
+
   // if (pTools::rank() == 1)
   //   {
   //     std::cout << "localSentWalkers: " << localSentWalkers << std::endl;
@@ -333,27 +382,24 @@ int walkerDistribution::wait(walkerDistribution::walkers_t & walkers)
        it++;
      }
 
-    
-   walkers.resize(walkers.size() + amount);
+      
+      walkers.resize(walkers.size() + amount);
    
   return 0;
 }
 
 
 
-Eigen::Matrix<real_t,Eigen::Dynamic,1> sum(  Eigen::Matrix<real_t,Eigen::Dynamic,1> & vec, int root )
+int sum(  Eigen::Matrix<real_t,Eigen::Dynamic,1> & vec, int root )
   {
-    Eigen::Matrix<real_t,Eigen::Dynamic,1> res(vec.rows(),vec.cols() );
-    int status = MPI_Reduce (res.data(),vec.data(),vec.rows(),MPI_DOUBLE,MPI_SUM,root,MPI_COMM_WORLD);
-    return res;
+    return  MPI_Reduce (MPI_IN_PLACE,vec.data(),vec.rows(),MPI_DOUBLE,MPI_SUM,root,MPI_COMM_WORLD);
+   
   }
 
-
-Eigen::Array<real_t,Eigen::Dynamic,1> sum(  Eigen::Array<real_t,Eigen::Dynamic,1> & vec, int root )
+int sum(  Eigen::Array<real_t,Eigen::Dynamic,1> & vec, int root )
   {
-    Eigen::Array<real_t,Eigen::Dynamic,1> res(vec.rows(),vec.cols() );
-    int status = MPI_Reduce (res.data(),vec.data(),vec.rows(),MPI_DOUBLE,MPI_SUM,root,MPI_COMM_WORLD);
-    return res;
+   
+    return  MPI_Reduce (MPI_IN_PLACE ,vec.data(),vec.rows(),MPI_DOUBLE,MPI_SUM,root,MPI_COMM_WORLD);
   }
 
 

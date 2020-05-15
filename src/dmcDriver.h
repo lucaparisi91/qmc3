@@ -64,7 +64,7 @@ class dmcDriver : public driver
 	using walker_t =dmcWalker;
 public:
   
-  dmcDriver(wavefunction_t * wave,potential_t * pot,real_t timeStep,size_t nWalkers);
+  dmcDriver(wavefunction_t * wave,potential_t * pot,real_t timeStep,size_t nWalkers,size_t delta_walkers);
   
   virtual void run( const std::vector<states_t> &states , size_t nBlocks );
 

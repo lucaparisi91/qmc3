@@ -260,8 +260,15 @@ int main(int argc, char** argv)
   else if ( method == "dmc" or method == "svmc")
     {
       size_t nW=j["walkers"];
+      size_t delta_walkers=size_t(nW*0.1);
       
-      dmcDriver dmcO(&psi,&pot,timeStep,nW);
+      
+      
+      if (j.find("delta_walkers")!= j.end() )
+	{
+	  delta_walkers=j["delta_walkers"];
+	}
+      dmcDriver dmcO(&psi,&pot,timeStep,nW,delta_walkers);
       dmcO.getStepsPerBlock()=stepsPerBlock;
       dmcO.getCorrelationSteps()=correlationSteps;
       
