@@ -9,15 +9,55 @@ import itertools
 import os
 import re
 sns.set_style("whitegrid")
+import tools
+from tools import toVec
 
 
-def toVec(x):
-    if x is None:
-        return []
-    if hasattr(x, '__iter__') and ( not isinstance(x,str)  ):
-        return x
+def jSonIterator(j):
+
+    yield j
+    
+    if isinstance(j,dict):
+        
+        for key in j.keys():
+            for m in jSonIterator(j[key]):
+                yield m
+    
     else:
-        return [x]
+        if isinstance(j,list):
+
+            for item in j:
+                for m in jSonIterator(item):
+                    yield m    
+
+                    
+def getByLabel(j,label):
+    def hasLabel(j):
+        if isinstance(j,dict) :
+            if  "label" in j.keys():
+                if j["label"]==label:
+                    return True
+        return False
+    
+    ms=[ item for item in jSonIterator(j) if hasLabel(item) ]
+    
+    return ms
+
+def getForwardWalkingLabels(j,label):
+    
+    def hasFWLabel(j,label):
+        if isinstance(j,dict) :
+            if  "label" in j.keys():
+                m=re.match(label + "_fw.*",j["label"])
+                if m is not None:
+                    return True
+                
+        return False
+    
+    fwLabels=[ item["label"] for item in jSonIterator(j) if hasFWLabel(item,label) ]
+    return fwLabels
+
+    
 
 
 def average(data,labels=None,hues=None,minIndex=None):
@@ -151,14 +191,22 @@ def compare(data,ax=None):
     deltay=[   float(data["delta"+label]) for label in labels]
     
     ax.errorbar(labels,y,yerr=deltay,marker="o",linestyle="None")
-    
-    
-    
+
         
 def gatherByLabel(baseDir,label,jSonInput,getHues=None,maxRows=None,minIndex=0):
     filename=os.path.join(baseDir , label + ".dat")
     data=pd.read_csv(filename,sep=" ")
+    
+    # measurement=getMeasurementByLabel(jSonInput,label)
+    
+    # if "recordSteps" in measurements:
+    #     gatherByLabel(baseDir,label + "_fw0",jSonInput,getHues=getHues,maxRows=maxRows,minIndex=minIndex)
+        
 
+
+
+        
+    
     if (maxRows is not None) and (len(data) > maxRows) :
         data.reset_index(drop=True)
         k=len(data)//maxRows
@@ -169,25 +217,37 @@ def gatherByLabel(baseDir,label,jSonInput,getHues=None,maxRows=None,minIndex=0):
         hues=getHues(jSonInput)
         for name,value in hues.items():
             data[name]=value
-    return data[data.index >= minIndex]
+    data=data[data.index >= minIndex]        
+        
+
+    
+    return data
             
     
 
-def gather(dirname,label,hues=None,maxRows=None,minIndex=0):
+def gather(dirname,label,hues=None,maxRows=None,minIndex=0,max_level=1):
     datas=[]
     json_file="input.json"
     
-    for subdir, dirs, files in os.walk(dirname):
+    for subdir, dirs, files in tools.walk(dirname,max_level=max_level):
         if json_file in files:
-            
-            with open(os.path.join(subdir,json_file)) as f:
-                j = json.load(f)
-            data=gatherByLabel(subdir,label,jSonInput=j,getHues=hues,maxRows=maxRows,minIndex=minIndex)
-            datas.append(data)
+            try:
+                with open(os.path.join(subdir,json_file)) as f:
+                    j = json.load(f)
+                data=gatherByLabel(subdir,label,jSonInput=j,getHues=hues,maxRows=maxRows,minIndex=minIndex)
+                datas.append(data)
+            except FileNotFoundError as e:
+                print ("Warning: data not availible in " + subdir)
+                print (str(e))
+                
+                
     if datas != []:
         data=pd.concat(datas)
         data=data.reset_index(drop=True)
-
+        
+        
+        
+        
         return data
 
 def merge(datas,hues=None,how="outer"):
@@ -197,4 +257,76 @@ def merge(datas,hues=None,how="outer"):
         
     return data
             
+        
+
+
+def getOptimizationRange(data,x,label,hues,delta=None):
+    data=data.dropna()
+    optRanges= {hueName : [] for hueName in toVec(hues)}
+    optRanges.update({x + "_min" : [],x + "_max": []})
+    for hueValues,df in data.groupby(hues):
+        
+        ys=np.array(df[label])
+        xs=np.array(df[x])
+
+        i=np.argmin(ys)
+        
+        miny=ys[i]
+        minx=xs[i]
+        if delta is None:
+            deltays = np.zeros(len(ys))
+        else:
+            deltays=df[delta]
+        
+        nonCompatibleXs=np.array( [x for x,y,deltay in zip(xs,ys,deltays) if abs(y - miny)> deltay ])
+
+        x_min= np.min(xs)
+        x_max = np.max(xs)
+        
+        if len(nonCompatibleXs) > 0:
+            
+            left_xs = nonCompatibleXs[nonCompatibleXs < minx]
+            right_xs = nonCompatibleXs[nonCompatibleXs > minx]
+
+            if len(left_xs) > 0:
+                x_min = np.max(left_xs)
+            if len(right_xs) > 0 :
+                x_max = np.min(right_xs)
+        
+        
+        optRanges[x + "_min"].append( x_min  )
+        optRanges[x + "_max"].append( x_max  )
+        #optRanges[x ].append( minx  )
+        
+        
+
+        for hueValue,hueName in zip(toVec(hueValues),toVec(hues)):
+            optRanges[hueName].append(hueValue)
+
+    return pd.DataFrame(optRanges)
+        
+        
+        
+def expandOptimizationRanges(data,label,n):
+    data=data.reset_index(drop=True)
+    data=data.dropna()
+    xs=[]
+    i=0
+    for x_min,x_max in zip(data[label + "_min"],data[label + "_max"] ):    
+        x=np.linspace(x_min,x_max,num=n)
+        x=pd.DataFrame({label : x})
+        x.index=x.index*0 + i
+        xs.append(x)
+        i+=1
+    if len(xs) > 0:
+        xs= pd.concat(xs)
+        new_parameters_table=pd.merge(data,xs,left_index=True,right_index=True).reset_index(drop=True)
+        return new_parameters_table.drop(columns = [label + "_min",label + "_max"])
+
+
+                    
+    
+
+    
+        
         

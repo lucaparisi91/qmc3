@@ -172,7 +172,7 @@ walkerDistribution::walkerDistribution()
   tmpPopulations.resize(_nProcesses);
   _sources.resize(_nProcesses);
   _sendToRanks.resize(_nProcesses);
-  receiveRequest=0;
+  inFlight=false;
 }
   
 void walkerDistribution::determineComm(const std::vector<int> & populations)
@@ -212,13 +212,13 @@ void walkerDistribution::determineComm(const std::vector<int> & populations)
 
   int partialSend(dmcWalker & w,int destination,int tag)
   {
-    w.createMPIDataType();
+    w.updateMPIDataType();
     return MPI_Send(MPI_BOTTOM, 1, w.getMPIDatatype(), destination, tag, MPI_COMM_WORLD);
   }
   
   int partialRecv(dmcWalker * w, int source,int tag)
   {
-    w->createMPIDataType();
+    w->updateMPIDataType();
     MPI_Status status;
     
     return MPI_Recv(MPI_BOTTOM, 1, w->getMPIDatatype(), source, tag, MPI_COMM_WORLD, & status);
@@ -228,13 +228,13 @@ void walkerDistribution::determineComm(const std::vector<int> & populations)
   
   int ipartialSend(dmcWalker & w,int destination,int tag, MPI_Request * req)
   {
-    w.createMPIDataType();
+    w.updateMPIDataType();
     return MPI_Isend(MPI_BOTTOM, 1, w.getMPIDatatype(), destination, tag, MPI_COMM_WORLD,req);
   }
   
   int ipartialRecv(dmcWalker * w, int source,int tag,MPI_Request * req)
   {
-    w->createMPIDataType();
+    w->updateMPIDataType();
     MPI_Status status;
     
     return MPI_Irecv(MPI_BOTTOM, 1, w->getMPIDatatype(), source, tag, MPI_COMM_WORLD, req);
@@ -316,20 +316,26 @@ void walkerDistribution::isendReceive(walkerDistribution::walkers_t & walkers)
 	  //   }
 	 
      	 walkers.reserve(walkers.size() + amount , walkers[std::max(walkers.size()-1,(size_t)0)]);
+	 receiveRequests.resize(amount);
+	 
 	 for( int j=0;j < amount ; j++ )
 	   {
-	     ipartialRecv(& walkers[walkers.size() + j   ],_sources[_currentRank],walker_tag + j ,&receiveRequest);
+	     ipartialRecv(& walkers[walkers.size() + j   ],_sources[_currentRank],walker_tag + j ,&receiveRequests[j]);
        }
 
-        }
+       }
      walkers.resize(walkers.size() - localSentWalkers);
+     inFlight=true;
      
   }
 
 int walkerDistribution::wait(walkerDistribution::walkers_t & walkers)
 {
-  MPI_Status status;
-  auto & amount = nWalkersReceived[_currentRank];
+  
+  if (inFlight)
+    {
+     
+      auto & amount = nWalkersReceived[_currentRank];
   
   // if( pTools::rank() == 0)
   //   {
@@ -346,19 +352,21 @@ int walkerDistribution::wait(walkerDistribution::walkers_t & walkers)
   // 	}
   //   }
   // MPI_Barrier(MPI_COMM_WORLD);
-
-  
+      
+      
+      
   if (amount != 0)
-    MPI_Wait(&receiveRequest, &status);
-
-    
-  
-  for(int i=0;i<sendRequests.size();i++)
     {
-      MPI_Wait(&sendRequests[i],&status);
+      waitStatusReceives.resize(receiveRequests.size());
+      MPI_Waitall(receiveRequests.size(),receiveRequests.data(), waitStatusReceives.data());
+      
     }
-
-
+  
+  if ( sendRequests.size() > 0 )
+    {
+      waitStatusSends.resize(sendRequests.size() );
+      MPI_Waitall( sendRequests.size(),sendRequests.data(),waitStatusSends.data());
+    }
 
   // if (pTools::rank() == 1)
   //   {
@@ -384,22 +392,46 @@ int walkerDistribution::wait(walkerDistribution::walkers_t & walkers)
 
       
       walkers.resize(walkers.size() + amount);
-   
+
+      inFlight=false;
+    }
+  
   return 0;
+
 }
 
 
 
 int sum(  Eigen::Matrix<real_t,Eigen::Dynamic,1> & vec, int root )
   {
-    return  MPI_Reduce (MPI_IN_PLACE,vec.data(),vec.rows(),MPI_DOUBLE,MPI_SUM,root,MPI_COMM_WORLD);
+    int err;
+    if (rank() == root)
+      {
+	err =MPI_Reduce (MPI_IN_PLACE,vec.data(),vec.rows(),MPI_DOUBLE,MPI_SUM,root,MPI_COMM_WORLD);
+      }
+    else
+      {
+	err =MPI_Reduce (vec.data(),vec.data(),vec.rows(),MPI_DOUBLE,MPI_SUM,root,MPI_COMM_WORLD);
+      }
+
+    return err;
    
   }
 
 int sum(  Eigen::Array<real_t,Eigen::Dynamic,1> & vec, int root )
   {
    
-    return  MPI_Reduce (MPI_IN_PLACE ,vec.data(),vec.rows(),MPI_DOUBLE,MPI_SUM,root,MPI_COMM_WORLD);
+     int err;
+    if (rank() == root)
+      {
+	err =MPI_Reduce (MPI_IN_PLACE,vec.data(),vec.rows(),MPI_DOUBLE,MPI_SUM,root,MPI_COMM_WORLD);
+      }
+    else
+      {
+	err =MPI_Reduce (vec.data(),vec.data(),vec.rows(),MPI_DOUBLE,MPI_SUM,root,MPI_COMM_WORLD);
+      }
+
+    return err;
   }
 
 

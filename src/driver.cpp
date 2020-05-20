@@ -29,10 +29,13 @@ void driver::run(size_t nBlocks)
 		{
 		  for (int iCorrelationStep=0;iCorrelationStep<correlationSteps;iCorrelationStep++)
 		    {
+		      
 		      step();
+		      isend();
 		    }
 		  step();
-		  accumulate();			
+		  accumulate();
+		  isend();
 		};
 		getTimers().get("outputTime").start();
 		out();

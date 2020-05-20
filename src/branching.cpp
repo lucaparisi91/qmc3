@@ -17,10 +17,18 @@ void branchingControl::branch(branchingControl::walkerContainer_t & newWalkers,c
 {
   // compute the number of descendants for each walkers
   _nDescendants.resize(newWalkers.size());
+
+  assert(newWalkers.size() > 0);
+  int newPop=0;
   
   for (int i=0;i<oldWalkers.size();i++)
     {
       _nDescendants[i]=nDescendants(newWalkers[i],oldWalkers[i],rand);
+      newPop+=_nDescendants[i];
+    }
+  if (newPop==0)
+    {
+      _nDescendants[0]=1; // always keep at leat a walker
     }
   
   size_t j1=0;
@@ -51,6 +59,7 @@ void branchingControl::branch(branchingControl::walkerContainer_t & newWalkers,c
 	}
 
     }
+
 }
 
 void branchingControl::setEnergyShift(const branchingControl::walkerContainer_t & walkers)

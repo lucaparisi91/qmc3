@@ -121,52 +121,33 @@ void dmcDriver::update(dmcWalker & wNew, dmcWalker & wOld)
 	//   }
 
 	
+	
 	for (int i=oldSize;i<old_walkers.size();i++)
 	{
 	  update(current_walkers[i],old_walkers[i]);
 	}
+	
 	
 	if (performBranching)
 	  {
 	    brancher->branch(current_walkers,old_walkers,getRandomGenerator());
 	    getTimers().get("shiftEnergy").start();
 	    brancher->setEnergyShift(current_walkers);
-	    getTimers().get("shiftEnergy").stop();
+	    getTimers().get("shiftEnergy").stop();    
 	  }
-
-	//std::cout << ansiColor("yellow") << "NW " << current_walkers.size() << "on "<< pTools::rank() << " at timeStep "<<getCurrentSubStep() << ansiColor("default")<< std::endl << std::flush;
-	MPI_Barrier(MPI_COMM_WORLD);
-
-	
-	// if ( current_walkers.size() == 0 )
-	//   {
-	//     std::cout << ansiColor("red") << "All walkers killed on" << pTools::rank() << " at step "<< getCurrentStep() <<ansiColor("default")<< std::endl << std::flush;
-	    
-	//   }
-	// if (pTools::rank() == 1)
-	//   {
-	//     //std::cout << ansiColor("yellow") << "NW_c= " << current_walkers.capacity() << " on "<< pTools::rank() << " at step "<< getCurrentStep() <<ansiColor("default")<< std::endl << std::flush;
-	//   }
-	// //std::cout << ansiColor("yellow") << "init isend " << pTools::rank() <<ansiColor("default")<< std::endl << std::flush;
-	
-	getTimers().get("sendWalkers").start();
-	walkerLoadBalancer->isendReceive(current_walkers);
-	getTimers().get("sendWalkers").stop();
-
-	
-	//std::cout << ansiColor("yellow") << "ended isend" << pTools::rank() <<"at step"<< getCurrentSubStep() << ansiColor("default")<< std::endl << std::flush;
-
-
-	// for (int i=0;i<current_walkers.size();i++)
-	//   {
-	//     initializer::initialize(current_walkers[i],current_walkers[i].getStates(),getWavefunction(),energyOb);
-	//   }
-	//std::cout << "--> "<<  current_walkers.size() << std::endl;
-	
-
-	
 	
 }
+
+
+void dmcDriver::isend()
+{
+  
+  getTimers().get("sendWalkers").start();
+  walkerLoadBalancer->isendReceive(current_walkers);
+  getTimers().get("sendWalkers").stop();
+	
+}
+
 
 void dmcDriver::run( const std::vector<states_t> &states , size_t nBlocks )
 {
@@ -198,7 +179,8 @@ void dmcDriver::run( const std::vector<states_t> &states , size_t nBlocks )
 
 void dmcDriver::out()
 {
-  
+  walkerLoadBalancer->wait(current_walkers);
+
   auto & ests = getEstimators();
   ests.accumulateMPI(0.);
   accepter->accumulateMPI(0.);
@@ -206,7 +188,6 @@ void dmcDriver::out()
 
   if (pTools::isMaster() )
     {
-      
       std::cout << ansiColor("green") << "Block: "<< ansiColor("default")<<getCurrentBlock()<<std::endl;
 	
       auto & energyEst  = getEstimators()[0];
@@ -220,7 +201,7 @@ void dmcDriver::out()
 
       std::cout << ansiColor("cyan") << "Curr. Walkers: " << ansiColor("default") ;
       std::cout << walkers_size << std::endl;
-
+      
 	
       
       ests.dump();

@@ -19,12 +19,12 @@ public:
     using estimators_t = estimatorCollection;
 	using wavefunction_t = productWavefunction;
 	driver(wavefunction_t * wave_);
-
+  
 	auto & getRandomGenerator() {return _rand;}
 
 	size_t  getStepsPerBlock() const  {return _stepsPerBlock;}
         auto &  getStepsPerBlock()   {return _stepsPerBlock;}
-       
+  
         
 	size_t getCurrentBlock() const {return iBlock;}
 
@@ -43,10 +43,12 @@ public:
 	virtual void run(size_t nBlocks);
 	virtual void step()=0;
 	virtual void accumulate()=0;
-	virtual void out()=0;
-
-	wavefunction_t & getWavefunction () {return (*_wave);}
-	const wavefunction_t & getWavefunction() const {return (*_wave);}
+  virtual void out()=0;
+  
+  virtual void isend() {};
+ 
+  wavefunction_t & getWavefunction () {return (*_wave);}
+  const wavefunction_t & getWavefunction() const {return (*_wave);}
   
 private:
   wavefunction_t * _wave;

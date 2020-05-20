@@ -76,7 +76,8 @@ public:
   virtual void accumulate();
 
   virtual void disableBranching();
-  
+
+  virtual void isend();
 private:
   walkerContainer<dmcWalker> current_walkers;
   walkerContainer<dmcWalker> old_walkers;

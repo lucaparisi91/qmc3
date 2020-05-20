@@ -8,10 +8,10 @@ import itertools
 import pandas as pd
 import myExceptions
 import tqdm
-
-
+import glob
+from distutils.dir_util import copy_tree
+import tools
 executable= "~/source/qmc3/build/main"
-
 
 def update(j):
     jastrow.updateJastrows(j)
@@ -31,6 +31,9 @@ def inputConfs(data,template,postProcess=None):
     for index,row in tqdm.tqdm( data.iterrows()):
         j=copy.deepcopy(template)
         ps.load(j)
+
+
+        
         for col,val in row.items():
            ps[col]=val
         if j["method"]== "vmc":
@@ -51,8 +54,12 @@ def inputConfs(data,template,postProcess=None):
 def defaultName(j):
     return str(abs(hash(str(j))))
     
-def createDirs(inputJsons,name = defaultName,baseDir=None,executable=None):
-    for j in tqdm.tqdm(inputJsons):
+def createDirs(inputJsons,name = defaultName,baseDir=None,executable=None,initialConditions=None):
+
+    if initialConditions is None:
+        initialConditions=[None for i in range(len(inputJsons))]
+    
+    for j,initialCondition in tqdm.tqdm(zip(inputJsons,initialConditions)):
         folder=str(name(j) )
         folderPath=os.path.join(baseDir,folder)
         exst = os.path.exists(folderPath)  
@@ -62,10 +69,10 @@ def createDirs(inputJsons,name = defaultName,baseDir=None,executable=None):
         
         with open(os.path.join(folderPath,"input.json"),"w+") as f:
             f.write(json.dumps(j, indent=4, sort_keys=False) )
-
-    
-
-    
+        if initialCondition is not None:
+            if os.path.exists(initialCondition):
+                copy_tree(initialCondition, os.path.join(baseDir,folder,"configurations") )
+        
 
     
 
@@ -93,4 +100,21 @@ def product(datas):
     
 
     
+        
+
     
+    
+def scan(dirname,json_file="input.json",max_level=1):
+    js=[]
+    inputFileDirs=[]
+    
+    for subdir, dirs, files in tools.walk(dirname,max_level=max_level):
+        if json_file in files:
+            
+            with open(os.path.join(subdir,json_file)) as f:
+                j = json.load(f)
+            js.append(j)
+            inputFileDirs.append(subdir)
+    return (js,inputFileDirs)
+                
+        

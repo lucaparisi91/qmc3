@@ -1,4 +1,7 @@
 import copy
+from tools import toVec
+import pandas as pd
+
 
 class parameterBase:
 
@@ -127,30 +130,60 @@ class parameters:
         self._parameters[p.name]=p
         
     def load(self,j):
-        for name,p in self._parameters.items():
-            p.load(j)
-        return self
+        if  isinstance(j,list):
+            self._jSonInputs=j
+        else:
+            self._jSonInputs=[j]
         
+        return self
+    
     def __getitem__(self,name):
+        
+        values = [ self._parameters[name].load(j).value for j in self._jSonInputs ]
+            
+        if len(values) == 1:
+            return values[0]
+        else:
+            return values
+        
+        
         return self._parameters[name].value
-    def __setitem__(self,name,x):
-        self._parameters[name].value=x
+    def __setitem__(self,name,xs):
+        
+        for j,x in zip(self._jSonInputs,toVec(xs)):
+            self._parameters[name].load(j).value=x
+    def toDataFrame(self):
+        
+        data_dict={ name:self[name]  for name,p in self._parameters.items() }
+
+        return pd.DataFrame(data_dict)
+            
     def __len__(self):
         return len(self._parameters)
     def __repr__(self):
-        msg=", ".join( [ p.__repr__() for name,p in self._parameters.items()] )
-        return "< {} >".format(msg)
+        msgs=[  ", ".join( [ p.load(j).__repr__() for name,p in self._parameters.items()] )   for j in self._jSonInputs ]
+        msgs= ["< {} >".format(msg) for msg in msgs ]
+        
+        return "< {} > ".format(", ".join(msgs) )
 
 timeStep = parameter("timeStep", lambda j : j["timeStep"] , lambda j,x : j.__setitem__("timeStep",x) )
 walkers = parameter("walkers", lambda j : int(j["walkers"]) , lambda j,x : j.__setitem__("walkers",int(x) ) )
 
+method = parameter("method", lambda j : str(j["method"]) , lambda j,x : j.__setitem__("method",str(x) ) )
+stepsPerBlock = parameter("stepsPerBlock", lambda j : int(j["stepsPerBlock"]) , lambda j,x : j.__setitem__("stepsPerBlock",int(x) ) )
+nBlocks = parameter("nBlocks", lambda j : int(j["nBlocks"]) , lambda j,x : j.__setitem__("nBlocks",int(x) ) )
 
 lBox = parameter("lBox", lambda j : j["lBox"][0] , lambda j,x : j.__setitem__("timeStep",[x for i in range(3)]) )
-
 
 parameters.register(timeStep)
 parameters.register(lBox)
 parameters.register(walkers)
+
+parameters.register(nBlocks)
+parameters.register(method)
+parameters.register(stepsPerBlock)
+
+
 
  #register("timeStep",timeStep )
 # register("walkers",lambda j : j["walkers"], lambda j,x : j.__setitem__("walkers",x) )

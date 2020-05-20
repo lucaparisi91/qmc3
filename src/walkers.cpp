@@ -4,6 +4,28 @@
 #include "tools.h"
 #include <sys/stat.h>
 
+walker::walker(const walker & w)
+{
+  (*this)=w;
+}
+
+void walker::operator=(const walker & w)
+{
+  _states=w._states; // a vector of particle data
+  _tab=w._tab;
+  _waveValue=w._waveValue;
+  _gradients=w._gradients;
+  _lapLog=w._lapLog;
+  
+  _slaters=w._slaters; // contains the matrix of slater determinants
+  
+  _phaseGradients=w._phaseGradients;
+  storageScalarObservables=w.storageScalarObservables;
+  correlatorCurrentTimeIndex=w.correlatorCurrentTimeIndex;
+  isFilling=w.isFilling;
+}
+
+
 void updateForceGradientLaplacian(walker & w,productWavefunction & psi)
 {
 	/* Update forces ,laplacian and wavefunction value*/
@@ -19,6 +41,32 @@ void updateForceGradientEnergy(dmcWalker & w,productWavefunction & psi, energy &
   w.getTableDistances().update(w.getStates());
   w.getEnergy()=energyOb(w,psi);
 };
+
+
+void dmcWalker::updateMPIDataType()
+{
+  MPI_Type_free(&getMPIDatatype());
+  createMPIDataType();
+}
+
+dmcWalker::dmcWalker()
+{
+  createMPIDataType();
+}
+
+dmcWalker::dmcWalker(const dmcWalker & w) : walker::walker(w), _e(w._e)
+{
+  createMPIDataType();
+}
+
+void dmcWalker::operator=(const dmcWalker & w)
+{
+  walker::operator=(w);
+  _e=w._e;
+}
+
+
+
 
 void dmcWalker::createMPIDataType()
 {
@@ -86,10 +134,6 @@ void dmcWalker::createMPIDataType()
   // MPI_Get_address(&getLaplacianLog() , &offsets[3] );
   // MPI_Get_address(&getEnergy() , &offsets[4] );  
 }
-
-
-
-
 
 
 

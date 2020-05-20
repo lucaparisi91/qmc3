@@ -17,14 +17,15 @@ so on. Walkers own data memory
 */
 
 
-
-
-
 struct walker
 {
 public:
   using grads_t = ::states_t;
   walker(){};
+
+  walker(const walker & w2 ) ;
+
+  void operator=(const walker & w2 );
   const  auto & getStates() const {return _states;}
   const auto & getTableDistances() const {return _tab;}
   const auto & getLogWave() const {return _waveValue;}
@@ -54,7 +55,7 @@ public:
 
   auto &  getMPIDatatype() {return dtype;}
   
-  virtual void createMPIDataType()  {throw missingImplementation("Creation of MPI walker data type");};
+  virtual void updateMPIDataType()  {throw missingImplementation("Creation of MPI walker data type");};
 
   auto & getFillingStatus() {return isFilling;}
   const auto & getFillingStatus() const {return isFilling;}
@@ -75,14 +76,21 @@ private:
 
 struct dmcWalker : public walker
 {
-  dmcWalker(){};
+  dmcWalker();
+  dmcWalker(const dmcWalker & w);
+  void operator=(const dmcWalker & w);
+  
   
   virtual real_t & getEnergy() override {return _e;}
   virtual const real_t & getEnergy() const override {return _e;}
-  virtual void createMPIDataType() override;
+  virtual void updateMPIDataType() ;
   
 private:
+
+  void createMPIDataType() ;
+  
   real_t _e=1E+20; // stores the energy of the current configuration
+ 
 };
 
 
@@ -144,6 +152,7 @@ public:
   size_t _size;
   std::string baseDir;
   bool saveOnlyLastConfiguration;
+  
 };
 
 

@@ -105,9 +105,13 @@ private:
   std::vector<int> nWalkersReceived;
   std::vector<int> populations;
   int walker_tag;
-  std::vector<int> sendRequests;
-  int receiveRequest;
+  std::vector<MPI_Request> sendRequests;
+  std::vector<MPI_Request >receiveRequests;
+  std::vector<MPI_Status> waitStatusSends;
+  std::vector<MPI_Status> waitStatusReceives;
+  
   int localSentWalkers;
+  bool inFlight;
 };
 
 };
