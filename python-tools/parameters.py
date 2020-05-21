@@ -117,6 +117,10 @@ class parameters:
     @classmethod
     def registered(cls):
         return list(cls.__known_parameters.keys())
+    @classmethod
+    def isRegistered(cls,name):
+        return name in cls.__known_parameters.keys()
+        
     
     def __init__(self,parameters=[]):
         self._parameters={}

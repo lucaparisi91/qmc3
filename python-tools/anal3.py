@@ -194,13 +194,33 @@ def compare(data,ax=None):
 
         
 def gatherByLabel(baseDir,label,jSonInput,getHues=None,maxRows=None,minIndex=0):
+    
+    measurements=getByLabel(jSonInput["measurements"],label)
+    
+    if  len(measurements)!=0 and ("recordSteps" in measurements[0]):
+        fwLabels=getForwardWalkingLabels(jSonInput,label)
+        datas=[]
+        for fwLabel in fwLabels:
+            data=gatherByLabel(baseDir,fwLabel,jSonInput,getHues=getHues,maxRows=maxRows,minIndex=minIndex)
+            data=data.rename(columns={fwLabel : label})
+            fwSteps=getByLabel(jSonInput["measurements"],fwLabel)[0]["forwardWalkingSteps"]
+
+            fwTime=jSonInput["correlationSteps"]*fwSteps*jSonInput["timeStep"]
+            
+            data["fwTime"]=float(fwTime)
+            
+            datas.append(data)
+            
+        return pd.concat(datas)
+    
+
+            
+    
+    
     filename=os.path.join(baseDir , label + ".dat")
     data=pd.read_csv(filename,sep=" ")
     
-    # measurement=getMeasurementByLabel(jSonInput,label)
     
-    # if "recordSteps" in measurements:
-    #     gatherByLabel(baseDir,label + "_fw0",jSonInput,getHues=getHues,maxRows=maxRows,minIndex=minIndex)
         
 
 

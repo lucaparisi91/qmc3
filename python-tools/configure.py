@@ -9,7 +9,7 @@ import pandas as pd
 import myExceptions
 import tqdm
 import glob
-from distutils.dir_util import copy_tree
+from shutil import copytree
 import tools
 executable= "~/source/qmc3/build/main"
 
@@ -25,8 +25,12 @@ def disableForwardWalking(j):
     j["measurements"]=new_ms
 
     
-def inputConfs(data,template,postProcess=None):
+def inputConfs(dataRaw,template,postProcess=None,preProcess=None):
     js=[]
+    selected_columns=[col for col in dataRaw.columns if parameters.parameters.isRegistered(col) ]
+    
+    data=dataRaw[selected_columns]
+    
     ps=parameters.parameters(data.columns)
     for index,row in tqdm.tqdm( data.iterrows()):
         j=copy.deepcopy(template)
@@ -38,16 +42,20 @@ def inputConfs(data,template,postProcess=None):
            ps[col]=val
         if j["method"]== "vmc":
             disableForwardWalking(j)
-        if postProcess is not None:
-            postProcess(j)
+        if preProcess is not None:
+            preProcess(j)
         try:
             update(j)
+
+            if postProcess is not None:
+                postProcess(j)
+            js.append(j)
+
         except myExceptions.InvalidInput as e:
 
             print ( "Initialization failed: " + str(e) )
             
             
-        js.append(j)
     return js
         
 
@@ -71,7 +79,8 @@ def createDirs(inputJsons,name = defaultName,baseDir=None,executable=None,initia
             f.write(json.dumps(j, indent=4, sort_keys=False) )
         if initialCondition is not None:
             if os.path.exists(initialCondition):
-                copy_tree(initialCondition, os.path.join(baseDir,folder,"configurations") )
+                new_folder_configs=os.path.join(baseDir,folder,"configurations")
+                copytree(initialCondition, new_folder_configs ,dirs_exist_ok=True)
         
 
     
@@ -118,3 +127,15 @@ def scan(dirname,json_file="input.json",max_level=1):
     return (js,inputFileDirs)
                 
         
+def expand(df,label,values):
+   
+    ws=pd.DataFrame({label : values})
+    ws=ws.astype(df[label].dtype)
+    ws.index=ws.index*0
+    df["index"]=df.index
+    df.index=df.index*0
+    df2=pd.merge(ws,df,on=label,left_index=True,right_index=True).reset_index(drop=True)
+    df.index=df["index"]
+    df.drop("index",axis=1)
+    df2=df2.drop("index",axis=1)
+    return df2
