@@ -14,8 +14,8 @@ public:
   
   inline real_t  d0(const double & x) {return log (d0Exp(x));}
   
-  inline real_t d1(const double & x) {return (x < parameters[3]) ? parameters[0]/tan(parameters[0]*x + parameters[1]) : k2*parameters[2]/tan(k2*x) ; }
-  inline real_t d2(const double & x) {return (x < parameters[3]) ? -parameters[0]*parameters[0]/pow(sin(parameters[0]*x + parameters[1]),2) : -k2*k2*parameters[2]/pow(sin(k2*x),2) ; }
+  inline real_t d1(const double & x) {return (x < parameters[3]) ? parameters[0]/tan(parameters[0]*x + parameters[1]) : x > parameters[4] ? 0 : k2*parameters[2]/tan(k2*x) ; }
+  inline real_t d2(const double & x) {return (x < parameters[3]) ? -parameters[0]*parameters[0]/pow(sin(parameters[0]*x + parameters[1]),2) : x > parameters[4] ? 0 : -k2*k2*parameters[2]/pow(sin(k2*x),2) ; }
   
   void process();    
 
@@ -42,7 +42,7 @@ private:
   
   inline real_t d0Exp(const double &x)
   {
-    return (x < parameters[3]) ? sin(parameters[0]*x + parameters[1]) :  pow(sin(k2*x),parameters[2]);
+    return (x < parameters[3]) ? sin(parameters[0]*x + parameters[1]) : x > parameters[4] ? sin(parameters[0]*parameters[4] + parameters[1]) :  pow(sin(k2*x),parameters[2]);
   }
 
 };

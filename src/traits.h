@@ -7,7 +7,7 @@ class geometry;
 class productWavefunction;
 #include <nlohmann/json.hpp>
 
-#define DIMENSIONS 3
+#define DIMENSIONS 1
 
 
 using real_t = double;

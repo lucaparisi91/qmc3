@@ -8,7 +8,6 @@
 Defines a wavefunction factory. Does not anything about jastrows. Id are strings formed by concateneting recursively 'kind' all kind items in the object using '/' as a separator.
 */
 
-
 template<class T>
 struct observableTraits;
 
@@ -41,7 +40,6 @@ storer * createStorer(const json_t & j )
   return storerPtr;
 }
 
-
 class estimatorFactory : public abstractFactory<estimatorBase,std::string, estimatorCreatorFunc>
 {
 public:
@@ -62,23 +60,37 @@ public:
       {
 
 	std::string id = estJson["kind"];
-	  
-	if  ( estJson.find("recordSteps") != estJson.end() )
-	  {
-	    
-	  }
-	else if ( id == "forwardWalking")
+	
+	if (   estJson.find("forwardWalkingScalar") != estJson.end() )
 	  {
 	    estimators.push_back(new realScalarForwardWalkingEstimator(estJson));
 	    
 	  }
+	else if (   estJson.find("forwardWalkingHistogram") != estJson.end() )
+	  {
+	    int i=0;
+	    for ( auto &   fwStepJ : estJson["forwardWalkingHistogram"]  )
+	      {
+		json_t jFW = estJson;
+		int steps = fwStepJ.get<int>();
+		
+		jFW["forwardWalkingSteps"]=steps;
+		jFW["targetLabel"]=jFW["label"];
+		jFW["label"]=jFW["label"].get<std::string>() + "_fw" + std::to_string(steps);
+		estimators.push_back(new realHistogramForwardWalkingEstimator(jFW));		
+		
+		i++;
+	      }
+	  }
 	else
 	  {
+	    
 	
 	    if ( (id != "forceEnergy") and (id !="energy") )
 	      {
 		
 		estimators.push_back( abstractFactory_t::create(id,estJson) );
+		
 		
 	      }
 	  }
@@ -112,7 +124,7 @@ public:
       {
 
 	std::string id = storeJson["kind"];
-
+	
 	
 	if ( storeJson.find("recordSteps") !=storeJson.end() )
 	  {

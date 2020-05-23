@@ -1,17 +1,17 @@
 {
-    "N" : [100],
+    "N" : [10],
     "seed" : 231,
     "lBox" : [100],
     "initialConditionGenerator" : 
     {
 	"lBox" : [100]
     },
-    "method" : "vmc",
+    "method" : "svmc",
     "configurations" : "configurations",
-    "correlationSteps": 10,
-    "timeStep" : 1e-2,
-    "stepsPerBlock" : 100,
-    "walkers" : 100,
+    "correlationSteps": 0,
+    "timeStep" : 1e-3,
+    "stepsPerBlock" : 1000,
+    "walkers" : 1,
     "nBlocks" : 10000,    
     "wavefunctions" :
     [
@@ -22,14 +22,13 @@
 	    {
 		"kind" : "delta_phonons",
 		"g": "inf",
-		"z": 49.9,
-		"cut_off": 50,
+		"z": 9,
+		"cut_off": 10,
 		"beta": 1,
-		"k":  0.03141592653589914,
+		"k": 0.15707963267948968,
 		"delta": 0.0
 	    }
-	}	
-
+	}
 	
     ],
     
@@ -49,6 +48,8 @@
 	    "bins" : 1000,
 	    "minx" : 0,
 	    "maxx" : 50.0,
+	    "recordSteps" : 1000,
+	    "forwardWalkingHistogram" : [100]
 	}
 	
 	

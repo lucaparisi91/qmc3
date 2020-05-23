@@ -4,8 +4,20 @@
 #include "traits.h"
 #include "ptools.h"
 #include <iostream>
+
 template<class T>
-class scalarAccumulator
+class accumulator
+{
+public:
+  void writeAverage(std::ostream & o) const
+  {
+    o << static_cast<const T*>(this)->average();
+  }
+};
+
+
+template<class T>
+class scalarAccumulator : public accumulator<scalarAccumulator<T> >
 {
 public:
   using value_t = T;
@@ -14,6 +26,7 @@ public:
   void operator+=(value_t e){sum+=e;n+=1;};
   
   value_t average() const {return sum/n;}
+  
   void clear(){sum=0.;n=0.;}
   
   void accumulateMPI(int root) // sum partial sums on all processors into the root processor
@@ -23,13 +36,17 @@ public:
   }
 
   const auto & getWeight() {return n;}
+
+ 
+
+  
 private:
 	value_t sum;
 	size_t n;
 };
 
 template<class T>
-class vectorAccumulator
+class vectorAccumulator : public accumulator<vectorAccumulator<T> >
 {
 public:
   using vec_t = Eigen::Array<real_t,Eigen::Dynamic,1>;
@@ -42,7 +59,7 @@ public:
     
   void accumulate(value_t a, size_t i,real_t weight=1) {_sums[i]+=a;ns[i]+=weight;}
   
-  vec_t average() {return _sums/ns;}
+  vec_t average() const {return _sums/ns;}
 
   const vec_t & sums() const {return _sums;}
   
@@ -66,23 +83,40 @@ private:
 
 
 template<class T>
-class histogramAccumulator
+class histogramAccumulator : public accumulator<histogramAccumulator<T> >
 {
 public:
   using vec_t = Eigen::Matrix<T,Eigen::Dynamic,1> ;
   using value_t = T ;
   histogramAccumulator(){};
-  histogramAccumulator(size_t size,real_t min_, real_t max_) : _sums(size),_minx(min_),_maxx(max_),_weight(0) {_sums.setConstant(0);deltax=(_maxx-_minx)/size;deltaxInverse=1./deltax;}
+
+    void resize(size_t size,real_t min_,real_t max_)
+  {
+    _sums.resize(size);
+    _minx=min_;
+    _maxx=max_;
+    _sums.setConstant(0);
+    deltax=(_maxx-_minx)/size;
+    deltaxInverse=1./deltax;
+  }
+
+
+  
+  histogramAccumulator(size_t size,real_t min_, real_t max_) : _weight(0) {resize(size,min_,max_);}
   
   void accumulate(value_t a,value_t x) {int i=int((x-_minx)*deltaxInverse); _sums[i]+=a;}
   
   vec_t average() const {return sums()/weight();}
   
   const vec_t & sums() const {return _sums;}
-  
+   vec_t & sums()  {return _sums;}
+
   size_t size() const {return  _sums.size();}
 
   real_t maxx() const {return _maxx;}
+
+  real_t & minx() {return _maxx;}
+  
   
   auto & weight() {return _weight;}
   const auto & weight() const {return _weight;}
@@ -98,6 +132,16 @@ public:
     _weight=pTools::sum(_weight,root);
   }
   
+  void writeAverage(std::ostream & o) const
+  {
+    auto av = average();
+
+    for (int i=0;i<av.size();i++)
+      {
+	o << _minx + i*deltax << " " << av(i) << std::endl;
+      }
+  }
+  
 private:
   vec_t _sums;
   T _weight;
@@ -106,6 +150,12 @@ private:
   real_t deltax;
   real_t deltaxInverse;
 };
+
+
+
+
+
+
 
 using realScalarAccumulator_t = scalarAccumulator<real_t>;
 using realVectorAccumulator_t = vectorAccumulator<real_t>;

@@ -1,7 +1,5 @@
 #include "estimatorsFactory.h"
 
-
-
 realHistogramEstimator* createEstimatorFromOb(realHistogramObservable * ob,const json_t & j)
 {
   return new realHistogramEstimator(ob,j);
@@ -23,5 +21,14 @@ struct observableTraits<realScalarObservable >
 {
   using storer_t = realScalarStorer;
   using estimator_t = realScalarEstimator;
+  
+};
+
+
+template<>
+struct observableTraits<realHistogramObservable >
+{
+  using storer_t = realHistogramStorer;
+  using estimator_t = realHistogramEstimator;
   
 };

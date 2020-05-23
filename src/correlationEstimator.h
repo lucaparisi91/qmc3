@@ -14,12 +14,21 @@ struct estimatorTraits
 };
 
 class realScalarStorer;
-
+class realHistogramStorer;
 template <>
 struct estimatorTraits<realScalarAccumulator_t>
 {
   using storer_t = realScalarStorer;
 };
+
+
+template <>
+struct estimatorTraits<realHistogramAccumulator_t>
+{
+  using storer_t = realHistogramStorer;
+};
+
+
 
 class storer
 {
@@ -65,12 +74,53 @@ private:
   int recordSteps;
 };
 
+
 class realScalarForwardWalkingEstimator : public estimator<realScalarAccumulator_t>
 {
 public:
   realScalarForwardWalkingEstimator(std::string label,std::string targetLabel_, int forwardWalkingSteps_) ;
   
   realScalarForwardWalkingEstimator(const json_t & j);
+  
+  virtual void accumulate(walker_t & w,wavefunction_t & psi) override;
+
+  virtual void write(std::ostream & w) override;
+private:
+
+  std::string targetLabel;
+  int forwardWalkingSteps;
+  
+};
+
+
+class realHistogramStorer : public storer
+{
+public:
+  using observable_t=realHistogramObservable;
+  
+  realHistogramStorer(std::string label_,realHistogramObservable * ob_, size_t size,real_t minx,real_t maxx,int recordSteps_) ;
+  realHistogramStorer(realHistogramObservable * ob_,const json_t & j ) ;
+  
+  virtual void reset( walker_t & w );
+  
+  virtual void reserve(walker_t & w);
+  
+  virtual void store( walker_t & w, wavefunction_t & psi );
+
+  virtual std::vector<int> sets() const override {return ob->sets();}
+private:
+  std::unique_ptr<observable_t> ob;
+  int recordSteps;  
+  realHistogramAccumulator_t tmpAcc;
+};
+
+
+class realHistogramForwardWalkingEstimator : public estimator<realHistogramAccumulator_t>
+{
+public:
+  realHistogramForwardWalkingEstimator(std::string label,std::string targetLabel_, size_t size, real_t minx,real_t maxx,int forwardWalkingSteps_) ;
+  
+  realHistogramForwardWalkingEstimator(const json_t & j);
   
   virtual void accumulate(walker_t & w,wavefunction_t & psi) override;
 

@@ -70,6 +70,9 @@ private:
   MPI_Datatype dtype;
   grads_t _phaseGradients; // contains the gradient of the wavefunction. Just a temporary
   std::map<std::string,Eigen::VectorXd> storageScalarObservables;
+  
+  
+
   std::map<std::string,int> correlatorCurrentTimeIndex;
   std::map<std::string,bool> isFilling;
 };

@@ -12,7 +12,6 @@ sns.set_style("whitegrid")
 import tools
 from tools import toVec
 
-
 def jSonIterator(j):
 
     yield j
@@ -108,15 +107,16 @@ def createHueLabel(hueNames,hueValues):
 
 
 def assemblePlot(func):
-    def assemble(data,hues=None,table=False,nCols=2,width=10.,height=6.,x=None,y=None,delta=None,*args,**kwds):
+    def assemble(data,hues=None,table=False,nCols=2,width=10.,height=6.,x=None,y=None,delta=None,showLegend=True,*args,**kwds):
         fig=plt.figure()
         
         if hues is None:
             ax=fig.add_subplot(111)
             for x1,y1,delta1 in itertools.zip_longest(toVec(x),toVec(y),toVec(delta)):
                 func(data,x=x1 ,y=y1 ,delta=delta1,ax=ax,label=y1,*args,**kwds)
-            ax.legend()
-
+            if showLegend:
+                ax.legend()
+            
             fig.set_size_inches(width, height)
 
         else:
@@ -126,7 +126,8 @@ def assemblePlot(func):
                     for x1,y1,delta1 in itertools.zip_longest(toVec(x),toVec(y),toVec(delta)):
                         
                         func(df,x=x1,y=y1,delta=delta1,label=y1 + ";"+createHueLabel(hues,hue),ax=ax,*args,**kwds)
-                ax.legend()
+                if showLegend:
+                    ax.legend()
                 fig.set_size_inches(width, height )
             else:
                 groups=data.groupby(hues)
@@ -138,7 +139,8 @@ def assemblePlot(func):
                     for x1,y1,delta1 in itertools.zip_longest(toVec(x),toVec(y),toVec(delta)):
                         func(df,x=x1,y=y1,delta=delta1,label=y1 + ";" +createHueLabel(hues,hue),ax=ax,*args,**kwds)
                     i+=1
-                    ax.legend()
+                    if (showLegend):
+                        ax.legend()
         
                 fig.set_size_inches(width, height/2. * len(groups) )
         fig.tight_layout()
@@ -147,15 +149,16 @@ def assemblePlot(func):
     return assemble
 
 
-
 @assemblePlot            
-def plotVector(data,x,y,delta=None,label=None,ax=None,*args,**kwds):
+def plotVector(data,x,y,delta=None,label=None,ax=None,errorbar=False,*args,**kwds):
     
     
-    if delta is not None:
-        ax.fill_between(data[x],data[y]-data[delta],data[y]+data[delta],alpha=0.5)
-    ax.plot(data[x],data[y],label=label,*args,**kwds)
-    
+    if delta is not None and (not errorbar):
+            ax.fill_between(data[x],data[y]-data[delta],data[y]+data[delta],alpha=0.5)
+    if errorbar is not True:
+        ax.plot(data[x],data[y],label=label,*args,**kwds)
+    else:
+        ax.errorbar(data[x],data[y],data[delta],label=label,*args,**kwds)
         
     ax.set_xlabel(x)
     ax.set_ylabel(y)
@@ -177,9 +180,9 @@ def plotScalar(data,y,x=None,label=None,ax=None,delta=None,alpha=0.5,trace=False
         color=p[0].get_color()
         
         ax.plot(x1,np.array(movingAverage),linestyle="solid",alpha=alpha_trace,color=color)
+
+
         
-
-
 def compare(data,ax=None):
     columns=list(data.columns)
     labels = [label for label in columns if ( (re.match("(?!delta).*",label) is not None) and ( ("delta"+label) in columns ) ) ]
@@ -196,7 +199,8 @@ def compare(data,ax=None):
 def gatherByLabel(baseDir,label,jSonInput,getHues=None,maxRows=None,minIndex=0):
     
     measurements=getByLabel(jSonInput["measurements"],label)
-    
+
+
     if  len(measurements)!=0 and ("recordSteps" in measurements[0]):
         fwLabels=getForwardWalkingLabels(jSonInput,label)
         datas=[]
@@ -224,7 +228,6 @@ def gatherByLabel(baseDir,label,jSonInput,getHues=None,maxRows=None,minIndex=0):
         
 
 
-
         
     
     if (maxRows is not None) and (len(data) > maxRows) :
@@ -238,7 +241,7 @@ def gatherByLabel(baseDir,label,jSonInput,getHues=None,maxRows=None,minIndex=0):
         for name,value in hues.items():
             data[name]=value
     data=data[data.index >= minIndex]        
-        
+    
 
     
     return data
@@ -254,6 +257,7 @@ def gather(dirname,label,hues=None,maxRows=None,minIndex=0,max_level=1):
             try:
                 with open(os.path.join(subdir,json_file)) as f:
                     j = json.load(f)
+                
                 data=gatherByLabel(subdir,label,jSonInput=j,getHues=hues,maxRows=maxRows,minIndex=minIndex)
                 datas.append(data)
             except FileNotFoundError as e:
@@ -263,7 +267,7 @@ def gather(dirname,label,hues=None,maxRows=None,minIndex=0,max_level=1):
                 
     if datas != []:
         data=pd.concat(datas)
-        data=data.reset_index(drop=True)
+        #data=data.reset_index(drop=True)
         
         
         

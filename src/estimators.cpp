@@ -7,7 +7,7 @@
 template<class observable_t>
 void estimator<observable_t>::write(std::ostream & stream)
 {
-  stream << acc.average() ;
+  acc.writeAverage(stream) ;
 };
 
 

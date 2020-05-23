@@ -10,9 +10,9 @@ jastrow_delta_phonons::jastrow_delta_phonons(const json_t & j)
   parameters[1]=j["delta"];
   parameters[2]=j["beta"];
   parameters[3]=j["z"];
-  parameters[4]=j["cut_off"].get<real_t>()*2;
+  parameters[4]=j["cut_off"].get<real_t>();
   
-  k2=M_PI/parameters[4];
+  k2=M_PI/(2*parameters[4]);
   
   if ( j["g"] != "inf")
     {
@@ -33,7 +33,7 @@ void jastrow_delta_phonons::process()
     
     fR.z=parameters[3];
     fR.g=parameters[5];
-    fR.l_box=parameters[4];
+    fR.l_box=parameters[4]*2;
     
     while( fR(bP)*fR(aP) >=0 )
     {
@@ -41,7 +41,6 @@ void jastrow_delta_phonons::process()
       
       bP+=fR.l_box*1e-4;
       if (bP > fR.l_box)
-	
        	{
 	  
 	  std::cout << "Failed to find a root. " << std::endl;
@@ -51,9 +50,9 @@ void jastrow_delta_phonons::process()
         parameters[0]=findRootBrente(fR,aP,bP,1e-12);
     parameters[1]=atan(parameters[0]/parameters[5]);
 
-    parameters[2]=(parameters[0]*tan((M_PI/parameters[4])*parameters[3]))/(M_PI/parameters[4]  * tan(parameters[0]*parameters[3]+parameters[1]));
+    parameters[2]=(parameters[0]*tan((M_PI/(2*parameters[4]))*parameters[3]))/(M_PI/(parameters[4]*2)  * tan(parameters[0]*parameters[3]+parameters[1]));
     
-    k2=M_PI/parameters[4];
+    k2=M_PI/(2*parameters[4]);
     
     
   }
