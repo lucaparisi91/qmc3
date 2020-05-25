@@ -7,7 +7,6 @@ from scipy import optimize
 import myExceptions
 import scipy
 
-
 class jastrow:
     def process(self):
         pass

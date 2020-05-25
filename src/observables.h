@@ -11,7 +11,7 @@ class observable
 {
 public:
 	observable() {}
-	using accumulator_t = T;
+        using accumulator_t = T;
 	using value_t = typename T::value_t ;
 	using wavefunction_t = productWavefunction;
 	using walker_t = walker;
@@ -32,7 +32,9 @@ public:
   virtual real_t operator()(walker_t & walker,wavefunction_t & wave)=0;
   virtual std::vector<int> sets() const  {return {}; }
   
-   static  bool isScalar() {return true;}
+  static  bool isScalar() {return true;}
+
+  static std::string kind() {return "scalar";}
   
 };
 
@@ -41,9 +43,11 @@ class realHistogramObservable : public observable<realHistogramAccumulator_t>
 {
 public:
   virtual void accumulate(walker_t & w,wavefunction_t & wavefunction,accumulator_t & acc)=0;
-    virtual std::vector<int> sets() const  {return {}; }
-
-   static bool isScalar() {return false;}
+  virtual std::vector<int> sets() const  {return {}; }
+  
+  static bool isScalar() {return false;}
+  static std::string kind() {return "histogram";}
+ 
 };
 
 
@@ -57,6 +61,8 @@ public:
   virtual std::vector<int> sets() const  {return {}; }
   static bool isScalar() {return false;}
   virtual const vec_t & x() const = 0 ;
+  static std::string kind() {return "vector";}
+  
 private:
   real_t _size;
   

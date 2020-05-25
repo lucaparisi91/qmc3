@@ -79,7 +79,6 @@ realHistogramEstimator::realHistogramEstimator(realHistogramObservable * ob_,con
 void realHistogramEstimator::write(std::ostream & stream)
 {
   auto out=getAccumulator().average();
-  
   for (int i=0;i<x.size();i++)
     {
       stream << x[i] << " " <<  out[i] << std::endl ;

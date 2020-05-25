@@ -56,9 +56,6 @@ def getForwardWalkingLabels(j,label):
     fwLabels=[ item["label"] for item in jSonIterator(j) if hasFWLabel(item,label) ]
     return fwLabels
 
-    
-
-
 def average(data,labels=None,hues=None,minIndex=None):
 
     if minIndex is not None:
@@ -72,7 +69,9 @@ def average(data,labels=None,hues=None,minIndex=None):
         hues = list( set(data.columns) -set(labels) )
 
     
-    averagedData={label : []  for label in data.columns } 
+    averagedData={label : []  for label in labels }
+    averagedData.update({hue : []  for hue in hues } )
+
     averagedData.update( { "delta" + label : [] for label in toVec(labels) })
 
     if hues == []:
@@ -328,9 +327,7 @@ def getOptimizationRange(data,x,label,hues,delta=None):
             optRanges[hueName].append(hueValue)
 
     return pd.DataFrame(optRanges)
-        
-        
-        
+                
 def expandOptimizationRanges(data,label,n):
     data=data.reset_index(drop=True)
     data=data.dropna()

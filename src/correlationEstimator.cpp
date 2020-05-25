@@ -4,7 +4,7 @@
 
 realScalarStorer::realScalarStorer(std::string label_,realScalarObservable * ob_, int recordSteps_) : ob(ob_),recordSteps(recordSteps_),storer::storer(label_) {}
 
-realScalarStorer::realScalarStorer(realScalarObservable * ob_,const json_t & j )  : realScalarStorer(j["label"].get<std::string>(),ob_,j["recordSteps"].get<int>() + 1 ) {};
+realScalarStorer::realScalarStorer(realScalarObservable * ob_,const json_t & j )  : realScalarStorer(j["label"].get<std::string>(),ob_,j["recordSteps"].get<int>()  ) {};
 
 void realScalarStorer::reserve(realScalarStorer::walker_t & w)
 {
@@ -135,14 +135,13 @@ void realHistogramForwardWalkingEstimator::accumulate(walker_t & w,wavefunction_
     assert(forwardWalkingSteps*acc.size() < data.size());
     
     auto j =  wrapIndex(i - forwardWalkingSteps - 1 ,recordSteps ) ;
-    const auto & v = data( j);
-
+    
     auto & sums = acc.sums();
     if ( ! w.getFillingStatus().at(targetLabel) )
       {
-	for(int j=0;j<acc.size();j++)
+	for(int ii=0;ii<acc.size();ii++)
 	  {
-	    sums(j)+=data(i*acc.size() + j );
+	    sums(ii)+=data(j*acc.size() + ii );
 	  }
 	acc.weight()+=1;
       }
@@ -162,7 +161,7 @@ realHistogramForwardWalkingEstimator::realHistogramForwardWalkingEstimator(std::
   if (is_empty(of) & pTools::rank() == 0 )
     {
       auto & f=getFileDescriptor();
-      f << "x" <<getLabel() << std::endl;
+      f << "x" <<" "<<getLabel() << std::endl;
     }
   
   of.close();

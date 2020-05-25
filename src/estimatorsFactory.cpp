@@ -32,3 +32,62 @@ struct observableTraits<realHistogramObservable >
   using estimator_t = realHistogramEstimator;
   
 };
+
+
+std::vector<estimatorBase*> estimatorFactory:: create(const json_t & j)
+  {
+    std::vector<estimatorBase*> estimators;
+    
+    for (auto & estJson : j )
+      {
+
+	std::string id = estJson["kind"];
+	
+	if (   estJson.find("forwardWalkingSteps") != estJson.end() )
+	  {
+	    int i=0;
+	    
+	    for ( auto &   fwStepJ : estJson["forwardWalkingSteps"]  )
+	      {
+		json_t jFW = estJson;
+		int steps = fwStepJ.get<int>();
+		
+		jFW["forwardWalkingSteps"]=steps;
+		jFW["targetLabel"]=jFW["label"];
+		jFW["label"]=jFW["label"].get<std::string>() + "_fw" + std::to_string(steps);
+
+		if (knownObservableTypes.at(id) == "scalar")
+		  {
+		    estimators.push_back(new realScalarForwardWalkingEstimator(jFW) );
+		  }
+		else if (knownObservableTypes.at(id) == "histogram")
+		  {
+		    estimators.push_back(new realHistogramForwardWalkingEstimator(jFW) );
+		  }
+		else
+		  {
+		    throw missingImplementation("Forward walking estimator for " + knownObservableTypes.at(id) + " not yet implemented");
+		    
+		  }
+		i++;
+	      }
+
+	   
+	    
+	  }
+	else
+	  {
+	    
+	
+	    if ( (id != "forceEnergy") and (id !="energy") )
+	      {
+		
+		estimators.push_back( abstractFactory_t::create(id,estJson) );
+		
+		
+	      }
+	  }
+      }
+    
+    return estimators;
+  }

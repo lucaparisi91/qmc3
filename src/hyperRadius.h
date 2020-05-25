@@ -11,7 +11,7 @@ public:
 
   trimerhyperRadius(int setA_,int setB_,int setC_);
   trimerhyperRadius(const json_t & j);
-
+  
   static std::string name() {return "trimerhyperRadius";}
   
   

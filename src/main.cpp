@@ -24,7 +24,7 @@
 #include "hyperRadius.h"
 #include "wavefunction/jastrows/jastrowDipolar.h"
 #include "structureFactor.h"
-
+#include "trimerCorrelation.h"
 
 bool check_n_particles(const states_t & states,const std::vector<int> & Ns)
 {
@@ -155,6 +155,7 @@ int main(int argc, char** argv)
   getFactory().registerObservable<pairCorrelation>();
   getFactory().registerObservable<centerOfMassSquared>();
   getFactory().registerObservable<trimerhyperRadius>();
+  getFactory().registerObservable<trimerCorrelation>();
 
 #if DIMENSIONS == 1
   getFactory().registerObservable<structureFactor>();

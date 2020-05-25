@@ -44,62 +44,22 @@ class estimatorFactory : public abstractFactory<estimatorBase,std::string, estim
 {
 public:
   using abstractFactory_t= abstractFactory<estimatorBase,std::string, estimatorCreatorFunc>;
-
+  
   
   template<class ob_t >
   void registerObservable()
   {
     registerType( ob_t::name()  , & (createEstimator<ob_t> ) );
-  }
-
-  auto create(const json_t & j)
-  {
-    std::vector<estimatorBase*> estimators;
     
-    for (auto & estJson : j )
-      {
-
-	std::string id = estJson["kind"];
-	
-	if (   estJson.find("forwardWalkingScalar") != estJson.end() )
-	  {
-	    estimators.push_back(new realScalarForwardWalkingEstimator(estJson));
-	    
-	  }
-	else if (   estJson.find("forwardWalkingHistogram") != estJson.end() )
-	  {
-	    int i=0;
-	    for ( auto &   fwStepJ : estJson["forwardWalkingHistogram"]  )
-	      {
-		json_t jFW = estJson;
-		int steps = fwStepJ.get<int>();
-		
-		jFW["forwardWalkingSteps"]=steps;
-		jFW["targetLabel"]=jFW["label"];
-		jFW["label"]=jFW["label"].get<std::string>() + "_fw" + std::to_string(steps);
-		estimators.push_back(new realHistogramForwardWalkingEstimator(jFW));		
-		
-		i++;
-	      }
-	  }
-	else
-	  {
-	    
-	
-	    if ( (id != "forceEnergy") and (id !="energy") )
-	      {
-		
-		estimators.push_back( abstractFactory_t::create(id,estJson) );
-		
-		
-	      }
-	  }
-      }
+    knownObservableTypes[ob_t::name() ]=ob_t::kind();
     
-    return estimators;
   }
   
- 
+  std::vector<estimatorBase*> create(const json_t & j);
+  
+private:
+  std::map<std::string,std::string> knownObservableTypes;
+  
   
 };
 
