@@ -16,14 +16,14 @@ executable= "~/source/qmc3/build/main"
 def update(j):
     jastrow.updateJastrows(j)
 
+    
 def disableForwardWalking(j):
-    new_ms=[ m for m in  j["measurements"] if m["kind"]!="forwardWalking" ]
-    for m in new_ms:
+    for m in  j["measurements"]:
         if "recordSteps" in m.keys():
             m.pop("recordSteps")
-    
-    j["measurements"]=new_ms
-
+        if "forwardWalkingSteps" in m.keys():
+            m.pop("forwardWalkingSteps")
+        
     
 def inputConfs(dataRaw,template,postProcess=None,preProcess=None):
     js=[]

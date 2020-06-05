@@ -43,17 +43,14 @@ def getByLabel(j,label):
     return ms
 
 def getForwardWalkingLabels(j,label):
+    fwLabels=[]
     
-    def hasFWLabel(j,label):
-        if isinstance(j,dict) :
-            if  "label" in j.keys():
-                m=re.match(label + "_fw.*",j["label"])
-                if m is not None:
-                    return True
-                
-        return False
+    for m in j["measurements"] :
+        if ("label" in m.keys() ) and (m["label"]==label ) and ("forwardWalkingSteps" in m.keys() ):
+            for step in m["forwardWalkingSteps"]:
+                fwLabels.append(label + "_fw" + str(step))            
     
-    fwLabels=[ item["label"] for item in jSonIterator(j) if hasFWLabel(item,label) ]
+    
     return fwLabels
 
 def average(data,labels=None,hues=None,minIndex=None):
@@ -199,15 +196,16 @@ def gatherByLabel(baseDir,label,jSonInput,getHues=None,maxRows=None,minIndex=0):
     
     measurements=getByLabel(jSonInput["measurements"],label)
 
-
+    
     if  len(measurements)!=0 and ("recordSteps" in measurements[0]):
         fwLabels=getForwardWalkingLabels(jSonInput,label)
         datas=[]
         for fwLabel in fwLabels:
             data=gatherByLabel(baseDir,fwLabel,jSonInput,getHues=getHues,maxRows=maxRows,minIndex=minIndex)
             data=data.rename(columns={fwLabel : label})
-            fwSteps=getByLabel(jSonInput["measurements"],fwLabel)[0]["forwardWalkingSteps"]
-
+            
+            fwSteps=int(re.match(".*_fw(\d+)",fwLabel).group(1))
+            
             fwTime=jSonInput["correlationSteps"]*fwSteps*jSonInput["timeStep"]
             
             data["fwTime"]=float(fwTime)

@@ -416,7 +416,55 @@ class jastrowDipolar(jastrow):
         return np.concatenate([y1,y2])
 
     
-registeredJastrows= {"squareWell" : "jastrowSquareWell","gaussian":"jastrowGaussian","dipolar_rep":"jastrowDipolar","delta_bound_state_phonons":"jastrow_delta_bound_state_phonons","delta_phonons": "jastrow_delta_phonons"}
+class jastrowPoschTeller(jastrow):
+    inputParameters=["R0","cut_off","Rm"]
+    optimizationParameters=["Rm"]
+    
+    def __init__(self,R0=None,cut_off=None,Rm=None):
+        jastrow.__init__(self)
+        
+        self.parameters["R0"]=R0
+        self.parameters["cut_off"]=cut_off
+        self.parameters["Rm"]=Rm
+        
+    def process(self):
+        d=self.parameters["Rm"]
+        alpha=self.find_root(a_root=1e-5,b_root=10)
+        self.parameters["alpha"]=alpha
+        d=self.parameters["Rm"]
+        L=self.parameters["cut_off"]*2
+        k=1./self.parameters["R0"]
+        self.parameters["k"]=k
+        self.parameters["C"]=np.tanh(k*d)/d * 1. / (np.exp(-alpha*d) + np.exp(-alpha*(L-d)))
+    def f_root(self,x):
+        d=self.parameters["Rm"]
+        k=1./self.parameters["R0"]
+        L=self.parameters["cut_off"]*2
+        return (-1./d**2)*np.tanh(k*d) + k/(d*np.cosh(k*d)**2) + np.tanh(k*d)/d * x * np.tanh(x*(0.5*L - d)) 
+
+    def __call__(self,x):
+        d=self.parameters["Rm"]
+        k=self.parameters["k"]
+        C=self.parameters["C"]
+        alpha=self.parameters["alpha"]
+        L=self.parameters["cut_off"]*2.
+        
+        x1= x[x< d]
+        y1=np.tanh(k*x1)/x1
+        x2= x[x> d]
+        y2=self.parameters["C"]*(np.exp(-alpha*x2) + np.exp(-alpha*(L-x2)))
+
+        return np.concatenate([y1,y2])
+
+
+
+
+
+
+
+    
+registeredJastrows= {"squareWell" : "jastrowSquareWell","gaussian":"jastrowGaussian","dipolar_rep":"jastrowDipolar","delta_bound_state_phonons":"jastrow_delta_bound_state_phonons","delta_phonons": "jastrow_delta_phonons","poschTeller" : "jastrowPoschTeller"}
+
         
 
 
@@ -435,3 +483,7 @@ def updateJastrows(j):
     if isinstance(j,list):
         for value in j:
             updateJastrows(value)
+
+
+
+            
