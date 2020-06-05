@@ -6,6 +6,7 @@
 #include <cmath>
 #include <initializer_list>
 
+
 class geometry
 {
 public:

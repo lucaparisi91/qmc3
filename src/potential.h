@@ -134,5 +134,29 @@ private:
 };
 
 
+class poschTellerPotential2b :  public potential
+{
+public:
+  using potential::operator();
+  
+  poschTellerPotential2b(const geometry_t & geo,real_t R0, int setA_, int setB_ ) ;
+  
+  poschTellerPotential2b(const json_t & j, const geometry_t & geo);
+  
+  virtual real_t operator()(const walker_t & state) ;
+  
+  static std::string name() {return "poschTeller2b";}
+  
+
+  virtual std::vector<int> sets() const {return {setA,setB};} ;
+private:
+  real_t R0;
+  int setA;
+  int setB;
+  real_t alpha;
+  
+};
+
+
 
 #endif

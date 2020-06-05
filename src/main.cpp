@@ -18,6 +18,7 @@
 #include "factory.h"
 #include "wavefunction/jastrows/jastrowSquareWell.h"
 #include "wavefunction/jastrows/jastrow_delta.h"
+#include "wavefunction/jastrows/jastrowPoschTeller.h"
 #include "ptools.h"
 #include "pairCorrelation.h"
 #include "centerOfMassSquared.h"
@@ -126,7 +127,6 @@ int main(int argc, char** argv)
 #if DIMENSIONS == 1
   geometryPBC geo( lBox[0] );
 #endif
-
   
   states_t states;
   
@@ -148,6 +148,9 @@ int main(int argc, char** argv)
   
   getFactory().registerJastrow< gaussianJastrow >();
   getFactory().registerJastrow< jastrowSquareWell >();
+  getFactory().registerJastrow< jastrowSquareWellBoundState >();
+  getFactory().registerJastrow< jastrowPoschTeller >();
+  
   #if DIMENSIONS == 3
   getFactory().registerOrbital<sinOrbital>();
   getFactory().registerOrbital<planeWave>();
@@ -167,7 +170,16 @@ int main(int argc, char** argv)
   getFactory().registerJastrow<jastrowDipolarRep>();
   
   auto waves = getFactory().createWavefunctions( j["wavefunctions"],geo);
-  
+
+  for (int i=0;i<waves.size();i++)
+    {
+      std::string filename = "wave" + std::to_string(i) + ".dat";
+      ofstream f;
+      f.open(filename);
+      f << waves[i]->print() ;
+      f.close();
+      
+    }
   
   productWavefunction psi(waves);
   
@@ -178,6 +190,8 @@ int main(int argc, char** argv)
   getFactory().registerPotential<harmonicPotential>();
   getFactory().registerPotential<squareWellPotential2b>();
   getFactory().registerPotential<dipolarPotential2b>();
+  getFactory().registerPotential<poschTellerPotential2b>();
+  
   auto potentials = getFactory().createPotentials(j["potentials"],geo);
   
   sumPotentials pot(potentials);

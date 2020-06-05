@@ -77,7 +77,7 @@ real_t dipolarPotential2b::operator()(const walker_t & w)
   const auto & norms= w.getTableDistances().distances(setA,setB);
   
   double lBox=getGeometry().getLBox(0);
-   
+  
   for (auto i=0;i<norms.size();i++) 
       {
 	double x = norms(i);
@@ -95,4 +95,38 @@ real_t dipolarPotential2b::operator()(const walker_t & w)
     
     return v;
 
+}
+
+
+real_t poschTellerPotential2b::operator()(const walker_t & w)
+{
+  
+    real_t V=0;
+    
+    const auto & norms= w.getTableDistances().distances(setA,setB);
+    
+    for (auto i=0;i<norms.size();i++)
+      {
+	real_t tmp = cosh(norms(i)*alpha);
+	V-=2 * alpha * alpha /( tmp*tmp);
+      }
+    return V;
+    
+}
+
+poschTellerPotential2b::poschTellerPotential2b(const geometry_t & geo,real_t R0_, int setA_,int setB_) :
+  potential(geo),
+  R0(R0_),
+  setA(setA_),
+  setB(setB_),
+  alpha(1/R0)
+{
+  
+}
+
+
+poschTellerPotential2b::poschTellerPotential2b(const json_t & j, const geometry_t & geo)
+  : poschTellerPotential2b::poschTellerPotential2b(geo,j["R0"],j["sets"][0],j["sets"][1])
+{
+  
 }

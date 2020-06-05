@@ -39,6 +39,10 @@ public:
   virtual bool isComplex() const {return false;}
   
   void setGeometry(const geometry_t & geo_) {geo=&geo_;}
+  
+  virtual std::string print() const {return "";};
+  
+  
 private:
   const geometry_t * geo;
   
