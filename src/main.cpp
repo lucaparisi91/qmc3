@@ -26,6 +26,11 @@
 #include "wavefunction/jastrows/jastrowDipolar.h"
 #include "structureFactor.h"
 #include "trimerCorrelation.h"
+#include "wavefunction/jastrows/jastrowGaussGauss.h"
+#include "potentialFunctors.h"
+
+
+
 
 bool check_n_particles(const states_t & states,const std::vector<int> & Ns)
 {
@@ -145,8 +150,11 @@ int main(int argc, char** argv)
       //particleData*=lBox[0]/2.;
       states.push_back(particleData);
     }
+
+
   
   getFactory().registerJastrow< gaussianJastrow >();
+  getFactory().registerJastrow< jastrowGaussGauss >();
   getFactory().registerJastrow< jastrowSquareWell >();
   getFactory().registerJastrow< jastrowSquareWellBoundState >();
   getFactory().registerJastrow< jastrowPoschTeller >();
@@ -189,8 +197,15 @@ int main(int argc, char** argv)
 
   getFactory().registerPotential<harmonicPotential>();
   getFactory().registerPotential<squareWellPotential2b>();
+  
   getFactory().registerPotential<dipolarPotential2b>();
   getFactory().registerPotential<poschTellerPotential2b>();
+
+  getFactory().registerPotentialFunctor<squareWell>();
+  getFactory().registerPotentialFunctor<potentialBarrier>();
+  
+  
+
   
   auto potentials = getFactory().createPotentials(j["potentials"],geo);
   

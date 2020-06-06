@@ -1,5 +1,6 @@
 #include "wavefunction/wavefunction.h"
 
+
 template<class jastrow_t>
 class jastrowTwoBodyWavefunctionDistinguishable : public wavefunction
 {

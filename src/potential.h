@@ -4,6 +4,9 @@
 
 #include "traits.h"
 #include "qmcExceptions.h"
+#include "walkers.h"
+
+
 
 class walker;
 
@@ -20,7 +23,7 @@ public:
   using state_t = ::state_t;
 
   potential(const geometry_t & geo_ );
-
+  
   virtual real_t operator()(const walker_t & state ) = 0;
   const auto & getGeometry() {return *geo;}
   virtual std::vector<int> sets() const = 0 ;
@@ -43,7 +46,6 @@ private:
 };
 
 
-
 class potential1b : public potential
 {
 public:
@@ -55,7 +57,6 @@ public:
   virtual std::vector<int> sets() const {return {_setA};}
 
   int setA() const {return _setA;}
-
   
 private:
 	int _setA;
@@ -156,6 +157,7 @@ private:
   real_t alpha;
   
 };
+
 
 
 

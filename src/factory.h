@@ -2,6 +2,8 @@
 #include "wavefunction/jastrowWavefunctionOneBody.h"
 #include "potentialFactory.h"
 #include "wavefunction/jastrowWavefunctionTwoBody.h"
+#include "wavefunction/jastrowWavefunctionThreeBody.h"
+
 #include "wavefunction/slaterDeterminant.h"
 #include "orbitals.h"
 #include "estimatorsFactory.h"
@@ -24,13 +26,18 @@ public:
   {
     waveFacInstance.registerWavefunction<wave_t>();
   }
-
+  
   template<class pot_t>
   void registerPotential()
   {
     potFacInstance.registerPotential<pot_t>();
   }
-  
+
+  template<class functor_t>
+  void registerPotentialFunctor()
+  {
+    potFacInstance.registerFunctor<functor_t>();
+  }
   auto createWavefunctions(json_t & j,const geometry_t & geo)
   {
     return waveFacInstance.create(j,geo);
@@ -47,6 +54,9 @@ public:
     registerWavefunction<jastrowOneBodyWavefunction<jastrow_t>  >() ;
     registerWavefunction<jastrowTwoBodyWavefunctionUndistinguishable<jastrow_t>  >() ;
     registerWavefunction<jastrowTwoBodyWavefunctionDistinguishable<jastrow_t>  >() ;
+    registerWavefunction<jastrowThreeBodyWavefunctionUnDistinguishable<jastrow_t>   >() ;
+
+    
   }
 
   template<class orbital_t>

@@ -98,8 +98,7 @@ public:
   real_t d0(real_t x) const {return -alpha*x*x;}
   real_t d1(real_t x) const {return -2.*alpha*x;}
   real_t d2(real_t x) const {return -2*alpha;}
-
-
+  
   void addGradientParameter(real_t x,int sourceParameter,parameter & param, std::vector<real_t> & gradientParameter) 
 	{
 		if (sourceParameter == 0)

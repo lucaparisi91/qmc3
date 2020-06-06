@@ -9,7 +9,6 @@ class productWavefunction;
 
 #define DIMENSIONS 3
 
-
 using real_t = double;
 using geometry_t = geometry;
 using state_t = Eigen::Array<real_t,Eigen::Dynamic,DIMENSIONS> ;
