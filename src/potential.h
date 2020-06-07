@@ -6,8 +6,6 @@
 #include "qmcExceptions.h"
 #include "walkers.h"
 
-
-
 class walker;
 
 class tableDistances;
@@ -129,11 +127,9 @@ private:
   real_t D;
   int setA;
   int setB;
-  int k;
-  
+  int k;  
   
 };
-
 
 class poschTellerPotential2b :  public potential
 {

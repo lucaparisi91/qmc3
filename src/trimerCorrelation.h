@@ -25,6 +25,29 @@ private:
 
   real_t _normalizationFactor;
   real_t max;
+  real_t deltax;  
+};
+
+class trimerCorrelationUnDis : public realHistogramObservable
+{
+public:
+  trimerCorrelationUnDis(int setA);
+  trimerCorrelationUnDis(const json_t & j);
+  
+  static std::string name() {return "trimerCorrelationUnDis";}
+  
+  virtual std::vector<int> sets() const override {return {setA,setA}; }
+
+  virtual void accumulate(walker_t & w,wavefunction_t & wavefunction,accumulator_t & acc);
+
+private:
+
+  void setNormalizationFactor(const walker_t & w , const wavefunction_t & psi ,const accumulator_t & acc) ;
+
+  int setA;
+  
+  real_t _normalizationFactor;
+  real_t max;
   real_t deltax;
   
 };

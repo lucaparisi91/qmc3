@@ -3,7 +3,6 @@
 #include "potentialThreeBody.h"
 
 
-
 /*
 Defines a wavefunction factory. Does not anything about jastrows. Id are strings formed by concateneting recursively 'kind' all kind items in the object using '/' as a separator.
 */
@@ -30,12 +29,13 @@ public:
     registerType( pot_t::name()  , & (createPotential<pot_t> ) );
   }
 
+  
   template<class functor_t>
   void registerFunctor()
   {
     registerPotential<potentialTwoBody<functor_t>  >();
     registerPotential<potentialThreeBodyUnDis<functor_t>  >();
-
+    registerPotential<potentialThreeBodyDis<functor_t>  >();
   }
   
   auto create(const json_t & j,const geometry_t & geo)

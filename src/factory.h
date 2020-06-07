@@ -55,6 +55,7 @@ public:
     registerWavefunction<jastrowTwoBodyWavefunctionUndistinguishable<jastrow_t>  >() ;
     registerWavefunction<jastrowTwoBodyWavefunctionDistinguishable<jastrow_t>  >() ;
     registerWavefunction<jastrowThreeBodyWavefunctionUnDistinguishable<jastrow_t>   >() ;
+    registerWavefunction<jastrowThreeBodyWavefunctionDistinguishable<jastrow_t>   >() ;
 
     
   }

@@ -34,7 +34,7 @@ public:
 	    auto rkj = dis(kj);	
 	    auto rki = dis(ki);
 	    
-	    auto R= sqrt(rji*rji + rki*rki + rkj*rkj);
+	    auto R= std::sqrt(rji*rji + rki*rki + rkj*rkj);
 	    sum+=J.d0(R);
 	    ) ;
   
@@ -102,6 +102,133 @@ public:
   
 private:
   int setA ;
+  jastrow_t J;
+  
+};
+
+
+template<class jastrow_t>
+class jastrowThreeBodyWavefunctionDistinguishable : public wavefunction
+{
+public:
+  
+  jastrowThreeBodyWavefunctionDistinguishable(jastrow_t J_,const geometry_t  &geo_, int setA_,int setB_,int setC_) : setA(setA_),setB(setB_),setC(setC_),J(J_),wavefunction::wavefunction(geo_)
+  {
+    if ( (setA == setB) or (setB == setC) or (setA == setC) )
+      {
+	throw invalidInput("Sets in three body wavefunction should be distinguishible");
+      }
+  }
+
+  
+  jastrowThreeBodyWavefunctionDistinguishable(const json_t & j,const geometry_t & geo ) : jastrowThreeBodyWavefunctionDistinguishable( jastrow_t(j["jastrow"]), geo,j["sets"][0] ,j["sets"][1] , j["sets"][2] ) {}
+
+  virtual real_t operator()(const walker_t & walker)
+  {
+    auto & disAB = walker.getTableDistances().distances(setA,setB);
+    auto & disBC = walker.getTableDistances().distances(setB,setC);
+    auto & disAC = walker.getTableDistances().distances(setA,setC);
+    
+    
+  
+    real_t sum=0;
+    int NA = getN( walker.getStates()[setA] );
+    int NB = getN( walker.getStates()[setB] );
+    int NC = getN( walker.getStates()[setC] );
+    
+
+    // performs a 3b loop on all particles
+    
+    LOOP3B_DIS( NA , NB , NC ,
+
+		auto rij = disAB(ij);	
+		auto rjk = disBC(jk);	
+		auto rik = disAC(ik);
+	    
+		auto R= std::sqrt(rij*rij + rjk*rjk + rik*rik);
+		sum+=J.d0(R);
+		) ;
+    
+    return sum;
+    
+  }
+
+  
+  virtual std::vector<int> sets() const {return {setA,setA} ;}
+  
+  virtual void accumulateDerivatives( walker_t & walker ) override
+  {
+    auto & stateA = walker.getStates()[setA];
+    auto & stateB = walker.getStates()[setB];
+    auto & stateC = walker.getStates()[setC];
+    
+    auto & gradientA = walker.getGradients()[setA];
+    auto & gradientB = walker.getGradients()[setB];
+    auto & gradientC = walker.getGradients()[setC];
+
+    
+    
+    
+    auto & laplacian = walker.getLaplacianLog();
+
+    auto & disAB = walker.getTableDistances().distances(setA,setB);
+    auto & disBC = walker.getTableDistances().distances(setB,setC);
+    auto & disAC = walker.getTableDistances().distances(setA,setC);
+    
+    
+    auto & diffAB = walker.getTableDistances().differences(setA,setB);
+    auto & diffBC = walker.getTableDistances().differences(setB,setC);
+    auto & diffAC = walker.getTableDistances().differences(setA,setC);
+    
+    auto & waveValue = walker.getLogWave();
+    
+    
+    const int NA = getN(stateA);
+    const int NB = getN(stateB);
+    const int NC = getN(stateC);
+    
+
+    
+    constexpr int D = getDimensions();
+    
+    real_t  d0,d1,d2;
+    
+    LOOP3B_DIS(NA, NB , NC ,
+	       
+	       auto rij = disAB(ij);	
+	       auto rjk = disBC(jk);	
+	       auto rik = disAC(ik);
+	       
+	       auto R= std::sqrt(rij*rij + rjk*rjk + rik*rik);
+	       
+	       J.evaluateDerivatives(R,d0,d1,d2);
+	   
+	       for (int id=0;id < D;id++)
+		 {    
+		   gradientA(i,id)+=  d1*( diffAB(ij,id) + diffAC(ik,id))/R;
+		   gradientB(j,id)+=  d1*(  - diffAB(ij,id) + diffBC(jk,id) )/R;
+		   gradientC(k,id)-=  d1*(   diffAC(ik,id) + diffBC(jk,id) )/R;
+		 }
+	   
+	       laplacian+= d2 * 3 ;
+	       laplacian += 3 * d1 / R *  (2*D-1);
+	       
+	       waveValue+=d0;
+
+	   )
+  }
+  
+  static std::string name()   {return "jastrow3bUnDis/" + jastrow_t::name();}
+  
+  virtual std::string print() const override {
+    
+    return J.print(0,getGeometry().getLBox(0)/2. , 10000)
+      ;}  
+  
+private:
+  int setA ;
+  int setB;
+  int setC;
   jastrow_t J;
   
 };

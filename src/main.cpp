@@ -167,6 +167,7 @@ int main(int argc, char** argv)
   getFactory().registerObservable<centerOfMassSquared>();
   getFactory().registerObservable<trimerhyperRadius>();
   getFactory().registerObservable<trimerCorrelation>();
+  getFactory().registerObservable<trimerCorrelationUnDis>();
 
 #if DIMENSIONS == 1
   getFactory().registerObservable<structureFactor>();

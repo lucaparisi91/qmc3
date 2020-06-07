@@ -3,6 +3,8 @@
 #include "wavefunction/productWavefunction.h"
 #include "geometry.h"
 #include "tools.h"
+#include "tools3B.h"
+
 
 void trimerCorrelation::accumulate(walker_t & w,wavefunction_t & wavefunction,accumulator_t & acc)
 {
@@ -70,6 +72,71 @@ void trimerCorrelation::setNormalizationFactor(const walker_t & w , const wavefu
 #if DIMENSIONS == 1
   
   _normalizationFactor=std::pow(lBox,1)/(dx*NA*NB*NC*2);   
+#endif
+  
+  
+}
+
+
+
+void trimerCorrelationUnDis::accumulate(walker_t & w,wavefunction_t & wavefunction,accumulator_t & acc)
+{
+
+  setNormalizationFactor(w,wavefunction,acc);
+
+  const auto & dis=w.getTableDistances().distances(setA,setA);
+  real_t sum=0;
+
+    const int N = getN(w.getStates()[setA]);
+
+    
+    LOOP3B( N,
+	    auto rji = dis(ji);	
+	    auto rkj = dis(kj);	
+	    auto rki = dis(ki);
+	    
+	    auto radius= sqrt(rji*rji + rki*rki + rkj*rkj);
+
+	    if ( radius < acc.maxx() )
+	      {
+#if DIMENSIONS == 1
+		acc.accumulate(_normalizationFactor,radius);
+#endif
+#if DIMENSIONS == 3
+	      
+	    acc.accumulate(_normalizationFactor/(radius*radius),radius);
+#endif
+	      }
+	    
+	    
+	    )
+      
+      acc.weight()+=1;
+}
+
+
+trimerCorrelationUnDis::trimerCorrelationUnDis(int setA_) : setA(setA_),_normalizationFactor(0)
+{
+}
+
+trimerCorrelationUnDis::trimerCorrelationUnDis(const json_t & j) : trimerCorrelationUnDis(j["sets"][0].get<int>() )
+{
+  
+}
+
+
+void trimerCorrelationUnDis::setNormalizationFactor(const walker_t & w , const wavefunction_t & psi ,const trimerCorrelation::accumulator_t & acc) 
+{
+  auto lBox = psi.getGeometry().getLBox(0);
+  auto dx = acc.stepSize();
+  auto  NA = getN(w.getStates()[setA]);
+  
+#if DIMENSIONS == 3
+  _normalizationFactor=1/(dx*4*M_PI*NA*NA*NA);
+#endif
+
+#if DIMENSIONS == 1
+  _normalizationFactor=std::pow(lBox,1)/(dx*NA*NA*NA*2);   
 #endif
   
   
