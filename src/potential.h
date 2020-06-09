@@ -26,6 +26,12 @@ public:
   const auto & getGeometry() {return *geo;}
   virtual std::vector<int> sets() const = 0 ;
 
+
+  virtual bool satisfyConstrains(const walker_t & w) {return true;}
+  
+  
+  
+  
 private:
   const geometry_t * geo;
 };
@@ -109,6 +115,7 @@ private:
   int setB;
 };
 
+
 class dipolarPotential2b :  public potential
 {
 public:
@@ -153,6 +160,10 @@ private:
   real_t alpha;
   
 };
+
+
+
+
 
 
 

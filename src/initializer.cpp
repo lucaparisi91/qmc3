@@ -51,34 +51,51 @@ void initializer::registerSlaterOrbitals(tableSlaters & tab,const productWavefun
     }
 }
 
-void initializer::initialize(walker & w, const states_t & states ,  productWavefunction & psi)
+bool initializer::initialize(walker & w, const states_t & states ,  productWavefunction & psi)
 {
 	w.getStates()=states;
-
+	
 	registerDistances(w.getTableDistances(),psi);
 	registerSlaterOrbitals(w.getTableSlaters(),psi);
 	w.getTableDistances().update(states);
 	w.getTableSlaters().update(states);
-	psi.evaluateDerivatives( w);
+	if ( psi.satisfyConstraints(w) )
+	  {
+	    psi.evaluateDerivatives( w);
+	    return true;
+	  }
+	else
+	  {
+	    return false;
+	  }
+	
 	
 }
 
-void initializer::initialize(dmcWalker & w, const states_t & states ,  productWavefunction & psi,energy & ob)
+bool initializer::initialize(dmcWalker & w, const states_t & states ,  productWavefunction & psi,energy & ob)
 {
   w.getStates()=states;
   registerDistances(w.getTableDistances(),psi);
   registerSlaterOrbitals(w.getTableSlaters(),psi);
-  updateForceGradientEnergy(w,psi,ob);
+  return updateForceGradientEnergy(w,psi,ob);
+  
 }
 
-void initializer::initialize(walkerContainer<dmcWalker> & ws, const std::vector<states_t> & states ,  productWavefunction & psi,energy & ob)
+bool initializer::initialize(walkerContainer<dmcWalker> & ws, const std::vector<states_t> & states ,  productWavefunction & psi,energy & ob)
 {
+  
   ws.resize(states.size());
   
   for (int i=0;i<states.size();i++)
     {
-      initialize(ws[i],states[i],psi,ob);
+      bool status = initialize(ws[i],states[i],psi,ob);
+      if (!status)
+	{
+	  return false;
+	}
     }
+
+  return true;
 }
 
 

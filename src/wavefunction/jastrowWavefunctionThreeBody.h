@@ -4,7 +4,22 @@
 #include "wavefunction/wavefunction.h"
 
 #include "tools3B.h"
+#include "hardSphere.h"
 
+
+class hardSphereConstraintThreeBodyUnDis : public constraint
+
+{
+public:
+  hardSphereConstraintThreeBodyUnDis(int setA_,real_t R0);
+
+  hardSphereConstraintThreeBodyUnDis(const json_t & j) ;
+  
+  virtual bool operator()(const walker_t & w) override;
+private:
+  int setA;
+  hardSphere V;
+};
 
 
 template<class jastrow_t>
@@ -18,8 +33,19 @@ public:
   }
 
   
-  jastrowThreeBodyWavefunctionUnDistinguishable(const json_t & j,const geometry_t & geo ) : jastrowThreeBodyWavefunctionUnDistinguishable( jastrow_t(j["jastrow"]), geo,j["sets"][0]  ) {}
+  jastrowThreeBodyWavefunctionUnDistinguishable(const json_t & j,const geometry_t & geo ) : jastrowThreeBodyWavefunctionUnDistinguishable( jastrow_t(j["jastrow"]), geo,j["sets"][0]  )
+  {
+    if ( j.contains("hardSphereRadius") )
+	   {
+	     auto R0 = j["hardSphereRadius"].get<real_t>();
+	     
+	     addHardSphereConstraint( R0 );
+	     
+	   }
+      
+  }
 
+  
   virtual real_t operator()(const walker_t & walker)
   {
     auto & dis = walker.getTableDistances().distances(setA,setA);  
@@ -42,13 +68,15 @@ public:
     
   }
 
+
+  
   
   virtual std::vector<int> sets() const {return {setA,setA} ;}
   
   virtual void accumulateDerivatives( walker_t & walker ) override
   {
     auto & state = walker.getStates()[setA];
-
+    
     auto & gradient = walker.getGradients()[setA];
     
     auto & laplacian = walker.getLaplacianLog();
@@ -99,6 +127,13 @@ public:
     
     return J.print(0,getGeometry().getLBox(0)/2. , 10000)
       ;}  
+
+  
+  void addHardSphereConstraint(real_t R0)
+  {
+    this->addConstraint(  std::make_unique<hardSphereConstraintThreeBodyUnDis>(  hardSphereConstraintThreeBodyUnDis(setA,R0) ) );
+  }
+
   
 private:
   int setA ;

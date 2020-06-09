@@ -14,9 +14,9 @@ public:
   virtual std::vector<int> sets() const override {return {setA,setB,setC}; }
 
   virtual void accumulate(walker_t & w,wavefunction_t & wavefunction,accumulator_t & acc);
-
+  
 private:
-
+  
   void setNormalizationFactor(const walker_t & w , const wavefunction_t & psi ,const accumulator_t & acc) ;
 
   int setA;

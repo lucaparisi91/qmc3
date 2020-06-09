@@ -56,11 +56,18 @@ void metropolisPolicy::accumulateMPI(int root)
 void dmcDriver::update(dmcWalker & wNew, dmcWalker & wOld)
 {
   dmcMover->move(wNew,wOld,getRandomGenerator());
-  updateForceGradientEnergy(wNew, getWavefunction(),energyOb);
+  bool accepted;
+  bool isValid=updateForceGradientEnergy(wNew, getWavefunction(),energyOb);
 
   
-  
-  bool accepted=accepter->accept(*dmcMover,wNew,wOld,getWavefunction() ,getRandomGenerator());
+  if (isValid)
+    {
+      accepted=accepter->accept(*dmcMover,wNew,wOld,getWavefunction() ,getRandomGenerator());
+    }
+  else
+    {
+      accepted=false;
+    }
 	  
   if (!accepted)
     {
@@ -152,7 +159,16 @@ void dmcDriver::isend()
 void dmcDriver::run( const std::vector<states_t> &states , size_t nBlocks )
 {
   
-  initializer::initialize(current_walkers,states,getWavefunction(),energyOb);
+  bool status=initializer::initialize(current_walkers,states,getWavefunction(),energyOb);
+
+
+  if (!status)
+    {
+      throw invalidInput("Inalid initial configurations.");
+      
+    }
+  
+  
   initializer::initialize(old_walkers,states,getWavefunction(),energyOb);
   
   for (auto & w : current_walkers)

@@ -40,6 +40,8 @@ public:
   const geometry_t & getGeometry() const ;
 
   bool isComplex() {return isAtLeatOneComponentComplex;}
+
+  bool satisfyConstraints(const walker_t & state);
   
 private:
   std::vector<wavefunction*> _logWaves;

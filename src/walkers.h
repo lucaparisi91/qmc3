@@ -103,8 +103,8 @@ class energy;
 
 
 void update(dmcWalker & w, productWavefunction & wave);
-void updateForceGradientLaplacian(walker & w,productWavefunction & psi);
-void updateForceGradientEnergy(dmcWalker & w,productWavefunction & psi, energy & energyOb);
+bool updateForceGradientLaplacian(walker & w,productWavefunction & psi);
+bool updateForceGradientEnergy(dmcWalker & w,productWavefunction & psi, energy & energyOb);
 
 template<class T>
 class walkerContainer

@@ -56,7 +56,7 @@ private:
 
 
 
-void update(walker & w,productWavefunction & psi);
+bool update(walker & w,productWavefunction & psi);
 
 
 

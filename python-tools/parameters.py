@@ -177,7 +177,7 @@ method = parameter("method", lambda j : str(j["method"]) , lambda j,x : j.__seti
 stepsPerBlock = parameter("stepsPerBlock", lambda j : int(j["stepsPerBlock"]) , lambda j,x : j.__setitem__("stepsPerBlock",int(x) ) )
 nBlocks = parameter("nBlocks", lambda j : int(j["nBlocks"]) , lambda j,x : j.__setitem__("nBlocks",int(x) ) )
 
-lBox = parameter("lBox", lambda j : j["lBox"][0] , lambda j,x : j.__setitem__("timeStep",[x for i in range(3)]) )
+lBox = parameter("lBox", lambda j : j["lBox"][0] , lambda j,x : j.__setitem__("lBox",[x for i in range(3)]) )
 
 parameters.register(timeStep)
 parameters.register(lBox)

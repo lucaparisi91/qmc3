@@ -56,6 +56,16 @@ private:
 };
 
 
+
+
+
+
+
+
+
+
+
+
 template<class functor_t>
 class potentialThreeBodyDis :  public potential
 {

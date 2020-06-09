@@ -18,10 +18,10 @@ struct initializer
   static void registerDistances(tableDistances & tab,const productWavefunction & wave);
   static void addDistances(walker & w,estimatorCollection & collection);
   
-  static void initialize(walker & w, const states_t & states ,  productWavefunction & psi);
-  static void initialize(dmcWalker & w, const states_t & states ,  productWavefunction & psi,energy & ob);
+  static bool initialize(walker & w, const states_t & states ,  productWavefunction & psi);
+  static bool initialize(dmcWalker & w, const states_t & states ,  productWavefunction & psi,energy & ob);
 
-  static void initialize(walkerContainer<dmcWalker> & ws, const std::vector<states_t> & states ,  productWavefunction & psi,energy & ob);
+  static bool initialize(walkerContainer<dmcWalker> & ws, const std::vector<states_t> & states ,  productWavefunction & psi,energy & ob);
 
   static void registerSlaterOrbitals(tableSlaters & tab,const productWavefunction & psi);
   

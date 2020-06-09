@@ -6,11 +6,30 @@
 #include "wavefunction/jastrows/jastrow.h"
 #include "qmcExceptions.h"
 #include "tools.h"
+#include <memory>
+
 
 struct wavefunctionComponentCommands;
 class tableDistances;
 class walker;
 class orbitalSetBase;
+
+
+class constraint
+{
+public:
+  using walker_t = walker;
+  
+  virtual bool operator()(const walker_t & w)=0;
+  
+};
+
+class noConstraint : public constraint
+{
+public:
+  virtual bool operator()(const walker_t & w) override  {return true;}
+  
+};
 
 class wavefunction
 {
@@ -41,11 +60,20 @@ public:
   void setGeometry(const geometry_t & geo_) {geo=&geo_;}
   
   virtual std::string print() const {return "";};
+
+  
+  virtual bool satisfyConstraints(const walker_t & state);
+  
+  void addConstraint(std::unique_ptr<constraint> newConstraint);
+  
   
   
 private:
   const geometry_t * geo;
-  
+  std::vector<std::unique_ptr<constraint> > constraints;
 };
+
+
+
 
 #endif

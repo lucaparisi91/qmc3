@@ -29,6 +29,7 @@
 #include "wavefunction/jastrows/jastrowGaussGauss.h"
 #include "potentialFunctors.h"
 
+#include "wavefunction/jastrows/jastrowHardSphereGauss.h"
 
 
 
@@ -56,6 +57,30 @@ auto   find( json_t & j,std::string key,const T & value)
   
   return j.end();
 }
+
+
+auto generateRandomInitialConditions(const std::vector<int> Ns, const std::vector<real_t> & lBoxInitialCondition)
+{
+  states_t states;
+  const int D = lBoxInitialCondition.size();
+  for (int i=0;i<Ns.size();i++)
+    {
+      state_t particleData(Ns[i] , D);
+      particleData.setRandom();
+
+      for (int i=0;i<getN(particleData);i++)
+	{
+	  for (int d=0;d<getDimensions();d++)
+	    {
+	      particleData(i,d)*=lBoxInitialCondition[d]*0.5;
+	    }
+	}
+      //particleData*=lBox[0]/2.;
+      states.push_back(particleData);
+    }
+  return states;
+}
+
 
 
 int main(int argc, char** argv)
@@ -132,32 +157,16 @@ int main(int argc, char** argv)
 #if DIMENSIONS == 1
   geometryPBC geo( lBox[0] );
 #endif
+
   
-  states_t states;
-  
-  for (int i=0;i<Ns.size();i++)
-    {
-      state_t particleData(Ns[i] , D);
-      particleData.setRandom();
-
-      for (int i=0;i<getN(particleData);i++)
-	{
-	  for (int d=0;d<getDimensions();d++)
-	    {
-	      particleData(i,d)*=lBoxInitialCondition[d]*0.5;
-	    }
-	}
-      //particleData*=lBox[0]/2.;
-      states.push_back(particleData);
-    }
-
-
   
   getFactory().registerJastrow< gaussianJastrow >();
   getFactory().registerJastrow< jastrowGaussGauss >();
   getFactory().registerJastrow< jastrowSquareWell >();
   getFactory().registerJastrow< jastrowSquareWellBoundState >();
   getFactory().registerJastrow< jastrowPoschTeller >();
+  getFactory().registerJastrow< jastrowHardSphereGauss >();
+  
   
   #if DIMENSIONS == 3
   getFactory().registerOrbital<sinOrbital>();
@@ -205,12 +214,28 @@ int main(int argc, char** argv)
   getFactory().registerPotentialFunctor<squareWell>();
   getFactory().registerPotentialFunctor<potentialBarrier>();
   
-  
+  auto potentials = getFactory().createPotentials(j["potentials"],geo);
 
   
-  auto potentials = getFactory().createPotentials(j["potentials"],geo);
-  
   sumPotentials pot(potentials);
+  
+  // generate a random initial conditions which satisfy the contraints imposed by the wavefunction
+  
+  states_t states ;
+
+  {
+    bool isSatisfied=false;
+    while (! isSatisfied)
+    {
+      walker tmpWalker;
+      states= generateRandomInitialConditions(Ns,lBoxInitialCondition);
+      initializer::initialize(tmpWalker,states,psi);
+      
+      isSatisfied=psi.satisfyConstraints(tmpWalker);
+    }
+
+  
+  }
 
   
   auto eO=new  energy(&pot);
@@ -302,8 +327,11 @@ int main(int argc, char** argv)
       dmcDriver dmcO(&psi,&pot,timeStep,nW,delta_walkers);
       dmcO.getStepsPerBlock()=stepsPerBlock;
       dmcO.getCorrelationSteps()=correlationSteps;
-      
+
+
       std::vector<states_t> dmcStates(configurations);      
+
+      
       
       if ( dmcStates.size() == 0 )
 	{
@@ -313,6 +341,7 @@ int main(int argc, char** argv)
 	    }
       
 	}
+
       
       dmcO.getRandomGenerator().seed(seed + pTools::rank() );
       

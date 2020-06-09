@@ -26,20 +26,38 @@ void walker::operator=(const walker & w)
 }
 
 
-void updateForceGradientLaplacian(walker & w,productWavefunction & psi)
+bool updateForceGradientLaplacian(walker & w,productWavefunction & psi)
 {
 	/* Update forces ,laplacian and wavefunction value*/
   w.getTableDistances().update(w.getStates());
   w.getTableSlaters().update(w.getStates());
   
-  psi.evaluateDerivatives(w);
+  if ( psi.satisfyConstraints(w) )
+    {      
+      psi.evaluateDerivatives(w);
+      return true;
+    }
+  else
+    {
+      return false;
+    }
 };
 
-void updateForceGradientEnergy(dmcWalker & w,productWavefunction & psi, energy & energyOb)
+bool updateForceGradientEnergy(dmcWalker & w,productWavefunction & psi, energy & energyOb)
 {
   w.getTableSlaters().update(w.getStates());
   w.getTableDistances().update(w.getStates());
-  w.getEnergy()=energyOb(w,psi);
+  
+  if ( psi.satisfyConstraints(w) )
+    {      
+      w.getEnergy()=energyOb(w,psi);
+      return true;
+    }
+  else
+    {
+      return false;
+    }
+  
 };
 
 

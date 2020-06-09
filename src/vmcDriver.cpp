@@ -21,7 +21,11 @@ void vmcDriver::run(states_t & states,size_t nBlocks)
 {
 	wavefunction_t & wave= getWavefunction();
 	
-	initializer::initialize(current_walker,states,getWavefunction());
+	bool initStatus=initializer::initialize(current_walker,states,getWavefunction());
+	if ( !initStatus )
+	  {
+	    throw invalidInput("Invalid initial conditions.");
+	  }
 	initializer::initialize(old_walker,states,wave);
 	initializer::initialize(tmp_walker,states,wave);
 
@@ -29,15 +33,23 @@ void vmcDriver::run(states_t & states,size_t nBlocks)
 	initializer::addDistances(old_walker,getEstimators());
 	
 	driver::run(nBlocks);
-
+	
 };
 
-void update(walker & w,productWavefunction & psi)
+bool update(walker & w,productWavefunction & psi)
 	{
 	  w.getTableDistances().update(w.getStates());
 	  w.getTableSlaters().update(w.getStates());
 	  
-	  w.getLogWave()=psi(w);
+	  if (psi.satisfyConstraints(w) )
+	    {
+	      w.getLogWave()=psi(w);
+	      return true;
+	    }
+	  else
+	    {
+	      return false;
+	    }
 	};
 
 
@@ -48,11 +60,22 @@ void vmcDriver::step()
 	std::swap(old_walker,current_walker);
 
 	vmcMove->move(current_walker,old_walker,getRandomGenerator());
-
+	bool accept=true;
+	
 	// update distances and evaluates the wavefunction
-	update(current_walker,wave);
+	bool isValidWalker = update(current_walker,wave);
 	// accept or reject the walker
-	bool accept = metropolisObj.acceptLog(2* (current_walker.getLogWave() - old_walker.getLogWave()),getRandomGenerator());
+
+	if (isValidWalker)
+	  {
+	    
+	    accept = metropolisObj.acceptLog(2* (current_walker.getLogWave() - old_walker.getLogWave()),getRandomGenerator());
+	  }
+	else
+	  {
+	    accept=false;
+	    
+	  }
 	if (!accept)
 	{
 		current_walker=old_walker;

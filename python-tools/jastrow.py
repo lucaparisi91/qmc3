@@ -461,6 +461,57 @@ class jastrowPoschTeller(jastrow):
 
 
 
+class hardSphere3BCluster(jastrow):
+    
+    def __init__(self,R0=None,Rm=None,D=None,a=None):
+        jastrow.__init__(self)
+        self.parameters["Rm"]=Rm
+        self.parameters["D"]=D
+        self.parameters["a"]=a
+        
+    def process(self):
+        
+        Rm=self.parameters["Rm"]
+        a=self.parameters["a"]
+        d=self.parameters["D"]
+        
+        alpha=a/(Rm*(Rm-a)*2*(d-Rm) )
+        
+        self.parameters["alpha"]=alpha
+        
+        C=(1-a/Rm)*np.exp(alpha*(Rm-d)**2)
+        
+        self.parameters["C"]=C;
+        
+        
+    def scattering(self,x):
+        a=self.parameters["a"]
+        return 1- a/x
+    
+    def __call__(self,x):
+        R0=self.parameters["a"]
+        Rm=self.parameters["Rm"]
+        
+        y=x*0
+        x2=x[(x>R0) & (x<Rm) ]
+        x3=x[x>Rm]
+        
+        y[(x>R0) & (x < Rm)]=self.scattering(x2)
+        y[x>Rm]=self.gaussian(x3)
+
+        return y
+    
+    def gaussian(self,x):
+        alpha=self.parameters["alpha"]
+        d=self.parameters["D"]
+        C=self.parameters["C"]
+        
+        return C* np.exp(- alpha* (x-d)**2 )
+    
+
+        
+
+
 
     
 registeredJastrows= {"squareWell" : "jastrowSquareWell","gaussian":"jastrowGaussian","dipolar_rep":"jastrowDipolar","delta_bound_state_phonons":"jastrow_delta_bound_state_phonons","delta_phonons": "jastrow_delta_phonons","poschTeller" : "jastrowPoschTeller"}

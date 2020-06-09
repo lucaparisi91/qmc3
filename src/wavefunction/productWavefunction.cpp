@@ -65,3 +65,18 @@ productWavefunction::productWavefunction(std::vector<wavefunction *> waves) : pr
       add(wave);
     }
 }
+
+
+bool productWavefunction::satisfyConstraints(const walker_t & state)
+{
+  
+  for (auto & wave : waves() )
+    {
+      if (not wave->satisfyConstraints(state) )
+	{
+	  return false;
+	}
+    }
+  
+  return true;
+}
