@@ -35,3 +35,25 @@ public:
   real_t logC;
     
 };
+
+
+class jastrowHardSphere : public jastrow<jastrowHardSphere>
+{
+public:
+  
+  jastrowHardSphere(real_t a_) ;
+
+  jastrowHardSphere(const json_t & j);
+  
+  inline real_t d0(const real_t & x) const {return log(1 - a/x);}
+  inline real_t d1(const real_t & x) const {return a/(x*(x-a));}
+  inline real_t d2(const real_t & x) const  {return -a/std::pow(x*(x-a),2) * (2*x - a); }
+  
+  static std::string name() {return "hardSphere";};
+  
+  
+  
+  private:    
+
+  real_t a;
+};

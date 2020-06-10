@@ -166,7 +166,8 @@ int main(int argc, char** argv)
   getFactory().registerJastrow< jastrowSquareWellBoundState >();
   getFactory().registerJastrow< jastrowPoschTeller >();
   getFactory().registerJastrow< jastrowHardSphereGauss >();
-  
+  getFactory().registerJastrow< jastrowHardSphere>();
+
   
   #if DIMENSIONS == 3
   getFactory().registerOrbital<sinOrbital>();

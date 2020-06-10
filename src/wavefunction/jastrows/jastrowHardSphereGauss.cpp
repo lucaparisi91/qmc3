@@ -6,6 +6,7 @@ jastrowHardSphereGauss::jastrowHardSphereGauss(real_t a_,real_t Rm_,real_t D_) :
   alpha=a/(Rm*(Rm-a)*2*(d-Rm) );
   C=(1-a/Rm)*exp(alpha*(Rm-d)*(Rm-d) );
   logC=log(C);
+  
 };
 
 
@@ -13,3 +14,14 @@ jastrowHardSphereGauss::jastrowHardSphereGauss(const json_t & j) : jastrowHardSp
 {
   
 };
+
+jastrowHardSphere::jastrowHardSphere(real_t a_) : a(a_)
+{
+  
+};
+
+jastrowHardSphere::jastrowHardSphere(const json_t & j) : jastrowHardSphere(j["a"].get<real_t>() )
+{
+  
+};
+

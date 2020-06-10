@@ -458,12 +458,11 @@ class jastrowPoschTeller(jastrow):
 
 
 
-
-
-
 class hardSphere3BCluster(jastrow):
+    inputParameters=["a","Rm","D"]
+    optimizationParameters=["Rm","D"]
     
-    def __init__(self,R0=None,Rm=None,D=None,a=None):
+    def __init__(self,Rm=None,D=None,a=None):
         jastrow.__init__(self)
         self.parameters["Rm"]=Rm
         self.parameters["D"]=D
@@ -507,6 +506,18 @@ class hardSphere3BCluster(jastrow):
         C=self.parameters["C"]
         
         return C* np.exp(- alpha* (x-d)**2 )
+
+
+    
+class jastrowHardSphere(jastrow):
+    inputParameters=["a"]
+    
+    def __init__(self,a=None):
+        jastrow.__init__(self)
+        self.parameters["a"]=a
+        
+    def process(self):
+        pass
     
 
         
@@ -514,9 +525,10 @@ class hardSphere3BCluster(jastrow):
 
 
     
-registeredJastrows= {"squareWell" : "jastrowSquareWell","gaussian":"jastrowGaussian","dipolar_rep":"jastrowDipolar","delta_bound_state_phonons":"jastrow_delta_bound_state_phonons","delta_phonons": "jastrow_delta_phonons","poschTeller" : "jastrowPoschTeller"}
+registeredJastrows= {"squareWell" : "jastrowSquareWell","gaussian":"jastrowGaussian","dipolar_rep":"jastrowDipolar","delta_bound_state_phonons":"jastrow_delta_bound_state_phonons","delta_phonons": "jastrow_delta_phonons","poschTeller" : "jastrowPoschTeller","hardSphereGauss" : "hardSphere3BCluster","hardSphere" : "jastrowHardSphere" }
 
-        
+
+
 
 
 def updateJastrows(j):
