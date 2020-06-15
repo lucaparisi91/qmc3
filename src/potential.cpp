@@ -5,7 +5,6 @@
 #include "tools.h"
 #include "walkers.h"
 
-
 potential::potential(const geometry_t & geo_ ) : geo(&geo_)
 {
 
@@ -97,7 +96,6 @@ real_t dipolarPotential2b::operator()(const walker_t & w)
 
 }
 
-
 real_t poschTellerPotential2b::operator()(const walker_t & w)
 {
   
@@ -124,9 +122,8 @@ poschTellerPotential2b::poschTellerPotential2b(const geometry_t & geo,real_t R0_
   
 }
 
-
 poschTellerPotential2b::poschTellerPotential2b(const json_t & j, const geometry_t & geo)
   : poschTellerPotential2b::poschTellerPotential2b(geo,j["R0"],j["sets"][0],j["sets"][1])
 {
-  
+
 }

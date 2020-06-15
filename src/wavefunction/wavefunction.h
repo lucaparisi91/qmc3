@@ -8,7 +8,6 @@
 #include "tools.h"
 #include <memory>
 
-
 struct wavefunctionComponentCommands;
 class tableDistances;
 class walker;
@@ -43,6 +42,8 @@ public:
   using states_t= ::states_t;
   using grads_t = ::states_t;
   using walker_t = walker;
+  using gradientParameter_t = std::vector<real_t>;
+  using iterator_t = gradientParameter_t::iterator;
   
   wavefunction(const geometry_t & geo_ );
   wavefunction() {};
@@ -66,14 +67,16 @@ public:
   
   void addConstraint(std::unique_ptr<constraint> newConstraint);
   
+  virtual void addGradientParameter(walker_t & w, optimizationParameter & parameter, iterator_t begin,iterator_t end ) {}
   
+  virtual void addGradientParameter(walker_t & w, mappedOptimizationParameter & parameter, gradientParameter_t & grad );
+
+  virtual void addGradientParameter(walker_t & w, std::vector<mappedOptimizationParameter> & parameters, gradientParameter_t & grad );
   
 private:
   const geometry_t * geo;
   std::vector<std::unique_ptr<constraint> > constraints;
 };
-
-
 
 
 #endif

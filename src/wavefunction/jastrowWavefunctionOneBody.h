@@ -29,44 +29,64 @@ public:
 	    }
 	  return sum;
 	};
+
   
-	virtual void accumulateDerivatives( walker_t & walker ) override
-	{
-	  auto & state = walker.getStates()[setA];
-	  auto & gradient = walker.getGradients()[setA];
-	  auto & laplacian = walker.getLaplacianLog();
-	  auto & distances = walker.getTableDistances().distances(setA);
-	  auto & differences = walker.getTableDistances().differences(setA);
-	  auto & waveValue = walker.getLogWave();
+  virtual void addGradientParameter(walker_t & w, optimizationParameter & parameter, iterator_t begin,iterator_t end )
+  {
+    auto & dis = w.getTableDistances().distances(setA);
+    
+    int N=size(dis);
+    real_t sum=0;
+    
+    for(int i=0;i<N;i++)
+      {
+	J.addGradientParameter(dis(i),parameter,begin,end);
+      }
+    
+    
+  }
+
+  
+  
+  
+  virtual void accumulateDerivatives( walker_t & walker ) override
+  {
+    auto & state = walker.getStates()[setA];
+    auto & gradient = walker.getGradients()[setA];
+    auto & laplacian = walker.getLaplacianLog();
+    auto & distances = walker.getTableDistances().distances(setA);
+    auto & differences = walker.getTableDistances().differences(setA);
+    auto & waveValue = walker.getLogWave();
 
 	  
-	  const int N = getN(state);
-	  constexpr int D = getDimensions();
-	  real_t  tmp,tmp1,tmp2;
+    const int N = getN(state);
+    constexpr int D = getDimensions();
+    real_t  tmp,tmp1,tmp2;
 	  
 	 
-	  for (int i=0;i<N;i++)
-	    {
-	      auto d = distances(i);
-				
-	      J.evaluateDerivatives(d,tmp,tmp1,tmp2);
+    for (int i=0;i<N;i++)
+      {
+	auto d = distances(i);
+	
+	J.evaluateDerivatives(d,tmp,tmp1,tmp2);
 	      
-	      laplacian+=tmp2 + (D-1)*tmp1/d;
-	      waveValue+=tmp;
-	      for(int id=0;id<D;id++)
-		{
-		  gradient(i,id)+=differences(i,id)/d * tmp1;
-		}
-				
+	laplacian+=tmp2 + (D-1)*tmp1/d;
+	waveValue+=tmp;
+	for(int id=0;id<D;id++)
+	  {
+	    gradient(i,id)+=differences(i,id)/d * tmp1;
+	  }
+	
 
-	    }
-		
+      }
+    
       
-	}
+  }
 
   virtual std::vector<int> sets() const {return {setA};}
-
+  
   static std::string name() {return "jastrow1b/" + jastrow_t::name();}
+  
   
 private:
   jastrow_t J;
