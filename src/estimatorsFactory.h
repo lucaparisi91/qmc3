@@ -64,6 +64,10 @@ private:
 };
 
 
+
+centerOfMassStorer* createSuperfluidFractionStorer(const json_t & j);
+
+
 class storerFactory : public abstractFactory<storer,std::string, storerCreatorFunc>
 {
 public:
@@ -76,6 +80,10 @@ public:
     registerType( ob_t::name()   , & (createStorer<ob_t> ) );
   }
 
+ 
+ 
+
+  
   auto create(const json_t & j)
   {
     std::vector<storer*> storers;
@@ -96,6 +104,14 @@ public:
 		
 	      }
 	  }
+	
+      }
+
+    centerOfMassStorer * cmptr = createSuperfluidFractionStorer(j);
+
+    if ( cmptr != NULL )
+      {
+	storers.push_back(cmptr);
       }
     
     return storers;
@@ -104,5 +120,7 @@ public:
  
   
 };
+
+
 
 

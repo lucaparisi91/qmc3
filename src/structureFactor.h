@@ -12,7 +12,7 @@ class structureFactor : public realVectorObservable
 public:
   structureFactor(const json_t & j) ;
   structureFactor(int setA,int setB,const vec_t & qs,int channel=1);
-  virtual const vec_t &  x() const override {return _qs;}
+  virtual const vec_t &  x() override {return _qs;}
   
   virtual std::vector<int> sets() const override {return {_setA,_setB}; };
   

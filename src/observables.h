@@ -38,7 +38,6 @@ public:
   
 };
 
-
 class realHistogramObservable : public observable<realHistogramAccumulator_t>
 {
 public:
@@ -47,24 +46,35 @@ public:
   
   static bool isScalar() {return false;}
   static std::string kind() {return "histogram";}
- 
+  
 };
-
-
 
 class realVectorObservable : public observable<realVectorAccumulator_t>
 {
 public:
   using vec_t = Eigen::VectorXd;
+
+  realVectorObservable(size_t size) : _size(size)
+  {
+    defaultx.resize(_size);
+    for (int i=0;i<size;i++)
+      {
+	defaultx[i]=i;
+      }
+    
+  }
   
   virtual void accumulate(walker_t & w,wavefunction_t & wavefunction,accumulator_t & acc)=0;
   virtual std::vector<int> sets() const  {return {}; }
   static bool isScalar() {return false;}
-  virtual const vec_t & x() const = 0 ;
+  virtual const vec_t & x() {return defaultx;}
+  
   static std::string kind() {return "vector";}
   
 private:
   real_t _size;
+  vec_t defaultx;
+  
   
 };
 

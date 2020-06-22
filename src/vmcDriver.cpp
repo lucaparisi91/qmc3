@@ -74,6 +74,7 @@ void vmcDriver::step()
 	else
 	  {
 	    accept=false;
+	    metropolisObj.recordAcceptance(false);
 	    
 	  }
 	if (!accept)

@@ -4,8 +4,12 @@
 #include "traits.h"
 #include <initializer_list>
 
+
 class wavefunction;
 class walker;
+class mappedOptimizationParameter;
+
+
 class productWavefunction
 {
 	/*
@@ -15,7 +19,8 @@ class productWavefunction
 public:
   
   using walker_t = walker;
-
+  using gradientParameter_t=std::vector<real_t>;
+  
   
   productWavefunction(){};
   
@@ -42,6 +47,11 @@ public:
   bool isComplex() {return isAtLeatOneComponentComplex;}
 
   bool satisfyConstraints(const walker_t & state);
+  
+  virtual void addGradientParameter(walker_t & w, const std::vector<std::vector< mappedOptimizationParameter> > & parameters,gradientParameter_t & grad  ) ;
+  
+  
+
   
 private:
   std::vector<wavefunction*> _logWaves;

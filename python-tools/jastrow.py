@@ -263,15 +263,6 @@ class jastrow_delta_phonons(jastrow):
 
 
 
-
-
-    
-
-
-
-    
-
-
         
 class jastrow_delta_bound_state_phonons(jastrow):
     inputParameters=["g","beta","cut_off"]
@@ -510,20 +501,38 @@ class hardSphere3BCluster(jastrow):
 
     
 class jastrowHardSphere(jastrow):
-    inputParameters=["a"]
+    inputParameters=["a","cut_off"]
+
     
-    def __init__(self,a=None):
+    def __init__(self,a=None,cut_off=None):
         jastrow.__init__(self)
         self.parameters["a"]=a
+        self.parameters["cut_off"]=cut_off
         
     def process(self):
-        pass
-    
+        a=self.parameters["a"]
+        R=self.parameters["cut_off"]
+        b_root=pi/(R-a)*0.9999
+        
+        k=self.find_root(a_root=1e-5,b_root=10)
+        self.parameters["k"]=k
+        
+        
+    def f_root(self,x):
+        a=self.parameters["a"]
+        R=self.parameters["cut_off"]
+        return x/tan(x*(R-a)) - 1/R
+    def __call__(self,x):
+        a=self.parameters["a"]
+        R=self.parameters["cut_off"]
+        k=self.parameters["k"]
+        
+        y=x*0
+        x1=x[x>a]
+        y[x>a]=R*np.sin(k*(x1-a) )/(x1 * sin(k*(R-a) ))
 
         
-
-
-
+        return y        
     
 registeredJastrows= {"squareWell" : "jastrowSquareWell","gaussian":"jastrowGaussian","dipolar_rep":"jastrowDipolar","delta_bound_state_phonons":"jastrow_delta_bound_state_phonons","delta_phonons": "jastrow_delta_phonons","poschTeller" : "jastrowPoschTeller","hardSphereGauss" : "hardSphere3BCluster","hardSphere" : "jastrowHardSphere" }
 

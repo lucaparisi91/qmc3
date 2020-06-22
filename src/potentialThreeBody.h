@@ -57,15 +57,6 @@ private:
 
 
 
-
-
-
-
-
-
-
-
-
 template<class functor_t>
 class potentialThreeBodyDis :  public potential
 {
@@ -91,8 +82,7 @@ public:
   {
     auto & disAB = w.getTableDistances().distances(setA,setB);
     auto & disBC = w.getTableDistances().distances(setB,setC);
-    auto & disAC = w.getTableDistances().distances(setA,setC);
-    
+    auto & disAC = w.getTableDistances().distances(setA,setC);   
     
   
     real_t sum=0;

@@ -14,8 +14,11 @@ public:
   real_t getAcceptanceRatio() const;
 
   void clear();
-
+  
   void accumulateMPI(int root);
+
+  void recordAcceptance(bool accept ) ;
+  
 private:
   std::uniform_real_distribution<real_t> uniformDis;
   size_t n;

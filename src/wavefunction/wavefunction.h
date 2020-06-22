@@ -30,6 +30,7 @@ public:
   
 };
 
+
 class wavefunction
 {
 	/*
@@ -67,11 +68,12 @@ public:
   
   void addConstraint(std::unique_ptr<constraint> newConstraint);
   
-  virtual void addGradientParameter(walker_t & w, optimizationParameter & parameter, iterator_t begin,iterator_t end ) {}
+  virtual void addGradientParameter(walker_t & w, const optimizationParameter & parameter, iterator_t begin,iterator_t end ) {}
   
-  virtual void addGradientParameter(walker_t & w, mappedOptimizationParameter & parameter, gradientParameter_t & grad );
+  virtual void addGradientParameter(walker_t & w, const mappedOptimizationParameter & parameter, gradientParameter_t & grad );
 
-  virtual void addGradientParameter(walker_t & w, std::vector<mappedOptimizationParameter> & parameters, gradientParameter_t & grad );
+  virtual void addGradientParameter(walker_t & w, const std::vector<mappedOptimizationParameter> & parameters, gradientParameter_t & grad );
+  
   
 private:
   const geometry_t * geo;

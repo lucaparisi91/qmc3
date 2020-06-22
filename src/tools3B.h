@@ -21,7 +21,6 @@
       }	      \
 } \
 
-
 #define LOOP3B_DIS( N1, N2 , N3,  BODY )		\
 { \
   int ij=0;  \

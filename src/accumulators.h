@@ -56,13 +56,21 @@ public:
     _sums.setConstant(0);
     ns.setConstant(0);
   }
+
+  void resize(size_t size)
+  {
+    _sums.resize(size);
+    ns.resize(size);
+  }
     
   void accumulate(value_t a, size_t i,real_t weight=1) {_sums[i]+=a;ns[i]+=weight;}
   
   vec_t average() const {return _sums/ns;}
 
   const vec_t & sums() const {return _sums;}
-  
+
+  const vec_t & weights() const {return ns;}
+
   size_t size(){return  _sums.size();}
 
   void clear()
@@ -130,7 +138,9 @@ public:
     
     pTools::sum(_sums,root);
     _weight=pTools::sum(_weight,root);
+
   }
+
   
   void writeAverage(std::ostream & o) const
   {
@@ -150,10 +160,6 @@ private:
   real_t deltax;
   real_t deltaxInverse;
 };
-
-
-
-
 
 
 

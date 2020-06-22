@@ -67,6 +67,7 @@ void dmcDriver::update(dmcWalker & wNew, dmcWalker & wOld)
   else
     {
       accepted=false;
+      accepter->recordAcceptance(false);
     }
 	  
   if (!accepted)

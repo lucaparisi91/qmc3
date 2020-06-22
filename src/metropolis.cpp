@@ -45,3 +45,11 @@ void metropolis::accumulateMPI(int root)
   nAccepted=pTools::sum(nAccepted,root);
 }
 
+void metropolis::recordAcceptance(bool accept)
+{
+  n+=1;
+  if (accept)
+    {
+      nAccepted+=1;
+    }
+}

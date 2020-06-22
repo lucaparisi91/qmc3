@@ -39,8 +39,7 @@ auto build_q_vector(int bins,double l_box,double qMax)
   
 }
 
-
-structureFactor::structureFactor(int setA,int setB,const structureFactor::vec_t & qs,int channel) : _setA(setA),_setB(setB),_qs(qs),_channel(channel)
+structureFactor::structureFactor(int setA,int setB,const structureFactor::vec_t & qs,int channel) : realVectorObservable::realVectorObservable(qs.size()),_setA(setA),_setB(setB),_qs(qs),_channel(channel)
 {
   
 }

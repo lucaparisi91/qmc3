@@ -10,6 +10,7 @@
 #include <fstream>     
 #include <memory>
 
+
 class productWavefunction;
 class walker;
 
@@ -120,6 +121,8 @@ public:
   realVectorEstimator(realVectorObservable * ob_,const json_t & j);
   
   virtual void write(std::ostream & stream) override;
+
+  
 private:
   
 };

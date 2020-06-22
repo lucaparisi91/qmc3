@@ -27,9 +27,7 @@ public:
   virtual std::vector<int> sets() const = 0 ;
 
 
-  virtual bool satisfyConstrains(const walker_t & w) {return true;}
-  
-  
+  virtual bool satisfyConstrains(const walker_t & w) {return true;}  
   
   
 private:
@@ -82,7 +80,6 @@ private:
 
 	real_t omega;
 };
-
 
 class emptyPotential :  public potential1b
 {

@@ -21,6 +21,8 @@ public:
   virtual void clear()=0;
 
   virtual void accumulateMPI(int root)=0;
+
+  virtual void recordAcceptance(bool accept)=0;
 };
 
 class noMetropolisPolicy : public acceptRejectPolicy
@@ -35,6 +37,9 @@ public:
   virtual real_t getAcceptanceRatio() const ;
   virtual void clear() {};
   virtual void accumulateMPI(int root) {};
+  virtual void recordAcceptance(bool accept) {metropolisSampler.recordAcceptance(accept);}
+  
+  
 private:
   metropolis metropolisSampler;
 };
@@ -53,7 +58,8 @@ public:
   virtual real_t getAcceptanceRatio() const ;
   virtual void clear() ;
   virtual void accumulateMPI(int root);
-
+  virtual void recordAcceptance(bool accept) {metropolisSampler.recordAcceptance(accept);}
+  
 private:
   metropolis metropolisSampler;
   

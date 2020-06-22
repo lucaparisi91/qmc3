@@ -5,7 +5,6 @@
 #include "accumulators.h"
 #include "qmcExceptions.h"
 
-
 class unImplementedStorer;
 template<class T>
 struct estimatorTraits
@@ -75,6 +74,34 @@ private:
 };
 
 
+
+class centerOfMassStorer : public storer
+{
+public:
+  
+  centerOfMassStorer(std::string label_, int recordSteps_,std::vector<int> sets_ );
+  
+  centerOfMassStorer(const json_t & j ) ;
+  
+  virtual void reset( walker_t & w );
+  
+  virtual void reserve(walker_t & w);
+  
+  virtual void store( walker_t & w, wavefunction_t & psi );
+
+  const auto & sets() {return _sets;}
+private:
+
+  void computeCenterOfMass(walker_t & w);
+  
+  int recordSteps;
+  std::vector<int> _sets;
+  std::vector<real_t> xcm;
+};
+
+
+
+
 class realScalarForwardWalkingEstimator : public estimator<realScalarAccumulator_t>
 {
 public:
@@ -114,7 +141,6 @@ private:
   realHistogramAccumulator_t tmpAcc;
 };
 
-
 class realHistogramForwardWalkingEstimator : public estimator<realHistogramAccumulator_t>
 {
 public:
@@ -126,11 +152,34 @@ public:
 
   virtual void write(std::ostream & w) override;
 private:
-
+  
   std::string targetLabel;
   int forwardWalkingSteps;
   
 };
+
+
+class superfluidFractionEstimator : public estimator<realVectorAccumulator_t>
+{
+public:
+  
+  superfluidFractionEstimator(std::string label,std::string targetLabel_, size_t size,int setA_, int setB_);
+  
+  superfluidFractionEstimator(const json_t & j);
+  
+  virtual void accumulate(walker_t & w,wavefunction_t & psi) override;
+  
+  virtual void write(std::ostream & w) override;
+  
+private:
+  
+  std::string targetLabel;
+  int setA;
+  int setB;
+  
+};
+
+
 
 
 #endif

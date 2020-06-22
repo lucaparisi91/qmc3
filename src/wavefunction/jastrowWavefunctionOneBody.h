@@ -30,8 +30,9 @@ public:
 	  return sum;
 	};
 
+
   
-  virtual void addGradientParameter(walker_t & w, optimizationParameter & parameter, iterator_t begin,iterator_t end )
+  virtual void addGradientParameter(walker_t & w, const optimizationParameter & parameter, iterator_t begin,iterator_t end )
   {
     auto & dis = w.getTableDistances().distances(setA);
     

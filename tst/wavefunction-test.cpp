@@ -312,3 +312,84 @@ TEST(measurementsTest,forwardWalkingCm2)
   EXPECT_EQ(w.getTimeIndex() , w2.getTimeIndex() )  ;
   
 }
+
+
+
+TEST(measurementsTest, superFluidFraction)
+{
+  
+  int N=10;
+  constexpr int D= getDimensions();
+  state_t particleData(N , D);
+  state_t gradient(N , D);
+  real_t alpha=1.;
+  
+  particleData.setRandom();
+
+  geometryPBC geo( 10., 10., 10.);
+
+
+  auto J=gaussianJastrow(alpha);
+  jastrowOneBodyWavefunction<gaussianJastrow> wave(J,geo,0);
+	
+  productWavefunction waveT;
+  waveT.add(&wave);
+  
+  real_t e=0 , ef=0 , waveValue =0;
+	
+  states_t states {particleData};
+	
+  walker w;
+  initializer::initialize(w,states,waveT);
+  std::string storerLabel="cmSuperfluidFraction";
+  
+  const int nStores = 234;
+  const int recordSteps= 10;
+  
+  Eigen::Array<real_t,Eigen::Dynamic,D> positions(nStores,D);
+  
+  positions.setConstant(0);
+  centerOfMassStorer storer(storerLabel,recordSteps,{0});
+  storer.reserve(w);
+
+  superfluidFractionEstimator sP("rho",storerLabel,recordSteps,0,0);
+  
+  for(int i=0;i<nStores;i++)
+    {
+      state_t particleData(N , D);
+      particleData.setRandom();
+      initializer::initialize(w,{particleData},waveT);
+      
+      for (int id=0;id<D;id++)
+	{
+	  real_t xcmd=0;
+
+	  for (int ii=0;ii<N;ii++)
+	    {
+	      xcmd+=particleData(ii,id);
+	    }
+	  
+	  positions(i,id)=xcmd;
+	}
+      
+      storer.store(w,waveT);
+      sP.accumulate(w,waveT);
+      
+    }
+  
+  auto & storedCorrelators = w.getStorageScalarCorrelators()[storerLabel];
+
+  const auto & i = w.getTimeIndex().at(storerLabel);
+  
+  auto j =  wrapIndex(i  -1 ,recordSteps ) ;
+
+  
+  std::cout << j << std::endl;
+  
+  for (int id=0;id<getDimensions();id++)
+    {
+      ASSERT_NEAR(positions(nStores-1,id) ,storedCorrelators(j*D + id) , 1e-4 );
+    }
+  
+  
+}

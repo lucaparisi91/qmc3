@@ -6,7 +6,6 @@
 #include "tools3B.h"
 #include "hardSphere.h"
 
-
 class hardSphereConstraintThreeBodyUnDis : public constraint
 
 {
@@ -20,6 +19,23 @@ private:
   int setA;
   hardSphere V;
 };
+
+
+class hardSphereConstraintThreeBodyDis : public constraint
+
+{
+public:
+  hardSphereConstraintThreeBodyDis(int setA_,int setB_,int setC_,real_t R0);
+
+  hardSphereConstraintThreeBodyDis(const json_t & j) ;
+  
+  virtual bool operator()(const walker_t & w) override;
+  
+private:
+  int setA,setB,setC;
+  hardSphere V;
+};
+
 
 
 template<class jastrow_t>
@@ -40,7 +56,6 @@ public:
 	     auto R0 = j["hardSphereRadius"].get<real_t>();
 	     
 	     addHardSphereConstraint( R0 );
-	     
 	   }
       
   }
@@ -149,15 +164,29 @@ public:
   
   jastrowThreeBodyWavefunctionDistinguishable(jastrow_t J_,const geometry_t  &geo_, int setA_,int setB_,int setC_) : setA(setA_),setB(setB_),setC(setC_),J(J_),wavefunction::wavefunction(geo_)
   {
+    
     if ( (setA == setB) or (setB == setC) or (setA == setC) )
       {
 	throw invalidInput("Sets in three body wavefunction should be distinguishible");
       }
+
+
   }
 
   
-  jastrowThreeBodyWavefunctionDistinguishable(const json_t & j,const geometry_t & geo ) : jastrowThreeBodyWavefunctionDistinguishable( jastrow_t(j["jastrow"]), geo,j["sets"][0] ,j["sets"][1] , j["sets"][2] ) {}
+  jastrowThreeBodyWavefunctionDistinguishable(const json_t & j,const geometry_t & geo ) : jastrowThreeBodyWavefunctionDistinguishable( jastrow_t(j["jastrow"]), geo,j["sets"][0] ,j["sets"][1] , j["sets"][2] )
+  {
+        if ( j.contains("hardSphereRadius") )
+	   {
+	     auto R0 = j["hardSphereRadius"].get<real_t>();
+	     
+	     addHardSphereConstraint( R0 );
+	     
+	   }
+	
+  }
 
+  
   virtual real_t operator()(const walker_t & walker)
   {
     auto & disAB = walker.getTableDistances().distances(setA,setB);
@@ -189,7 +218,7 @@ public:
   }
 
   
-  virtual std::vector<int> sets() const {return {setA,setA} ;}
+  virtual std::vector<int> sets() const {return {setA,setB,setC} ;}
   
   virtual void accumulateDerivatives( walker_t & walker ) override
   {
@@ -253,12 +282,20 @@ public:
 	   )
   }
   
-  static std::string name()   {return "jastrow3bUnDis/" + jastrow_t::name();}
+  static std::string name()   {return "jastrow3bDis/" + jastrow_t::name();}
   
   virtual std::string print() const override {
     
     return J.print(0,getGeometry().getLBox(0)/2. , 10000)
-      ;}  
+      ;}
+
+  
+  void addHardSphereConstraint(real_t R0)
+  {
+    this->addConstraint(  std::make_unique<hardSphereConstraintThreeBodyDis>(  hardSphereConstraintThreeBodyDis(setA,setB,setC,R0) ) );
+  }
+
+
   
 private:
   int setA ;

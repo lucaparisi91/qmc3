@@ -15,12 +15,17 @@ jastrowHardSphereGauss::jastrowHardSphereGauss(const json_t & j) : jastrowHardSp
   
 };
 
-jastrowHardSphere::jastrowHardSphere(real_t a_) : a(a_)
+jastrowHardSphere::jastrowHardSphere(real_t a_,real_t k_,real_t cutOff_) :
+  a(a_),
+  k(k_),
+  cutOff(cutOff_)
 {
+  A=cutOff/sin(k*(cutOff-a));
   
 };
 
-jastrowHardSphere::jastrowHardSphere(const json_t & j) : jastrowHardSphere(j["a"].get<real_t>() )
+
+jastrowHardSphere::jastrowHardSphere(const json_t & j) : jastrowHardSphere(j["a"].get<real_t>() , j["k"].get<real_t>(), j["cut_off"].get<real_t>()  )
 {
   
 };

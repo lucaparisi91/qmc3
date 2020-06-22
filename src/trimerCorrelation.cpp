@@ -141,3 +141,87 @@ void trimerCorrelationUnDis::setNormalizationFactor(const walker_t & w , const w
   
   
 }
+
+
+
+
+
+
+
+
+
+
+
+
+void trimerCorrelationDis::accumulate(walker_t & w,wavefunction_t & wavefunction,accumulator_t & acc)
+{
+
+  setNormalizationFactor(w,wavefunction,acc);
+
+  real_t sum=0;
+
+  const int NA = getN(w.getStates()[setA]);
+  const int NB = getN(w.getStates()[setB]);
+  const int NC = getN(w.getStates()[setC]);
+
+  const auto & disAB = w.getTableDistances().distances(setA,setB);
+  const auto & disBC = w.getTableDistances().distances(setB,setC);
+  const auto & disAC = w.getTableDistances().distances(setA,setC);
+  
+    
+  LOOP3B_DIS( NA, NB,NC , 
+	      
+	      auto rij = disAB(ij);	
+	      auto rjk = disBC(jk);	
+	      auto rik = disAC(ik);
+	    
+	      auto radius= sqrt(rij*rij + rik*rik + rjk*rjk);
+
+	      if ( radius < acc.maxx() )
+		{
+#if DIMENSIONS == 1
+		  acc.accumulate(_normalizationFactor,radius);
+#endif
+#if DIMENSIONS == 3
+	      
+		  acc.accumulate(_normalizationFactor/(radius*radius),radius);
+#endif
+		}
+	    
+	    
+	      )
+      
+    acc.weight()+=1;
+}
+
+
+trimerCorrelationDis::trimerCorrelationDis(int setA_,int setB_,int setC_) : setA(setA_),setB(setB_),setC(setC_) , _normalizationFactor(0)
+{
+  assert( (setA != setB) and (setB != setC) );
+}
+
+trimerCorrelationDis::trimerCorrelationDis(const json_t & j) : trimerCorrelationDis(j["sets"][0].get<int>() ,j["sets"][1].get<int>() ,j["sets"][2].get<int>() )
+{
+  
+}
+
+
+void trimerCorrelationDis::setNormalizationFactor(const walker_t & w , const wavefunction_t & psi ,const trimerCorrelationDis::accumulator_t & acc) 
+{
+  auto lBox = psi.getGeometry().getLBox(0);
+  auto dx = acc.stepSize();
+  auto  NA = getN(w.getStates()[setA]);
+  auto  NB = getN(w.getStates()[setB]);
+  auto  NC = getN(w.getStates()[setC]);
+  
+  
+#if DIMENSIONS == 3
+  _normalizationFactor=1/(dx*4*M_PI*NA*NB*NC);
+#endif
+
+#if DIMENSIONS == 1
+  _normalizationFactor=std::pow(lBox,1)/(dx*NA*NB*NC*2);   
+#endif
+  
+  
+}

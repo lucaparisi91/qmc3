@@ -80,3 +80,12 @@ bool productWavefunction::satisfyConstraints(const walker_t & state)
   
   return true;
 }
+
+
+void productWavefunction::addGradientParameter(walker_t & w, const std::vector<std::vector< mappedOptimizationParameter> > & parameters,gradientParameter_t & grad  )
+{
+  for (int i=0;i<_logWaves.size();i++)
+    {
+      _logWaves[i]->addGradientParameter(w,parameters[i],grad);
+    }
+}

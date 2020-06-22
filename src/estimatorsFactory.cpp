@@ -1,4 +1,6 @@
 #include "estimatorsFactory.h"
+#include "correlationEstimator.h"
+
 
 realHistogramEstimator* createEstimatorFromOb(realHistogramObservable * ob,const json_t & j)
 {
@@ -74,6 +76,43 @@ std::vector<estimatorBase*> estimatorFactory:: create(const json_t & j)
 
 	   
 	    
+	  }
+	else if (id == "superfluidFraction" )
+	  {
+	    json_t j2(estJson);
+	    
+	    auto cmStorer = createSuperfluidFractionStorer(j);
+	    const auto & storedSets = cmStorer->sets();
+	    std::vector<int> sfSets = j2["sets"].get<std::vector<int> >();
+	    
+	    if (sfSets.size() != 2)
+	      {
+		throw invalidInput("Superfluid fraction should have two sets");
+	      }
+	    int index0,index1;
+	    {
+	    
+	      auto it0 = std::find(storedSets.begin() ,storedSets.end() , sfSets[0] );
+	      index0=std::distance(storedSets.begin(), it0);
+
+	      auto it1 = std::find(storedSets.begin() ,storedSets.end() , sfSets[1] );
+	      index1=std::distance(storedSets.begin(), it1);
+	      
+	    }
+
+	    if ( (index0 > storedSets.size()) or (index1 > storedSets.size()) )
+	      {
+		throw invalidInput("Superfluid states not stored. This is a bug.");
+	      }
+	    
+	    j2["sets"]={index0,index1};
+	    
+	    
+	    j2["targetLabel"]="superfluidFractionObservables";
+	    
+	    estimators.push_back(new superfluidFractionEstimator(j2) );
+	    
+
 	  }
 	else
 	  {
