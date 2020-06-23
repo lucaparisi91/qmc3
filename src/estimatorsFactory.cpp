@@ -112,7 +112,7 @@ std::vector<estimatorBase*> estimatorFactory:: create(const json_t & j)
 	    
 	    estimators.push_back(new superfluidFractionEstimator(j2) );
 	    
-
+	    
 	  }
 	else
 	  {

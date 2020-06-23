@@ -56,11 +56,13 @@ public:
     _sums.setConstant(0);
     ns.setConstant(0);
   }
-
-  void resize(size_t size)
+  
+  void resize(size_t size, T val = 0)
   {
     _sums.resize(size);
     ns.resize(size);
+    _sums.setConstant(val);
+    ns.setConstant(val);
   }
     
   void accumulate(value_t a, size_t i,real_t weight=1) {_sums[i]+=a;ns[i]+=weight;}

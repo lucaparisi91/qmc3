@@ -2,7 +2,6 @@
 #include "walkers.h"
 #include "tools.h"
 
-
 realScalarStorer::realScalarStorer(std::string label_,realScalarObservable * ob_, int recordSteps_) : ob(ob_),recordSteps(recordSteps_),storer::storer(label_) {}
 
 
@@ -206,10 +205,10 @@ centerOfMassStorer::centerOfMassStorer(const json_t & j) :
   
 }
 
-
 void centerOfMassStorer::reserve(walker_t & w)
 {
-  w.getStorageScalarCorrelators()[getLabel()].resize(recordSteps*xcm.size()  );
+  w.getStorageScalarCorrelators()[getLabel()].resize(recordSteps*xcm.size() );
+  w.getStorageScalarCorrelators()[getLabel()].setConstant(0);
   w.getTimeIndex()[getLabel()]=0.;
   w.getFillingStatus()[getLabel()]=true;
 }
