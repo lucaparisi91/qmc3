@@ -539,15 +539,21 @@ class jastrowHardSphere(jastrow):
 class splineJastrow (jastrow):
 
     inputParameters=["y","stepSize"]
-
-    def __init__(self,x=None,y=None,bins=None,derivativeRight=0):
+    
+    def __init__(self,x=None,y=None,bins=None,derivativeRight=0,derivativeLeft=0):
         jastrow.__init__(self)
         self.parameters["y"]=y
         self.parameters["x"]=x
         self.parameters["bins"]=bins
         self.parameters["derivativeRight"]=derivativeRight
+        self.parameters["derivativeLeft"]=derivativeLeft
+        
+        
+
         self.A = np.array( [ 1/6. , 2./3 , 1./6 , 0 , -0.5 , 0 , 0.5 , 0 , 0.5, -1 , 0.5 , 0 , -1./6 , 0.5 , -0.5 , 1./6 ] ).reshape(4,4).transpose()
 
+        self.Ad1 =np.array( [  -0.5 , 1 , -0.5 , 0 , 0 , -2 , 3./2, 0, 0.5 , 1 , -3./2 , 0, 0, 0 , 0.5 , 0 ]).reshape(4,4);
+        
         
     def process(self):
         x=self.parameters["x"]
@@ -560,38 +566,135 @@ class splineJastrow (jastrow):
 
         t=np.arange(0,len(x))* max(x)/(len(x)-1)
         t=np.concatenate( [ [0,0,0] , t , [max(x),max(x),max(x)]] )
+
         
-        
-        self.bSpline=interpolate.make_interp_spline(x,y,k=3,bc_type=( [(1,0.0)] , [(1,dR)] ) ,t=t)
+        self.bSpline=interpolate.make_interp_spline(x,y,k=3,bc_type=( [(1,0.0)] , [(1,dR)] ) )
+
+        self.bSplineDer=self.bSpline.derivative()
 
         self.parameters["stepSize"]=stepSize;
-        self.parameters["coefficients"]=self.bSpline.c
+        self.parameters["coefficients"]=list(self.bSpline.c)
         
-        self.parameters["longDistanceConstant"]=float( self.bSpline(max(x)) )
+        
+        
+        self.bins=len(self.parameters["coefficients"]) - 3
 
+        self.parameters["valueLeft"]=float(self.bSpline(0))
+        self.parameters["valueRight"]=float(self.bSpline(max(x) ))
+
+        
+        self.setBoundaryDerivatives(self.parameters["derivativeLeft"],self.parameters["derivativeRight"])
+
+    
+        self.parameters["x"]=list(self.parameters["x"])
+        self.parameters["y"]=list(self.parameters["y"])
+
+        
+        
+        
         
         return self
-    def __call__(self,x,method="spline"):
+    def __call__(self,x,method="spline",der=0):
 
         if method == "spline":
-            
-            return self.bSpline(x);
+            if der==0:
+                return self.bSpline(x);
+            else:
+                if der==1:
+                    return self.bSplineDer(x)
         else:
             if method=="test":
-                y = [ self.testEvaluate(x0) for x0 in x ]
+                y = [ self.testEvaluate(x0,der=der) for x0 in x ]
                 return np.array(y)
         
-    
-    def testEvaluate(self,x):
+        
+    def setBoundaryRight(self,derR):
+        h=self.parameters["stepSize"]   ;
+        i=self.bins - 1
+        x=np.max(self.parameters["x"])/h -i
+        longDistanceConstant=self.parameters["valueRight"]
+        
+
+        
+        alpha = self.parameters["coefficients"];
+        X=np.array([1,x,x**2,x**3])
+        Alpha = alpha[i:i+4]
+
+        # conditions on the derivative
+        A=self.Ad1
+        
+        X1= np.matmul(self.A,X)
+        X1p=np.matmul(self.Ad1,X)
+
+        D = longDistanceConstant - Alpha[0]*X1[0] - Alpha[1]*X1[1]
+        R = derR*h - Alpha[0]*X1p[0] - Alpha[1]*X1p[1]
+        r=X1[3]/X1p[3]
+
+        
+        
+        alpha2 = ( D - R *r )/(X1[2] - X1p[2]*r)
+
+        
+        alpha3= (D - alpha2*X1[2])/X1[3]
+
+        
+        
+        
+        self.parameters["coefficients"][i+3]=alpha3
+        self.parameters["coefficients"][i+2]=alpha2
+
+    def setBoundaryLeft(self,derL):
+        h=self.parameters["stepSize"]   ;
+        i=0
+        x=0
+        
+        alpha = self.parameters["coefficients"];
+        X=np.array([1,x,x**2,x**3])
+        Alpha = alpha[i:i+4]
+
+        # conditions on the derivative
+        A=self.Ad1
+        
+        X1= np.matmul(self.A,X)
+        X1p=np.matmul(self.Ad1,X)
+
+        D = self.bSpline(x) - Alpha[2]*X1[2] - Alpha[3]*X1[3]
+        L = derL*h - Alpha[2]*X1p[2] - Alpha[3]*X1p[3]        
+
+        
+        alpha0 = ( D*X1p[1] - L *X1[1] )/(X1[0]*X1p[1] - X1p[0]*X1[1])
+        
+        
+        alpha1= (D - alpha0*X1[0])/X1[1]
+
+        #print (X1)
+        #print (X1p)
+        
+        self.parameters["coefficients"][i+1]=alpha1
+        self.parameters["coefficients"][i]=alpha0
+
+    def setBoundaryDerivatives(self,derL,derR):
+        self.setBoundaryLeft(derL)
+        self.setBoundaryRight(derR)
+        
+        
+        
+            
+    def testEvaluate(self,x,der=0):
         h=self.parameters["stepSize"]   ;
         i=floor(x/h)
         x=x/h -i
         alpha = self.parameters["coefficients"];
         X=np.array([1,x,x**2,x**3])
-        
         Alpha = alpha[i:i+4]
-        
-        return np.dot ( Alpha,    np.matmul(self.A,X) )
+
+        if der == 0:
+            A=self.A
+        else:
+            if der == 1:
+                A=self.Ad1
+    
+        return np.dot ( Alpha,    np.matmul(A,X) )/h**(der)
         
         
         

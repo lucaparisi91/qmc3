@@ -19,6 +19,8 @@
 #include "wavefunction/jastrows/jastrowSquareWell.h"
 #include "wavefunction/jastrows/jastrow_delta.h"
 #include "wavefunction/jastrows/jastrowPoschTeller.h"
+#include "wavefunction/jastrows/jastrowSpline.h"
+
 #include "ptools.h"
 #include "pairCorrelation.h"
 #include "centerOfMassSquared.h"
@@ -182,6 +184,7 @@ int main(int argc, char** argv)
   getFactory().registerJastrow< jastrowPoschTeller >();
   getFactory().registerJastrow< jastrowHardSphereGauss >();
   getFactory().registerJastrow< jastrowHardSphere>();
+  getFactory().registerJastrow< jastrowSpline>();
 
   
   #if DIMENSIONS == 3

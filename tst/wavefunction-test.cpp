@@ -382,9 +382,9 @@ TEST(measurementsTest, superFluidFraction)
   const auto & i = w.getTimeIndex().at(storerLabel);
   
   auto j =  wrapIndex(i  -1 ,recordSteps ) ;
-
   
-  std::cout << j << std::endl;
+  //std::cout << j << std::endl;
+
   
   for (int id=0;id<getDimensions();id++)
     {

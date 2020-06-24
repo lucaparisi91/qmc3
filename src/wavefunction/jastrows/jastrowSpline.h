@@ -5,12 +5,12 @@ class jastrowSpline : public  jastrow<jastrowSpline>
 public:
   jastrowSpline(const json_t & j);
   
-  jastrowSpline(Eigen::ArrayXd coefficients_,real_t stepSize_,real_t longDistanceConstant);
+  jastrowSpline(Eigen::ArrayXd coefficients_,real_t stepSize_,real_t valueRight_,real_t derivativeRight=0);
   
   void evaluateDerivatives(real_t x, real_t & d0, real_t & d1, real_t & d2) ;
-  
-  static std::string name() {return "bSpline"; }
 
+  real_t d0(real_t x);
+  static std::string name() {return "bSpline"; }
   
 private:
   
@@ -34,7 +34,9 @@ private:
   const Eigen::Matrix4d Ad1;
   const Eigen::Matrix4d Ad2;
   
-  real_t longDistanceConstant;
+  real_t valueRight;
   real_t cutOff;
   real_t inverseStepSize;
+  real_t derivativeRight;
+  
 };
