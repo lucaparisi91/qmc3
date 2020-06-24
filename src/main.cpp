@@ -59,6 +59,21 @@ auto   find( json_t & j,std::string key,const T & value)
 }
 
 
+bool containSuperfluidFractionMeasurements( json_t & j)
+{
+  if ( find(j["measurements"] , "kind" , "superfluidFraction" ) != j["measurements"].end() )
+	   {
+	     return true;
+	   }
+  else
+    {
+      return false;
+    }
+}
+
+
+
+
 auto generateRandomInitialConditions(const std::vector<int> Ns, const std::vector<real_t> & lBoxInitialCondition)
 {
   states_t states;
@@ -247,6 +262,11 @@ int main(int argc, char** argv)
   auto m2= new realScalarEstimator("forceEnergy",efO);
   
   std::string method = j["method"];
+
+  if ( method == "vmc" and containSuperfluidFractionMeasurements(j) )
+    {
+      throw invalidInput("Cannot have vmc and superfluid fraction measurements");
+    }
 
   real_t timeStep = j["timeStep"];
   size_t stepsPerBlock = j["stepsPerBlock"];

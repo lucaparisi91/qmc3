@@ -138,7 +138,7 @@ public:
   
   static std::string name()   {return "jastrow3bUnDis/" + jastrow_t::name();}
   
-  virtual std::string print() const override {
+  virtual std::string print()  override {
     
     return J.print(0,getGeometry().getLBox(0)/2. , 10000)
       ;}  
@@ -284,7 +284,7 @@ public:
   
   static std::string name()   {return "jastrow3bDis/" + jastrow_t::name();}
   
-  virtual std::string print() const override {
+  virtual std::string print()  override {
     
     return J.print(0,getGeometry().getLBox(0)/2. , 10000)
       ;}

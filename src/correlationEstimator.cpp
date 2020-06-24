@@ -276,7 +276,7 @@ superfluidFractionEstimator::superfluidFractionEstimator(std::string label,std::
   setB(setB_)
 {
   getAccumulator().resize(size);
-
+  
   std::ifstream of;
   of.open(getFileName());
   if (is_empty(of) & pTools::rank() == 0 )
@@ -321,8 +321,10 @@ void superfluidFractionEstimator::write(std::ostream & stream)
 
 void superfluidFractionEstimator::accumulate(walker_t & w,wavefunction_t & psi)
   {
+    
     const auto & i = w.getTimeIndex().at(targetLabel);
 
+    
     auto & acc=getAccumulator();
     
     const Eigen::ArrayXd & data=w.getStorageScalarCorrelators().at(targetLabel );

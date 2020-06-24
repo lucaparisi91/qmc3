@@ -7,7 +7,6 @@
 #include <nlohmann/json.hpp>
 #include "parameters.h"
 
-
 template<class T>
 class jastrow
 {
@@ -20,9 +19,10 @@ public:
   using gradient_t = std::vector<real_t>;
   
   using iterator_t = decltype( std::declval<gradient_t>().begin()  );
+
   
   
-  void evaluateDerivatives(real_t x, real_t & d0_,real_t & d1_, real_t & d2_) const {d0_=static_cast<const T*>(this)->d0(x);d1_=static_cast<const T*>(this)->d1(x);d2_=static_cast<const T*>(this)->d2(x);}
+  void evaluateDerivatives(real_t x, real_t & d0_,real_t & d1_, real_t & d2_) {d0_=static_cast<const T*>(this)->d0(x);d1_=static_cast<const T*>(this)->d1(x);d2_=static_cast<const T*>(this)->d2(x);}
   
   void addGradientParameter(real_t x, const optimizationParameter & param, iterator_t begin, iterator_t end ) {throw missingImplementation("Jastrow does not seem to support any parameter gradient.");} ;
 
@@ -34,7 +34,7 @@ public:
 
   int nParameters() {return 0;}
   
-  std::string print(real_t minx,real_t maxx,size_t n)   const
+  std::string print(real_t minx,real_t maxx,size_t n)   
   {
     std::stringstream ss;
     assert(n>=1);
@@ -46,7 +46,7 @@ public:
       {
 	real_t x = minx +  (i+0.5)*deltax;
 	
-	static_cast<const T*>(this)->evaluateDerivatives(x,d0,d1,d2);
+	static_cast<T*>(this)->evaluateDerivatives(x,d0,d1,d2);
 	
 	ss << x << " " <<  d0 << " " << d1 << " "<< d2 << std::endl ;
 	
@@ -66,6 +66,7 @@ protected:
   
 };
 
+
 class gaussianJastrow : public jastrow<gaussianJastrow>
 {
 	// J(x) = -alpha* x^2 
@@ -73,6 +74,7 @@ public:
   using jastrow<gaussianJastrow>::addGradientParameter;
   
   int nParameters() {return 1;}; // number of variational parameters supported
+
   
   gaussianJastrow(real_t alpha_) : alpha(alpha_){};
   gaussianJastrow(const nlohmann::json  & j)
@@ -92,9 +94,8 @@ public:
       {
 	(*begin)-=x*x;
       }
-
+    
   }
-  
 	
 private:
   real_t alpha;

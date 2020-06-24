@@ -6,6 +6,7 @@ from math import *
 from scipy import optimize
 import myExceptions
 import scipy
+from scipy import interpolate
 
 class jastrow:
     def process(self):
@@ -533,7 +534,73 @@ class jastrowHardSphere(jastrow):
 
         
         return y        
+
+
+class splineJastrow (jastrow):
+
+    inputParameters=["y","stepSize"]
+
+    def __init__(self,x=None,y=None,bins=None,derivativeRight=0):
+        jastrow.__init__(self)
+        self.parameters["y"]=y
+        self.parameters["x"]=x
+        self.parameters["bins"]=bins
+        self.parameters["derivativeRight"]=derivativeRight
+        self.A = np.array( [ 1/6. , 2./3 , 1./6 , 0 , -0.5 , 0 , 0.5 , 0 , 0.5, -1 , 0.5 , 0 , -1./6 , 0.5 , -0.5 , 1./6 ] ).reshape(4,4).transpose()
+
+        
+    def process(self):
+        x=self.parameters["x"]
+        y=self.parameters["y"]
+        bins=len(y)-1
+        dR=self.parameters["derivativeRight"]
+        
+        stepSize=max(x)/bins
+        
+
+        t=np.arange(0,len(x))* max(x)/(len(x)-1)
+        t=np.concatenate( [ [0,0,0] , t , [max(x),max(x),max(x)]] )
+        
+        
+        self.bSpline=interpolate.make_interp_spline(x,y,k=3,bc_type=( [(1,0.0)] , [(1,dR)] ) ,t=t)
+
+        self.parameters["stepSize"]=stepSize;
+        self.parameters["coefficients"]=self.bSpline.c
+        
+        self.parameters["longDistanceConstant"]=float( self.bSpline(max(x)) )
+
+        
+        return self
+    def __call__(self,x,method="spline"):
+
+        if method == "spline":
+            
+            return self.bSpline(x);
+        else:
+            if method=="test":
+                y = [ self.testEvaluate(x0) for x0 in x ]
+                return np.array(y)
+        
     
+    def testEvaluate(self,x):
+        h=self.parameters["stepSize"]   ;
+        i=floor(x/h)
+        x=x/h -i
+        alpha = self.parameters["coefficients"];
+        X=np.array([1,x,x**2,x**3])
+        
+        Alpha = alpha[i:i+4]
+        
+        return np.dot ( Alpha,    np.matmul(self.A,X) )
+        
+        
+        
+        
+    
+        
+        
+
+        
 registeredJastrows= {"squareWell" : "jastrowSquareWell","gaussian":"jastrowGaussian","dipolar_rep":"jastrowDipolar","delta_bound_state_phonons":"jastrow_delta_bound_state_phonons","delta_phonons": "jastrow_delta_phonons","poschTeller" : "jastrowPoschTeller","hardSphereGauss" : "hardSphere3BCluster","hardSphere" : "jastrowHardSphere" }
 
 

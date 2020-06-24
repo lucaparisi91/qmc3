@@ -108,9 +108,10 @@ public:
       }
 
     centerOfMassStorer * cmptr = createSuperfluidFractionStorer(j);
-
+    
     if ( cmptr != NULL )
       {
+	
 	storers.push_back(cmptr);
       }
     

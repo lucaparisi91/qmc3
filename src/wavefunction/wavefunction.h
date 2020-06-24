@@ -61,7 +61,7 @@ public:
   
   void setGeometry(const geometry_t & geo_) {geo=&geo_;}
   
-  virtual std::string print() const {return "";};
+  virtual std::string print()  {return "";};
 
   
   virtual bool satisfyConstraints(const walker_t & state);
