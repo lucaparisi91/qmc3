@@ -26,7 +26,7 @@ bool is_empty(std::ifstream& pFile)
 
 json_t toJson(const states_t & states)
 {
-  json_t jO=json_t::array({});
+  json_t jO;
   
   for (int j=0;j<states.size();j++)
     {
@@ -52,7 +52,7 @@ json_t toJson(const states_t & states)
   return jO;
 }
 
-std::vector<states_t> readStates(json_t & jI)
+std::vector<states_t> readStates(const json_t & jI)
 {
   std::vector<states_t> states;
   states.resize(jI.size());
@@ -141,15 +141,15 @@ std::vector<states_t> readStatesFromDirectory(std::string dirname)
   
   for (int i=nLocalStates*pTools::rank() ; i< (nLocalStates*(pTools::rank() + 1) );++i)
     {
-      auto & jI=allStatesJ[i];
+      const auto & jI=allStatesJ[i];
       auto localStates = readStates(jI["configurations"]);
       states.insert( states.end(), localStates.begin(), localStates.end() );
     };
-
+  
   if (pTools::rank() < (allStatesJ.size() % pTools::nProcesses() ) )
     {
       int i=nLocalStates * pTools::nProcesses() + pTools::rank();
-      auto & jI=allStatesJ[i];
+      const auto & jI=allStatesJ[i];
       auto localStates = readStates(jI["configurations"]);
       states.insert( states.end(), localStates.begin(), localStates.end() );
     }

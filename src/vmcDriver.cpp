@@ -143,7 +143,8 @@ void configurationsSaver::dump(const walker & w, int i)
   
   f.open(baseDir + "/configurations-Rank" + std::to_string(pId) + ".json");
   json_t jConfs;
-  jConfs["configurations"]=json_t::array({});
+  jConfs["configurations"]=json_t();
+  
   
   for (const auto & jConf : jSonConfigurations )
     {

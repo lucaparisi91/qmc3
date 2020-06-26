@@ -8,7 +8,7 @@ trimerhyperRadius::trimerhyperRadius(int setA_,int setB_,int setC_) : setA(setA_
   
 }
 
-trimerhyperRadius::trimerhyperRadius(const json_t & j) : trimerhyperRadius(j["sets"][0],j["sets"][1],j["sets"][2])
+trimerhyperRadius::trimerhyperRadius(const json_t & j) : trimerhyperRadius(j["sets"][0].get<int>(),j["sets"][1].get<int>(),j["sets"][2].get<int>())
 {
   
   

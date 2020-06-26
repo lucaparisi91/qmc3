@@ -49,7 +49,7 @@ public:
   }
 
   
-  jastrowThreeBodyWavefunctionUnDistinguishable(const json_t & j,const geometry_t & geo ) : jastrowThreeBodyWavefunctionUnDistinguishable( jastrow_t(j["jastrow"]), geo,j["sets"][0]  )
+  jastrowThreeBodyWavefunctionUnDistinguishable(const json_t & j,const geometry_t & geo ) : jastrowThreeBodyWavefunctionUnDistinguishable( jastrow_t(j["jastrow"]), geo,j["sets"][0].get<int>()  )
   {
     if ( j.contains("hardSphereRadius") )
 	   {
@@ -174,7 +174,7 @@ public:
   }
 
   
-  jastrowThreeBodyWavefunctionDistinguishable(const json_t & j,const geometry_t & geo ) : jastrowThreeBodyWavefunctionDistinguishable( jastrow_t(j["jastrow"]), geo,j["sets"][0] ,j["sets"][1] , j["sets"][2] )
+  jastrowThreeBodyWavefunctionDistinguishable(const json_t & j,const geometry_t & geo ) : jastrowThreeBodyWavefunctionDistinguishable( jastrow_t(j["jastrow"]), geo,j["sets"][0].get<int>() ,j["sets"][1].get<int>() , j["sets"][2].get<int>() )
   {
         if ( j.contains("hardSphereRadius") )
 	   {

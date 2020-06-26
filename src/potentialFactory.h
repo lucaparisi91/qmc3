@@ -42,7 +42,7 @@ public:
   {
     std::vector<potential*> potentials;
     
-    for (auto & potJson : j )
+    for (const auto & potJson : j )
       {
 	std::string id = createId(potJson);
 	potentials.push_back( abstractFactory_t::create(id,potJson,geo));

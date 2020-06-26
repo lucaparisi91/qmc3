@@ -4,10 +4,10 @@
 #include "wavefunction/jastrows/jastrowSpline.h"
 #include <vector>
 
+
 TEST(jastrowTest,jastrowSplineGaussian)
 {
   Eigen::ArrayXd coefficients(102);
-
   
   coefficients << -6.80202700e-05,  3.40101350e-05, -6.80202700e-05, -3.74111485e-04,
         -8.84263511e-04, -1.59847635e-03, -2.51674999e-03, -3.63908445e-03,
@@ -36,6 +36,7 @@ TEST(jastrowTest,jastrowSplineGaussian)
         -9.20790396e-01, -9.40278203e-01, -9.59970071e-01, -9.79866000e-01,
     -9.99965990e-01, -1.02027004e+00;
 
+  
   
   real_t stepSize=0.010101010101010102;
   

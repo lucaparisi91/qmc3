@@ -14,7 +14,7 @@ public:
 
   
   potentialTwoBody(const json_t & j, const geometry_t & geo) :
-    potentialTwoBody(functor_t(j["functor"]),j["sets"][0],j["sets"][1],geo)
+    potentialTwoBody(functor_t(j["functor"]),j["sets"][0].get<int>(),j["sets"][1].get<int>(),geo)
   {
     
   }

@@ -40,16 +40,16 @@ std::vector<estimatorBase*> estimatorFactory:: create(const json_t & j)
   {
     std::vector<estimatorBase*> estimators;
     
-    for (auto & estJson : j )
+    for (const auto & estJson : j )
       {
 
-	std::string id = estJson["kind"];
+	std::string id = estJson["kind"].get<std::string>();
 	
 	if (   estJson.find("forwardWalkingSteps") != estJson.end() )
 	  {
 	    int i=0;
 	    
-	    for ( auto &   fwStepJ : estJson["forwardWalkingSteps"]  )
+	    for ( const auto &   fwStepJ : estJson["forwardWalkingSteps"]  )
 	      {
 		json_t jFW = estJson;
 		int steps = fwStepJ.get<int>();
@@ -104,8 +104,9 @@ std::vector<estimatorBase*> estimatorFactory:: create(const json_t & j)
 	      {
 		throw invalidInput("Superfluid states not stored. This is a bug.");
 	      }
-	    
-	    j2["sets"]={index0,index1};
+
+	    std::vector<int> indices = {index0,index1};
+	    j2["sets"]=indices;
 	    
 	    
 	    j2["targetLabel"]="superfluidFractionObservables";

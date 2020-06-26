@@ -14,7 +14,7 @@ public:
   potentialThreeBodyUnDis( const functor_t & V_,int setA_,const geometry_t & geo) : potential(geo),V(V_),setA(setA_){};
   
   potentialThreeBodyUnDis(const json_t & j, const geometry_t & geo) :
-    potentialThreeBodyUnDis(functor_t(j["functor"]),j["sets"][0],geo)
+    potentialThreeBodyUnDis(functor_t(j["functor"]),j["sets"][0].get<int>(),geo)
   {
     
   }
@@ -70,9 +70,10 @@ public:
 	throw invalidInput("Sets in three body wavefunction should be distinguishible");
       }
   };
+
   
   potentialThreeBodyDis(const json_t & j, const geometry_t & geo) :
-    potentialThreeBodyDis(functor_t(j["functor"]),j["sets"][0],j["sets"][1],j["sets"][2],geo)
+    potentialThreeBodyDis(functor_t(j["functor"]),j["sets"][0].get<int>(),j["sets"][1].get<int>(),j["sets"][2].get<int>(),geo)
   {
     
   }

@@ -30,7 +30,7 @@ public:
   {
     std::vector<wavefunction*> waves;
 
-    for (auto & waveJson : j )
+    for (const auto & waveJson : j )
       {
       
     

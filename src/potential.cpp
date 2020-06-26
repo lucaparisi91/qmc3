@@ -46,11 +46,11 @@ real_t sumPotentials::operator()(const walker_t & state )
   return sum;
 }
 
-harmonicPotential::harmonicPotential(const json_t & j, const geometry_t & geo) : harmonicPotential(geo, j["omega"], j["set"] ) {};
+harmonicPotential::harmonicPotential(const json_t & j, const geometry_t & geo) : harmonicPotential(geo, j["omega"].get<real_t>(), j["set"].get<int>() ) {};
 
 squareWellPotential2b::squareWellPotential2b(const geometry_t & geo,real_t V0_ , real_t R0_ , int setA_, int setB_ ) : R0(R0_),setA(setA_),setB(setB_),V0(V0_), potential(geo) {}
 
-squareWellPotential2b::squareWellPotential2b(const json_t & j, const geometry_t & geo) : squareWellPotential2b(geo,j["V0"],j["R0"],j["sets"][0],j["sets"][1]) {}
+squareWellPotential2b::squareWellPotential2b(const json_t & j, const geometry_t & geo) : squareWellPotential2b(geo,j["V0"].get<real_t>(),j["R0"].get<real_t>(),j["sets"][0].get<int>(),j["sets"][1].get<int>()) {}
 
 
 real_t squareWellPotential2b::operator()(const walker_t & w)
@@ -123,7 +123,7 @@ poschTellerPotential2b::poschTellerPotential2b(const geometry_t & geo,real_t R0_
 }
 
 poschTellerPotential2b::poschTellerPotential2b(const json_t & j, const geometry_t & geo)
-  : poschTellerPotential2b::poschTellerPotential2b(geo,j["R0"],j["sets"][0],j["sets"][1])
+  : poschTellerPotential2b::poschTellerPotential2b(geo,j["R0"].get<real_t>(),j["sets"][0].get<int>(),j["sets"][1].get<int>())
 {
 
 }

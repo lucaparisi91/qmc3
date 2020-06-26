@@ -9,7 +9,7 @@
 pairCorrelation::pairCorrelation(int setA_,int setB_) : setA(setA_),setB(setB_),_normalizationFactor(0)
 {}
 
-pairCorrelation::pairCorrelation(const json_t & j) : pairCorrelation(j["sets"][0],j["sets"][1])
+pairCorrelation::pairCorrelation(const json_t & j) : pairCorrelation(j["sets"][0].get<int>(),j["sets"][1].get<int>())
 {
   
 }

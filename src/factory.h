@@ -38,12 +38,12 @@ public:
   {
     potFacInstance.registerFunctor<functor_t>();
   }
-  auto createWavefunctions(json_t & j,const geometry_t & geo)
+  auto createWavefunctions(const json_t & j,const geometry_t & geo)
   {
     return waveFacInstance.create(j,geo);
   }
 
-  auto createPotentials(json_t & j,const geometry_t & geo)
+  auto createPotentials(const json_t & j,const geometry_t & geo)
   {
     return potFacInstance.create(j,geo);
   }

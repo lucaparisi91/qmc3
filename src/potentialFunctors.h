@@ -5,7 +5,7 @@
 class squareWell
 {
 public:
-  squareWell(const json_t & j) : squareWell(j["R0"],j["V0"]) {}
+  squareWell(const json_t & j) : squareWell(j["R0"].get<real_t>(),j["V0"].get<real_t>()) {}
   squareWell(real_t R0_, real_t V0_) : R0(R0_),V0(V0_) {}
   real_t operator()(real_t x) {return x<=R0 ? -V0 : 0;}
   
@@ -22,7 +22,7 @@ private:
 class potentialBarrier
 {
 public:
-  potentialBarrier(const json_t & j) : potentialBarrier(j["R0"],j["V0"]) {}
+  potentialBarrier(const json_t & j) : potentialBarrier(j["R0"].get<real_t>(),j["V0"].get<real_t>() ) {}
   potentialBarrier(real_t R0_, real_t V0_) : R0(R0_),V0(V0_) {}
   real_t operator()(real_t x) {return x<=R0 ? V0 : 0;}
   

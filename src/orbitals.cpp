@@ -67,7 +67,7 @@ void orbitalSet<orbital_t>::storeEvaluate(const state_t & states,orbitalSet<orbi
 template<class orbital_t>
  orbitalSet<orbital_t>::orbitalSet(const json_t & j)
 {
-  int n=j["n"];
+  int n=j["n"].get<int>();
   
   fillFermiSeaByEnergy(getOrbitals() , n, j );
   
@@ -84,7 +84,7 @@ planeWave::planeWave(int nx,int ny,int nz,real_t lBox,real_t teta)
 
 
 
-planeWave::planeWave(int nx,int ny,int nz,const json_t & jI) : planeWave(nx,ny,nz,jI["lBox"],    jI.find("teta")!=jI.end() ? jI["teta"].get<real_t>() : 0  ) {}
+planeWave::planeWave(int nx,int ny,int nz,const json_t & jI) : planeWave(nx,ny,nz,jI["lBox"].get<real_t>(),    jI.find(std::string("teta") )!=jI.end() ? jI["teta"].get<real_t>() : 0  ) {}
 
 
 

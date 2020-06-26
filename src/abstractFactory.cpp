@@ -4,9 +4,9 @@ std::string createId(const json_t & j)
   {
     std::string id="";
     if ( j.find("kind") != j.end() )
-      id +=j["kind"];
+      id +=j["kind"].get<std::string>();
     
-    for (auto  & element : j)
+    for (const auto  & element : j)
       {
 	if ( element.is_structured() )
 	  {

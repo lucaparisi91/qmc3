@@ -198,11 +198,16 @@ template<class T>
 json_t walkerContainer<T>::toJson()
   {
     json_t j;
-    j["configurations"]=json_t::array({});
+    
+    std::vector<json_t > configurations;
+    
     for (int i=0;i<walkers.size();i++)
       {
-	j["configurations"].push_back(::toJson((*this)[i].getStates()) );
+	configurations.push_back(::toJson((*this)[i].getStates()) );
       }
+    
+    j["configurations"]=configurations;
+    
     return j;
   }
 

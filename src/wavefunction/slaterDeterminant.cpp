@@ -63,7 +63,7 @@ void slaterDeterminantWavefunction<orbitalSet_t>::accumulateDerivatives(walker_t
 }
 
 template<class orbitalSet_t>
- slaterDeterminantWavefunction<orbitalSet_t>::slaterDeterminantWavefunction(const json_t & j,const geometry_t & geo) : slaterDeterminantWavefunction( orbitalSet_t(j["orbitalSet"] ),geo,j["set"]) {}
+slaterDeterminantWavefunction<orbitalSet_t>::slaterDeterminantWavefunction(const json_t & j,const geometry_t & geo) : slaterDeterminantWavefunction( orbitalSet_t(j["orbitalSet"] ),geo,j["set"].get<int>()) {}
 
 
 template<class orbitalSet_t>
@@ -139,7 +139,7 @@ void slaterDeterminantWavefunctionComplex<orbitalSet_t>::accumulateDerivatives(w
 }
 
 template<class orbitalSet_t>
- slaterDeterminantWavefunctionComplex<orbitalSet_t>::slaterDeterminantWavefunctionComplex(const json_t & j,const geometry_t & geo) : slaterDeterminantWavefunctionComplex( orbitalSet_t(j["orbitalSet"] ),geo,j["set"]) {}
+slaterDeterminantWavefunctionComplex<orbitalSet_t>::slaterDeterminantWavefunctionComplex(const json_t & j,const geometry_t & geo) : slaterDeterminantWavefunctionComplex( orbitalSet_t(j["orbitalSet"] ),geo,j["set"].get<int>()) {}
 
 
 

@@ -11,7 +11,7 @@ class jastrowGaussGauss: public jastrow<jastrowGaussGauss>
 public:
   
   jastrowGaussGauss(real_t r0_,real_t u0_);
-  jastrowGaussGauss(const nlohmann::json  & j);
+  jastrowGaussGauss(const json_t  & j);
 
   
   static std::string name() {return "gaussiangaussian"; }

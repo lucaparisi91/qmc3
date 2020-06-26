@@ -88,10 +88,10 @@ public:
   {
     std::vector<storer*> storers;
     
-    for (auto & storeJson : j )
+    for (const auto & storeJson : j )
       {
 
-	std::string id = storeJson["kind"];
+	std::string id = storeJson["kind"].get<std::string>();
 	
 	
 	if ( storeJson.find("recordSteps") !=storeJson.end() )

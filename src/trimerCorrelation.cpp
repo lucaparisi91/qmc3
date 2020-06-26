@@ -50,7 +50,7 @@ trimerCorrelation::trimerCorrelation(int setA_,int setB_,int setC_) : setA(setA_
     assert(setA!=setC);
 }
 
-trimerCorrelation::trimerCorrelation(const json_t & j) : trimerCorrelation(j["sets"][0],j["sets"][1],j["sets"][2])
+trimerCorrelation::trimerCorrelation(const json_t & j) : trimerCorrelation(j["sets"][0].get<int>(),j["sets"][1].get<int>(),j["sets"][2].get<int>())
 {
   
 }

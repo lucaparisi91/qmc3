@@ -11,7 +11,7 @@ public:
     if (setA == setB) throw invalidInput("setA == setB in distinguishable two body jastrow");
   }
   
-  jastrowTwoBodyWavefunctionDistinguishable(const json_t & j,const geometry_t & geo ) : jastrowTwoBodyWavefunctionDistinguishable( jastrow_t(j["jastrow"]), geo,j["sets"][0] ,j["sets"][1] ) {}
+  jastrowTwoBodyWavefunctionDistinguishable(const json_t & j,const geometry_t & geo ) : jastrowTwoBodyWavefunctionDistinguishable( jastrow_t(j["jastrow"]), geo,j["sets"][0].get<int>() ,j["sets"][1].get<int>() ) {}
   
  virtual real_t operator()(const walker_t & walker) 
 	{		
@@ -28,6 +28,7 @@ public:
 	};
 
   virtual std::vector<int> sets() const {return {setA,setB} ;}
+  
   
   virtual void accumulateDerivatives( walker_t & walker ) override
   {
@@ -101,7 +102,7 @@ public:
     if (setA != setB) throw invalidInput("setA != setB in undistinguishable two body jastrow");
   }
 
-  jastrowTwoBodyWavefunctionUndistinguishable(const json_t & j,const geometry_t & geo ) : jastrowTwoBodyWavefunctionUndistinguishable( jastrow_t(j["jastrow"]), geo,j["sets"][0] ,j["sets"][1] ) {}
+  jastrowTwoBodyWavefunctionUndistinguishable(const json_t & j,const geometry_t & geo ) : jastrowTwoBodyWavefunctionUndistinguishable( jastrow_t(j["jastrow"]), geo,j["sets"][0].get<int>() ,j["sets"][1].get<int>() ) {}
 
   virtual std::vector<int> sets() const {return {setA,setB} ;}
   

@@ -64,7 +64,7 @@ realScalarForwardWalkingEstimator::realScalarForwardWalkingEstimator(std::string
   
 }
 
-realScalarForwardWalkingEstimator::realScalarForwardWalkingEstimator( const json_t & j) : realScalarForwardWalkingEstimator( j["label"] ,  j["targetLabel"].get<std::string>(), j["forwardWalkingSteps"].get<int>() )
+realScalarForwardWalkingEstimator::realScalarForwardWalkingEstimator( const json_t & j) : realScalarForwardWalkingEstimator( j["label"].get<std::string>() ,  j["targetLabel"].get<std::string>(), j["forwardWalkingSteps"].get<int>() )
 {
   
 }
@@ -120,7 +120,7 @@ void realHistogramStorer::reset(walker_t & w)
   w.getFillingStatus().at(getLabel())=true;
 }
 
-realHistogramStorer::realHistogramStorer(realHistogramObservable * ob_,const json_t & j ) : realHistogramStorer(j["label"],ob_,j["bins"],j["minx"],j["maxx"],j["recordSteps"])
+realHistogramStorer::realHistogramStorer(realHistogramObservable * ob_,const json_t & j ) : realHistogramStorer(j["label"].get<std::string>(),ob_,j["bins"].get<int>(),j["minx"].get<real_t>(),j["maxx"].get<real_t>(),j["recordSteps"].get<int>())
 {
   
 }
@@ -369,9 +369,9 @@ centerOfMassStorer* createSuperfluidFractionStorer(const json_t & j)
   bool foundSF=false;
   
   std::vector<int> sets;
-   for (auto & storeJson : j )
+   for (const auto & storeJson : j )
       {
-	std::string id = storeJson["kind"];
+	std::string id = storeJson["kind"].get<std::string>();
 
 	if (id == "superfluidFraction")
 	  {

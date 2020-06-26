@@ -10,7 +10,7 @@ jastrowHardSphereGauss::jastrowHardSphereGauss(real_t a_,real_t Rm_,real_t D_) :
 };
 
 
-jastrowHardSphereGauss::jastrowHardSphereGauss(const json_t & j) : jastrowHardSphereGauss(j["a"],j["Rm"],j["D"] )
+jastrowHardSphereGauss::jastrowHardSphereGauss(const json_t & j) : jastrowHardSphereGauss(j["a"].get<real_t>(),j["Rm"].get<real_t>(),j["D"].get<real_t>() )
 {
   
 };

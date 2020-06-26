@@ -40,7 +40,7 @@ void jastrowSquareWell::initCoefficients()
 
 
 jastrowSquareWell::jastrowSquareWell(const json_t & j) :
-  jastrowSquareWell(j["V0"],j["R0"],j["Rm"],j["alpha"],j["aInverse"],j["cut_off"].get<real_t>()*2){}
+  jastrowSquareWell(j["V0"].get<real_t>(),j["R0"].get<real_t>(),j["Rm"].get<real_t>(),j["alpha"].get<real_t>(),j["aInverse"].get<real_t>(),j["cut_off"].get<real_t>()*2){}
 
 
 

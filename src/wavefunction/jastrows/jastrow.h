@@ -7,6 +7,8 @@
 #include <nlohmann/json.hpp>
 #include "parameters.h"
 
+
+
 template<class T>
 class jastrow
 {
@@ -77,9 +79,9 @@ public:
 
   
   gaussianJastrow(real_t alpha_) : alpha(alpha_){};
-  gaussianJastrow(const nlohmann::json  & j)
+  gaussianJastrow(const json_t  & j)
   {
-    alpha=j["alpha"];
+    alpha=j["alpha"].get<real_t>();
   }
   
   static std::string name() {return "gaussian"; }

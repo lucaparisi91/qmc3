@@ -10,7 +10,7 @@ jastrowGaussGauss::jastrowGaussGauss(real_t r0,real_t u0_) :
 }
 
 jastrowGaussGauss::jastrowGaussGauss(const json_t & j) :
-  jastrowGaussGauss::jastrowGaussGauss(j["r0"],j["u0"] )
+  jastrowGaussGauss::jastrowGaussGauss(j["r0"].get<real_t>(),j["u0"].get<real_t>() )
 {
   
   

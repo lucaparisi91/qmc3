@@ -45,25 +45,14 @@ bool check_n_particles(const states_t & states,const std::vector<int> & Ns)
   return pass;
 }
 
-
-template<class T>
-auto   find( json_t & j,std::string key,const T & value)
+bool containSuperfluidFractionMeasurements( const json_t & j)
 {
-  for (auto it = j.begin() ; it<j.end() ; it++ )
-    {
-      if ( (*it)[key] == value )
-	{
-	  return it;
-	}
-    }
-  
-  return j.end();
-}
-
-
-bool containSuperfluidFractionMeasurements( json_t & j)
-{
-  if ( find(j["measurements"] , "kind" , "superfluidFraction" ) != j["measurements"].end() )
+  if (
+      j["measurements"].find_if(
+				[](const json_t & jm) { return jm["kind"]=="superfluidFraction" ;}
+				)
+      != j["measurements"].end()
+      )
 	   {
 	     return true;
 	   }
@@ -125,7 +114,7 @@ int main(int argc, char** argv)
   
   std::istringstream ss(jSonString);
   
-  nlohmann::json j;
+  json_t j;
 
   ss >> j;
 
@@ -147,7 +136,7 @@ int main(int argc, char** argv)
   
   if (j.find("initialConditionGenerator") != j.end() )
     {
-      auto & confGenJ = j["initialConditionGenerator"];
+      const auto & confGenJ = j["initialConditionGenerator"];
       if (confGenJ.find("lBox") != confGenJ.end() )
 	{
 	  lBoxInitialCondition=confGenJ["lBox"].get<decltype(lBoxInitialCondition)>() ;
@@ -264,31 +253,32 @@ int main(int argc, char** argv)
   auto m = new realScalarEstimator("energy",eO);
   auto m2= new realScalarEstimator("forceEnergy",efO);
   
-  std::string method = j["method"];
+  std::string method = j["method"].get<std::string>();
+  
 
   if ( method == "vmc" and containSuperfluidFractionMeasurements(j) )
     {
       throw invalidInput("Cannot have vmc and superfluid fraction measurements");
     }
 
-  real_t timeStep = j["timeStep"];
-  size_t stepsPerBlock = j["stepsPerBlock"];
-  size_t nBlocks = j["nBlocks"];  
-  int seed= j["seed"];
-  size_t correlationSteps=j["correlationSteps"];
+  real_t timeStep = j["timeStep"].get<real_t>();
+  size_t stepsPerBlock = j["stepsPerBlock"].get<int>();
+  size_t nBlocks = j["nBlocks"].get<int>();  
+  int seed= j["seed"].get<int>();
+  size_t correlationSteps=j["correlationSteps"].get<int>();
 
   
   std::vector<states_t> configurations;
   if (j.find("configurations") != j.end())
     {
-      configurations=readStatesFromDirectory(j["configurations"]);
+      configurations=readStatesFromDirectory(j["configurations"].get<std::string>());
       if (
 	  (configurations.size() == 0)  and
 	  ( (j.find("initialConfigurations") != j.end()) )
 
 	  )
 	{
-	  configurations=readStatesFromDirectory(j["initialConfigurations"]);
+	  configurations=readStatesFromDirectory(j["initialConfigurations"].get<std::string>() );
 	}
       
       if(  (pTools::rank() == 0 ) and ( configurations.size() == 0) )
@@ -311,11 +301,17 @@ int main(int argc, char** argv)
       
 
       vmcO.getEstimators().push_back(m);
-      
-      if ( find(j["measurements"],"kind","forceEnergy") != j["measurements"].end() )
-	{
-	  vmcO.getEstimators().push_back(m2);
-	}
+
+      	  if (
+	      j["measurements"].find_if(
+					[](const json_t & jm) { return jm["kind"]=="forceEnergy" ;}
+				)
+      != j["measurements"].end()
+	      )      
+      // if ( find(j["measurements"],"kind","forceEnergy") != j["measurements"].end() )
+      	{
+      	  vmcO.getEstimators().push_back(m2);
+      	}
       
       for (auto & est : ests)
 	{
@@ -330,6 +326,7 @@ int main(int argc, char** argv)
 	  initialConfiguration = &(configurations[0]);
 	}
 
+      
       if (! check_n_particles(*initialConfiguration,Ns) )
 	{
 	  throw invalidInput("Initial configuration does not math the numper of particles defined in the input file");
@@ -340,14 +337,14 @@ int main(int argc, char** argv)
   
   else if ( method == "dmc" or method == "svmc")
     {
-      size_t nW=j["walkers"];
+      size_t nW=j["walkers"].get<int>();
       size_t delta_walkers=size_t(nW*0.1);
       
       
       
       if (j.find("delta_walkers")!= j.end() )
 	{
-	  delta_walkers=j["delta_walkers"];
+	  delta_walkers=j["delta_walkers"].get<int>();
 	}
       dmcDriver dmcO(&psi,&pot,timeStep,nW,delta_walkers);
       dmcO.getStepsPerBlock()=stepsPerBlock;
@@ -374,7 +371,13 @@ int main(int argc, char** argv)
 	{
 	  dmcO.disableBranching();
 	  
-	  if ( find(j["measurements"],"kind","forceEnergy") != j["measurements"].end() )
+	  if (
+	      j["measurements"].find_if(
+					[](const json_t & jm) { return jm["kind"]=="forceEnergy" ;}
+				)
+      != j["measurements"].end()
+	      )
+
 	{
 	  dmcO.getEstimators().push_back(m2);
 	}
