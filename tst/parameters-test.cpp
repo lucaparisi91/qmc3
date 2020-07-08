@@ -1,6 +1,14 @@
 #include "gtest/gtest.h"
 #include "wavefunction/jastrows/jastrow.h"
+#include "wavefunction/productWavefunction.h"
 #include <vector>
+#include "traits.h"
+#include "geometry.h"
+#include "wavefunction/jastrowWavefunctionOneBody.h"
+#include "wavefunction/jastrows/jastrow.h"
+#include "parameters.h"
+#include "wavefunction/jastrows/jastrowGaussian.h"
+
 
 TEST(parametersTest,init)
 {
@@ -31,4 +39,33 @@ TEST(parametersTest,init)
   
   ASSERT_EQ(gradPs[0],-1.);
   
+}
+
+TEST(parametersTest,productWavefunction)
+{
+  int N=100;
+	int D= getDimensions();
+	
+ 	state_t particleData(N , D);
+ 	state_t gradient(N , D);
+ 	real_t alpha=1.;
+ 	
+ 	particleData.setRandom();
+	
+ 	geometryPBC geo( 10., 10., 10.);
+	
+
+ 	auto J=gaussianJastrow(alpha);
+ 	jastrowOneBodyWavefunction<gaussianJastrow> wave(J,geo,0);
+	
+ 	productWavefunction waveT;
+ 	waveT.add(&wave);
+   
+
+
+
+
+
+
+
 }

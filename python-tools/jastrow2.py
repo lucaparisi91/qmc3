@@ -13,6 +13,8 @@ from scipy.special  import logit
 _registered_jastrows={}
 
 
+
+
 class jastrowBase:
     _parameters={}
     
@@ -424,14 +426,14 @@ class logNormal(bSpline):
         return y
     
     
-    def __init__(self,mode,mean,radius,cutOff,bins=1000,amplitude=1):
+    def __init__(self,mode,mean,radius,cutOff,bins=1000):
         
         alpha=3./4*1./(np.log(mean)-np.log(mode) )
         
         mu=np.log(mode) + 1./(2*alpha)
         
         x=np.linspace(0,cutOff,num=bins)
-        y=np.log(self.model(x,amplitude,mu,alpha,a=radius) )
+        y=np.log(self.model(x,1,mu,alpha,a=radius) )
         y[x<=radius]=-10
         
-        super().__init__(x=x,y=y,derivativeLeft=0,derivativeRight=0,mode=mode,mean=mean,radius=radius,amplitude=amplitude)
+        super().__init__(x=x,y=y,derivativeLeft=0,derivativeRight=0,mode=mode,mean=mean,radius=radius)

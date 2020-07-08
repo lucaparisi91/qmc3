@@ -7,8 +7,7 @@ public:
   hardSphere(real_t R0_) : _R0(R0_){}
   
   static std::string name() {return "hardSphere";}
-
-
+  
   real_t R0() const  {return _R0;}
   
 private:

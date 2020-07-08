@@ -20,6 +20,8 @@
 #include "wavefunction/jastrows/jastrow_delta.h"
 #include "wavefunction/jastrows/jastrowPoschTeller.h"
 #include "wavefunction/jastrows/jastrowSpline.h"
+#include "wavefunction/jastrows/jastrowGaussian.h"
+
 
 #include "ptools.h"
 #include "pairCorrelation.h"

@@ -2,6 +2,7 @@
 #include "jastrowWavefunctionThreeBody.h"
 
 
+
 hardSphereConstraintThreeBodyUnDis::hardSphereConstraintThreeBodyUnDis(int setA_,real_t R0) : setA(setA_),V(R0) {}
 
 

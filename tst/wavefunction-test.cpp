@@ -15,6 +15,9 @@
 
 #include "centerOfMassSquared.h"
 #include "correlationEstimator.h"
+#include "wavefunction/jastrows/jastrowGaussian.h"
+
+
 
 TEST(wavefunctionTest,oneBody)
 {
@@ -39,7 +42,7 @@ TEST(wavefunctionTest,oneBody)
  	real_t e=0 , ef=0 , waveValue =0;
 	
  	states_t states {particleData};
-	
+  
 	walker w;
 	initializer::initialize(w,states,waveT);
  	waveT.evaluateDerivatives( w);

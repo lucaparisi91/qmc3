@@ -28,8 +28,6 @@
 
 #include <regex>
 
-
-
 auto getEnergies(const   pTools::walkerDistribution::walkers_t & walkers)
 {
   /* Gather all energies on process 0 for this walker distribution */
@@ -92,6 +90,7 @@ int main(int argc, char** argv)
 	}
   
     }
+
   
   pTools::broadcast(&jSonString,0);
   
@@ -100,9 +99,6 @@ int main(int argc, char** argv)
   input j;
   
   ss >> j;
-
-  
-  
   
   std::cout << j["wavefunctions"][0]["jastrow"]<< std::endl;
   

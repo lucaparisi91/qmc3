@@ -14,6 +14,8 @@
 #include "initializer.h"
 #include "centerOfMassSquared.h"
 #include "correlationEstimator.h"
+#include "wavefunction/jastrows/jastrowGaussian.h"
+
 
 TEST(pToolsTest,alias_load_balancing_algorithm_test)
 {

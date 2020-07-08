@@ -193,7 +193,7 @@ public:
     auto & disAC = walker.getTableDistances().distances(setA,setC);
     
     
-  
+    
     real_t sum=0;
     int NA = getN( walker.getStates()[setA] );
     int NB = getN( walker.getStates()[setB] );

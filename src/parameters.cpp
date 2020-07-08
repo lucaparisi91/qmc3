@@ -6,14 +6,14 @@ optimizationParameter::optimizationParameter(std::string name,size_t length,size
 
 bool optimizationParameters::addParameter(std::string name,size_t size)
 {
-  bool nameExists=std::find_if(parameters.begin(), parameters.end() , [&name](optimizationParameter & param) {return param.name() == name;} )!= parameters.end();
+  bool nameExists=std::find_if(_parameters.begin(), _parameters.end() , [&name](optimizationParameter & param) {return param.name() == name;} )!= _parameters.end();
   
   if ( !nameExists)
     {
       mappedOptimizationParameter  param(name,size,0,currentOffset);
-      parameters.push_back(param);
+      _parameters.push_back(param);
       currentOffset+=size;
-      nameToIndexMap[name]=parameters.size()-1;
+      nameToIndexMap[name]=_parameters.size()-1;
       
       return true;
     }
@@ -37,7 +37,7 @@ mappedOptimizationParameter optimizationParameters::mapParameter(optimizationPar
   
   if ( it != nameToIndexMap.end() )
     {
-      mappedOptimizationParameter mappedParam(param, parameters[it->second].storageOffset() );
+      mappedOptimizationParameter mappedParam(param, _parameters[it->second].storageOffset() );
       
       return mappedParam;      
     }

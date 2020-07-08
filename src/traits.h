@@ -7,9 +7,7 @@ class geometry;
 class productWavefunction;
 #include "input.h"
 
-
 #define DIMENSIONS 3
-
 
 using real_t = double;
 using geometry_t = geometry;
@@ -21,8 +19,6 @@ using difference_t = state_t;
 using differences_t = std::vector<difference_t>;
 using difference_complex_t = Eigen::Array<std::complex<real_t>,Eigen::Dynamic,DIMENSIONS> ;
 
-
-
 using distance_t = Eigen::VectorXd;
 using distances_t = std::vector<distance_t>;
 
@@ -32,7 +28,6 @@ using randomGenerator_t = std::ranlux24;
 
 //using json_t =   nlohmann::json;
 using json_t = input;
-
 
 using potential_t = sumPotentials;
 

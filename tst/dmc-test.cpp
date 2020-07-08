@@ -9,6 +9,8 @@
 #include <algorithm>
 #include "wavefunction/jastrowWavefunctionOneBody.h"
 #include "estimators.h"
+#include "wavefunction/jastrows/jastrowGaussian.h"
+
 
 TEST(dmcTest,branching_lower)
 {

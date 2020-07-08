@@ -18,8 +18,7 @@ public:
   const std::string & name() const {return _name;}
   
   size_t size() const {return _length;}
-  
-  
+
 private:
   std::string _name;
   size_t _length;
@@ -49,26 +48,47 @@ private:
   size_t _storage_offset;
 };
 
-
+/*
+  Contains the unique parameters info. 
+  Performs the mapping between a non unique wavefunction mapped parameter
+*/
 class optimizationParameters
 {
 public:
   optimizationParameters(){};
+  
   bool addParameter(std::string name,size_t size);
   
   const optimizationParameter &  operator[](std::string label);
 
-  size_t size() const {return parameters.size() ;}
+  size_t size() const {return _parameters.size() ;}
   
   mappedOptimizationParameter mapParameter(optimizationParameter & param,std::string label);
-
   
 private:
   int currentOffset=0;
-  std::vector<mappedOptimizationParameter> parameters;
+  std::vector<mappedOptimizationParameter> _parameters;
   std::map<std::string,int > nameToIndexMap;
 };
 
+class wavefunctionParameters
+{
+  public:
+    wavefunctionParameters(){};
+
+    void addParameter(int wave,optimizationParameter parameter, std::string key); // register an optimization parameter
+
+
+    const auto & parameters() const {return _parameters;}
+
+    size_t size() const {return parametersInfo.size();}
+
+
+  private:
+    std::vector<std::vector<mappedOptimizationParameter>  > _parameters;
+
+    optimizationParameters parametersInfo; 
+};
 
 
 #endif
