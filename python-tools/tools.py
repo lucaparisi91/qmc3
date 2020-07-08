@@ -30,7 +30,7 @@ def walk(dirname,level=0,max_level=None):
 
 
 
-def find_root(self,f_root,step_root=10**-5,a_root=0.,b_root=10**8,eps=1e-12):
+def find_root(f_root,step_root=10**-5,a_root=0.,b_root=10**8,eps=1e-12):
         
         lower_root=a_root
         upper_root=a_root + 2*step_root

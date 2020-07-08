@@ -11,13 +11,14 @@ import json
 import copy
 from scipy.special  import logit
 _registered_jastrows={}
+from tools import find_root
+
 
 
 class jastrowBase:
     _parameters={}
     
     def __init__(self,**kwds):
-        
         parameters=super().__getattribute__("_parameters")
         parameters.update(kwds)
         super().__setattr__("_parameters",parameters)
@@ -70,27 +71,39 @@ class jastrowBase:
     
 class register:
 
-    def __init__(self):
+    def __init__(self,*args):
         pass
-    
+
+
+
     @staticmethod
-    def jastrow(cls):
-        name=cls.__name__
-        kind=None
+    def jastrow(arg):
+
+        def wrapped(cls,kind):
+            name=cls.__name__
+            
+            
+            if kind is not None:
+                cls.kind=kind
+            else:        
+                if not hasattr(cls, "kind"):
+                    cls.kind=cls.__name__
+            
+            
+            
+            
+            
+            _registered_jastrows[name]=cls
+            
+            return cls
         
-        if kind is not None:
-            cls.kind=kind
-        else:        
-            if not hasattr(cls, "kind"):
-                cls.kind=cls.__name__
+        if type(arg) == type(type):
+
+            return wrapped(arg,None)
+        else:
+            return lambda cls : wrapped(cls,arg)
         
         
-        
-        
-        
-        _registered_jastrows[name]=cls
-        
-        return cls
 
 def createJastrow(name,*args,**kwds):
     
@@ -103,7 +116,6 @@ class gaussian(jastrowBase):
     def __init__(self,alpha):
         
         jastrowBase.__init__(self,alpha=alpha)
-
         
     def __call__(self,x,der=0):
         pass
@@ -114,7 +126,7 @@ class gaussian(jastrowBase):
         if der==2:
             return x*0 -2*self.alpha
 
-        
+"""         
 @register.jastrow
 class bSpline(jastrowBase):
     def __init__(self,x=None,y=None,derivativeRight=0,derivativeLeft=0,**kwds):
@@ -435,3 +447,164 @@ class logNormal(bSpline):
         y[x<=radius]=-10
         
         super().__init__(x=x,y=y,derivativeLeft=0,derivativeRight=0,mode=mode,mean=mean,radius=radius,amplitude=amplitude)
+
+
+
+@register.jastrow("delta_phonons")
+class jastrow_delta_phonons(jastrowBase):
+
+    def __init__(self,g,z,cutOff):
+
+        super().__init__(g=g,z=z,cutOff=cutOff)
+
+    def f_root(self,x):
+        z=self.z
+        g=self.g
+        l_box=self.cutOff*2
+        # finds the root of a certain system
+        delta=atan(x/g)
+        beta=(x*tan((pi/l_box)*z))/( (pi/l_box)  * tan(x*z+delta))
+        return (sin(x*z+delta) - sin((pi/l_box)*z)**beta)
+    
+    def process(self,step_root=10**-4,a_root=10**-6,b_root=100):
+        self.addParameter("beta",None)
+        self.addParameter("k",None)
+        self.addParameter("delta",None)
+
+        
+        self.k=find_root(self.f_root,step_root=step_root,a_root=a_root,b_root=10**6)
+        x=self.k
+        g=self.g
+        z=self.z
+        l_box=self.cutOff*2
+
+
+        # set the delta parameter for the simulation
+        self.delta=atan(x/g )
+        
+        
+        self.beta=(x*tan(pi/l_box*z))/(pi/l_box  * tan(x*z+self.delta))
+        
+
+    def jastrow_0d(self,x):
+        k=self.k
+        z=self.z
+        delta=self.delta
+        l_box=self.cutOff*2
+        beta=self.beta
+        y=abs(x)
+        if y < z:
+            return sin(k*y+delta)
+        else:
+            return sin(pi/l_box*y)**beta
+    
+    def jastrow_1d(self,x):
+        k=self.k
+        z=self.z
+        delta=self.delta
+        l_box=self.cutOff*2
+        beta=self.beta
+        y=abs(x)
+        if y < z:
+            return cos(k*y+delta)*k
+        else:
+            return beta*sin(pi/l_box*y)**(beta-1)*cos(pi/l_box*y)*pi/l_box
+    def jastrow_2d(self,x):
+        k=self.k
+        z=self.z
+        delta=self.delta
+        l_box=self.cutOff*2
+        beta=self.beta
+        y=abs(x)
+        if y < z:
+            return -sin(k*y+delta)*(k**2)
+        else:
+            return beta*(beta - 1)*sin(pi/l_box*y)**(beta-2)*(cos(pi/l_box*y)*pi/l_box)**2 - beta*(pi/l_box)**2*sin(pi/l_box*y)**beta
+
+
+ """
+
+""" @register.jastrow("dipolar_rep")
+class jastrowDipolar(jastrowBase):
+
+    def __init__(self,D=None,cut_off=None,matching_point=None,alpha=None):
+        
+        super().__init__(D=D,cut_off=cut_off,matching_point=matching_point,alpha=None,C=None)
+
+
+
+        
+    def dipolarFunction(self,x,der=0):
+        K1=lambda x1 : scipy.special.kv(1,x1)
+        K1p=lambda x1 : scipy.special.kvp(1,x1,n=1)
+        
+        y=np.sqrt(x)
+        d=self.D
+        
+        if der==0:
+            return y*K1(2*d/y )
+        if der==1:
+            return ( K1(2*d/y) - K1p(2*d/y)*2*d/y)*0.5/y 
+
+        
+    def phononTail(self,x,alpha,der=0):
+        k=pi/(self.cut_off*2)
+        if der==0:
+            return np.sin(k*x)**alpha
+        if der==1:
+            return alpha*np.sin(k*x)**(alpha-1)*np.cos(k*x)*k
+    
+
+    def froot(self,alpha):
+        matching_point=self.matching_point
+        c=self.phononTail(matching_point,alpha,der=0)/self.dipolarFunction(matching_point,der=0)
+        
+        return c*self.dipolarFunction(matching_point,der=1) - self.phononTail(matching_point,alpha,der=1)
+    
+    def process(self):
+        a=1e-4
+        self.D=np.sqrt(self.D)
+        def find_b(a,maxiter=500,i=0):
+            b=2*a
+            if (self.froot(b)*self.froot(a)>=0) and i <=maxiter:
+                b=find_b(a*2.,i=i+1,maxiter=maxiter)
+
+                
+            return b
+            
+        b=find_b(a)
+        
+        #x1=np.linspace(a,b,num=1000)
+        #plt.plot(x1,self.froot(x1)  )
+        #plt.show()
+        matching_point=self.matching_point
+        if matching_point < self.cut_off:
+            alpha=scipy.optimize.brentq(self.froot, a, b)
+            #print("alpha: ",alpha)
+            self.alpha=alpha
+            
+            self.C=self.phononTail(matching_point,alpha,der=0)/self.dipolarFunction(matching_point,der=0)
+        else:
+            self.matching_point=self.cut_off*1.5
+            self.C=1./self.dipolarFunction(self.cut_off,der=0)
+            #self.C=1.
+            self.alpha=0
+
+        self.D=self.D**2
+
+    def __call__(self,x,der=0):
+        
+        x1=x[x<self.matching_point]
+        y1=self.C*self.dipolarFunction(x1,der=der)
+
+        x2=x[x>=self.matching_point]
+        y2=self.phononTail(x2,self.alpha,der=der)
+        
+        return np.concatenate([y1,y2])
+
+
+
+
+
+
+ """

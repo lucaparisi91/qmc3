@@ -44,11 +44,10 @@ structureFactor::structureFactor(int setA,int setB,const structureFactor::vec_t 
   
 }
 
-
 structureFactor::structureFactor(const json_t & j) :
   structureFactor(
-		  j["sets"][0],
-		  j["sets"][1],
+		  j["sets"][0].get<int>(),
+		  j["sets"][1].get<int>(),
 		  build_q_vector(j["bins"].get<int>(),j["lBox"].get<real_t>(),j["maxq"].get<real_t>() ),
 		  j["channel"].get<int>()
 		  )

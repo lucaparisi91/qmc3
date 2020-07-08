@@ -3,6 +3,7 @@ import arviz as az
 import pandas as pd
 import seaborn as sns
 import matplotlib.pylab as plt
+
 from math import *
 import json
 import itertools
