@@ -14,14 +14,13 @@ _registered_jastrows={}
 from tools import find_root
 
 
-
 class jastrowBase:
-    _parameters={}
-    
+
     def __init__(self,**kwds):
-        parameters=super().__getattribute__("_parameters")
-        parameters.update(kwds)
-        super().__setattr__("_parameters",parameters)
+        #parameters=super().__getattribute__("_parameters")
+        #parameters.update(kwds)
+        super().__setattr__("_parameters",kwds)
+
         
         self.process()
         
@@ -63,7 +62,6 @@ class jastrowBase:
             json.dump(self.toJson() , f ,indent=self.indent )
         
         
-    
     def process(self):
         pass
         
@@ -126,7 +124,7 @@ class gaussian(jastrowBase):
         if der==2:
             return x*0 -2*self.alpha
 
-"""         
+        
 @register.jastrow
 class bSpline(jastrowBase):
     def __init__(self,x=None,y=None,derivativeRight=0,derivativeLeft=0,**kwds):
@@ -288,19 +286,20 @@ class bSpline(jastrowBase):
     
         return np.dot ( Alpha,    np.matmul(A,X) )/h**(der)
 
-    
+
+
 @register.jastrow
 class unboundGaussian(bSpline):
-    def __init__(self,u0,alpha,cutOff,bins=1000,derivativeLeft=0,derivativeRight=0,p=None):
+    def __init__(self,u0,alpha,cut_off,bins=1000,derivativeLeft=0,derivativeRight=0,p=None):
         
         if p is None:
             p=0.5
         else:
-            p=p/cutOff
+            p=p/cut_off
         
             
-        x=np.linspace(0,cutOff,num=bins)
-        x1=x/cutOff
+        x=np.linspace(0,cut_off,num=bins)
+        x1=x/cut_off
         
 
         x2=copy.deepcopy(x1)
@@ -316,7 +315,7 @@ class unboundGaussian(bSpline):
         
         #y=x2
         
-        super().__init__(x=x,y=y,derivativeLeft=0,derivativeRight=0,u0=u0,alpha=alpha,cutOff=cutOff)
+        super().__init__(x=x,y=y,derivativeLeft=0,derivativeRight=0,u0=u0,alpha=alpha,cut_off=cut_off)
         
         
         
@@ -436,13 +435,13 @@ class logNormal(bSpline):
         return y
     
     
-    def __init__(self,mode,mean,radius,cutOff,bins=1000,amplitude=1):
+    def __init__(self,mode,mean,radius,cut_off,bins=1000,amplitude=1):
         
         alpha=3./4*1./(np.log(mean)-np.log(mode) )
         
         mu=np.log(mode) + 1./(2*alpha)
         
-        x=np.linspace(0,cutOff,num=bins)
+        x=np.linspace(0,cut_off,num=bins)
         y=np.log(self.model(x,amplitude,mu,alpha,a=radius) )
         y[x<=radius]=-10
         
@@ -453,14 +452,14 @@ class logNormal(bSpline):
 @register.jastrow("delta_phonons")
 class jastrow_delta_phonons(jastrowBase):
 
-    def __init__(self,g,z,cutOff):
+    def __init__(self,g,z,cut_off):
 
-        super().__init__(g=g,z=z,cutOff=cutOff)
+        super().__init__(g=g,z=z,cut_off=cut_off)
 
     def f_root(self,x):
         z=self.z
         g=self.g
-        l_box=self.cutOff*2
+        l_box=self.cut_off*2
         # finds the root of a certain system
         delta=atan(x/g)
         beta=(x*tan((pi/l_box)*z))/( (pi/l_box)  * tan(x*z+delta))
@@ -476,7 +475,7 @@ class jastrow_delta_phonons(jastrowBase):
         x=self.k
         g=self.g
         z=self.z
-        l_box=self.cutOff*2
+        l_box=self.cut_off*2
 
 
         # set the delta parameter for the simulation
@@ -490,7 +489,7 @@ class jastrow_delta_phonons(jastrowBase):
         k=self.k
         z=self.z
         delta=self.delta
-        l_box=self.cutOff*2
+        l_box=self.cut_off*2
         beta=self.beta
         y=abs(x)
         if y < z:
@@ -502,7 +501,7 @@ class jastrow_delta_phonons(jastrowBase):
         k=self.k
         z=self.z
         delta=self.delta
-        l_box=self.cutOff*2
+        l_box=self.cut_off*2
         beta=self.beta
         y=abs(x)
         if y < z:
@@ -513,7 +512,7 @@ class jastrow_delta_phonons(jastrowBase):
         k=self.k
         z=self.z
         delta=self.delta
-        l_box=self.cutOff*2
+        l_box=self.cut_off*2
         beta=self.beta
         y=abs(x)
         if y < z:
@@ -522,9 +521,8 @@ class jastrow_delta_phonons(jastrowBase):
             return beta*(beta - 1)*sin(pi/l_box*y)**(beta-2)*(cos(pi/l_box*y)*pi/l_box)**2 - beta*(pi/l_box)**2*sin(pi/l_box*y)**beta
 
 
- """
 
-""" @register.jastrow("dipolar_rep")
+@register.jastrow("dipolar_rep")
 class jastrowDipolar(jastrowBase):
 
     def __init__(self,D=None,cut_off=None,matching_point=None,alpha=None):
@@ -604,7 +602,78 @@ class jastrowDipolar(jastrowBase):
 
 
 
+@register.jastrow("delta_bound_state_phonons")
+class jastrow_delta_bound_state_phonons(jastrowBase):
+    def __init__(self,g,beta,cut_off):
+
+        super().__init__(g=g,beta=beta,cut_off=cut_off,A=None,xI=0,k=0)    
+        
+    def __call__(self,x,der=0):
+        k=self.k
+        xI=self.xI
+        
+        
+        beta=self.beta
+        lBox=self.cut_off*2
+        mask1=x*0 + 1
+        mask1[x>self.xI]=0
+        mask2=x*0 + 1
+        mask2[x<=self.xI]=0
+        
+        if der==0:
+                return np.exp(-k*x)*mask1 +  self.A*np.sin(pi*x*1./(self.cut_off*2))**self.beta*mask2
+        if der==1:
+            if x<self.xI:
+            
+                return -k*exp(-k*x)
+            else:
+                y=pi*x/(self.cut_off*2)
+                return self.A*sin(y)**(beta-1)*beta*cos(y)*pi/lBox
+        
+        
+    def process(self):
+        
+        a=float(2./self.g)
+        
+        lBox=float(self.cut_off*2)
+        k=1/a
+        #print ("k:" + str(k) )
+        
+        self.k=k
+        beta=self.beta
+        
+        def froot2(x):
+            return beta/tan(pi*x/lBox)*pi/lBox+k
+        
+        xI=optimize.brentq(froot2,1e-4,lBox/2.)
+        
+        self.A=exp(-k*xI)/(sin(pi*xI/lBox)**beta)
+        #print (xI)
+        self.xI=xI
+    def plot(self,der=0):
+        
+        x=np.linspace(0,self.cut_off,num=10000)
+        y=copy.copy(x)
+        for i in range(0,len(x)):
+            y[i]=self.__call__(x[i],der=der)
+        plt.plot(x,y)
+        #plt.show()
 
 
+def updateJastrows(j):
 
- """
+    if isinstance(j,dict):
+        for key,value in j.items():
+            if (key=="jastrow"):
+                kind=value["kind"]
+                options = value;
+                del options["kind"]
+                j=createJastrow(kind,**options)
+                value.update(j.parameters)
+            else:
+                updateJastrows(value)
+    if isinstance(j,list):
+        for value in j:
+            updateJastrows(value)
+
+

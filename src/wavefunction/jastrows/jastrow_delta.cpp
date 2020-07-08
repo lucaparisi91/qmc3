@@ -14,14 +14,25 @@ jastrow_delta_phonons::jastrow_delta_phonons(const json_t & j)
   
   k2=M_PI/(2*parameters[4]);
   
-  if ( j["g"].get<std::string>() != "inf")
-    {
-      parameters[5]=j["g"].get<real_t>();
-    }
-  else
+  try
+  {
+    parameters[5]=j["g"].get<real_t>();
+  
+  }
+  catch(const invalidInput& e)
+  {
+    if (j["g"].get<std::string>() == "inf"  )
     {
       parameters[5]=0;
     }
+    else
+    {
+      throw invalidInput("g is not a number and is not infinite");
+    }
+    
+    
+  }
+  
   
 }
 
