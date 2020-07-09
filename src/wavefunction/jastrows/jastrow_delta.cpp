@@ -13,7 +13,7 @@ jastrow_delta_phonons::jastrow_delta_phonons(const json_t & j)
   parameters[4]=j["cut_off"].get<real_t>();
   
   k2=M_PI/(2*parameters[4]);
-  
+
   try
   {
     parameters[5]=j["g"].get<real_t>();
@@ -29,7 +29,7 @@ jastrow_delta_phonons::jastrow_delta_phonons(const json_t & j)
     {
       throw invalidInput("g is not a number and is not infinite");
     }
-    
+
     
   }
   

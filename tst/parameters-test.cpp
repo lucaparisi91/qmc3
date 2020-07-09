@@ -9,7 +9,6 @@
 #include "parameters.h"
 #include "wavefunction/jastrows/jastrowGaussian.h"
 
-
 TEST(parametersTest,init)
 {
 

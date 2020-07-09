@@ -12,6 +12,8 @@ import copy
 from scipy.special  import logit
 _registered_jastrows={}
 from tools import find_root
+from inspect import signature
+from inspect import signature
 
 
 class jastrowBase:
@@ -73,12 +75,10 @@ class register:
         pass
 
 
-
     @staticmethod
     def jastrow(arg):
 
         def wrapped(cls,kind):
-            name=cls.__name__
             
             
             if kind is not None:
@@ -91,7 +91,7 @@ class register:
             
             
             
-            _registered_jastrows[name]=cls
+            _registered_jastrows[cls.kind]=cls
             
             return cls
         
@@ -101,11 +101,13 @@ class register:
         else:
             return lambda cls : wrapped(cls,arg)
         
-        
 
-def createJastrow(name,*args,**kwds):
-    
-    return _registered_jastrows[name](*args,**kwds)
+
+
+
+def getJastrowType(name):
+    return _registered_jastrows[name]
+
 
 
 
@@ -524,7 +526,6 @@ class jastrow_delta_phonons(jastrowBase):
 
 @register.jastrow("dipolar_rep")
 class jastrowDipolar(jastrowBase):
-
     def __init__(self,D=None,cut_off=None,matching_point=None,alpha=None):
         
         super().__init__(D=D,cut_off=cut_off,matching_point=matching_point,alpha=None,C=None)
@@ -665,11 +666,17 @@ def updateJastrows(j):
     if isinstance(j,dict):
         for key,value in j.items():
             if (key=="jastrow"):
+
                 kind=value["kind"]
-                options = value;
-                del options["kind"]
-                j=createJastrow(kind,**options)
-                value.update(j.parameters)
+                jClass = getJastrowType(kind)
+                allowedOptions= signature(jClass).parameters
+
+                options = { name : option for name,option in value.items() if name in allowedOptions   }
+
+                return
+                j=jClass(**options)
+
+                value.update(j.toJson())
             else:
                 updateJastrows(value)
     if isinstance(j,list):

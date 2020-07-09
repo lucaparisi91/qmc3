@@ -43,6 +43,8 @@ public:
 	auto & currentWalker() {return current_walker;}
 	auto & oldWalker(){return old_walker;}
   auto & nConfigurationsToSave() {return confSave.nConfigurationsToSave(); }
+
+  auto & getConfigurationsSaver() {return confSave;}
   
 private:
   walker_t current_walker;

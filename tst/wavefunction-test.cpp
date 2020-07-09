@@ -396,3 +396,32 @@ TEST(measurementsTest, superFluidFraction)
   
   
 }
+
+TEST(initial_configurations,read_directory)
+{
+
+  auto configurations= readStatesFromDirectory("../tst/testInitalConfigurationVMC");
+
+  int nWwalkers =  configurations.size() ;
+
+  ASSERT_EQ(nWwalkers,1);
+
+  std::vector<double> xConf
+  {
+    0.4334811868529716,0.5123232645232533,0.7660927469332877,-0.5032132098187615,0.17076099960880708,-0.15155238913361904,0.5368818932102931,0.1496488524427948,-0.46513468566258886,-0.410402300451225
+  };
+
+  const auto & xConfLoaded = configurations[0][0];
+
+  for (size_t i=0;i<xConf.size();i++)
+    {
+
+      ASSERT_NEAR ( xConf[i] ,xConfLoaded[i] , 1e-6 ) << std::endl;
+    }
+
+
+
+
+
+
+}

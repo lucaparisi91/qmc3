@@ -327,13 +327,19 @@ int main(int argc, char** argv)
 	{
 	  initialConfiguration = &(configurations[0]);
 	}
-
-      
+  
       if (! check_n_particles(*initialConfiguration,Ns) )
 	{
 	  throw invalidInput("Initial configuration does not math the numper of particles defined in the input file");
 	}
-      
+
+      int nConfigurationsToSaveVMC = json_t::load(j["nConfigurationsToSaveVMC"],1);
+
+
+
+
+
+      vmcO.getConfigurationsSaver().nConfigurationsToSave() = nConfigurationsToSaveVMC;
       vmcO.run(*initialConfiguration,nBlocks); 
     }
   

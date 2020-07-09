@@ -9,7 +9,7 @@
 #include "tools.h"
 #include <sys/stat.h>
 
- vmcDriver::vmcDriver(vmcDriver::wavefunction_t * wave_,real_t sigma_) :
+vmcDriver::vmcDriver(vmcDriver::wavefunction_t * wave_,real_t sigma_) :
 driver::driver(wave_),
  metropolisObj(),
  vmcMove(new gaussianMover(sigma_))
@@ -141,7 +141,7 @@ void configurationsSaver::dump(const walker & w, int i)
     mkdir(baseDir.c_str(), 0700);
   }
   
-  f.open(baseDir + "/configurations-Rank" + std::to_string(pId) + ".json");
+  f.open(baseDir + "/walkers-Rank" + std::to_string(pId) + ".json");
   json_t jConfs;
   jConfs["configurations"]=json_t();
   

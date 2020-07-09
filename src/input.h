@@ -40,7 +40,6 @@ public:
 };
 
 
-
 class invalidType : public std::exception
 {
 public:
@@ -102,6 +101,19 @@ class input
 {
 public:
 
+  template<class T>
+  static T load(const input & j2, T value )
+        {
+          if (!(j2 == nullptr))
+          {
+            return j2.get<T>();
+          }
+          else
+          {
+            return value;
+          }
+          
+        }
 
   input(nlohmann::json * j_ , input * parent , const std::string & key  ) :j(j_),ownJson(false),accessKey(key),_parent(parent) {_parent=nullptr;}
   
