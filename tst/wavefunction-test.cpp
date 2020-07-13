@@ -18,7 +18,6 @@
 #include "wavefunction/jastrows/jastrowGaussian.h"
 
 
-
 TEST(wavefunctionTest,oneBody)
 {
 	int N=100;
@@ -397,6 +396,8 @@ TEST(measurementsTest, superFluidFraction)
   
 }
 
+
+
 TEST(initial_configurations,read_directory)
 {
 
@@ -416,7 +417,7 @@ TEST(initial_configurations,read_directory)
   for (size_t i=0;i<xConf.size();i++)
     {
 
-      ASSERT_NEAR ( xConf[i] ,xConfLoaded[i] , 1e-6 ) << std::endl;
+      ASSERT_NEAR ( xConf[i] ,xConfLoaded(i) , 1e-6 ) << std::endl;
     }
 
 
@@ -424,4 +425,4 @@ TEST(initial_configurations,read_directory)
 
 
 
-}
+} 

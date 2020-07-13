@@ -145,7 +145,6 @@ void configurationsSaver::dump(const walker & w, int i)
   json_t jConfs;
   jConfs["configurations"]=json_t();
   
-  
   for (const auto & jConf : jSonConfigurations )
     {
       jConfs["configurations"].push_back(jConf);

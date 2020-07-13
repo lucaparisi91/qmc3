@@ -9,6 +9,7 @@
 #include "parameters.h"
 #include "wavefunction/jastrows/jastrowGaussian.h"
 
+
 TEST(parametersTest,init)
 {
 
@@ -59,12 +60,5 @@ TEST(parametersTest,productWavefunction)
 	
  	productWavefunction waveT;
  	waveT.add(&wave);
-   
-
-
-
-
-
-
 
 }

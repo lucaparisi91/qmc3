@@ -673,7 +673,7 @@ def updateJastrows(j):
 
                 options = { name : option for name,option in value.items() if name in allowedOptions   }
 
-                return
+                
                 j=jClass(**options)
 
                 value.update(j.toJson())
