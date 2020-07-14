@@ -15,7 +15,6 @@ from tools import find_root
 from inspect import signature
 from inspect import signature
 
-
 class jastrowBase:
 
     def __init__(self,**kwds):
@@ -29,6 +28,7 @@ class jastrowBase:
         self.indent=4
         
     def __getattribute__(self,name):
+        
         parameters=super().__getattribute__("_parameters")
         if name in parameters.keys():
             return parameters[name]
@@ -39,7 +39,7 @@ class jastrowBase:
         self._parameters[name]=value
         
     def __setattr__(self,name,value):
-        if name in  self._parameters.keys():
+        if ( (hasattr(self, '_parameters') ) and ( name in  self._parameters.keys()) ):
             self._parameters[name]=value
         else:
             super().__setattr__(name,value)
@@ -91,7 +91,7 @@ class register:
             
             
             
-            _registered_jastrows[cls.kind]=cls
+            _registered_jastrows[cls.__name__]=cls
             
             return cls
         
@@ -150,7 +150,7 @@ class bSpline(jastrowBase):
         dR=self.derivativeRight
         
         stepSize=max(x)/bins
-        print(stepSize)
+        
 
         t=np.arange(0,len(x))* max(x)/(len(x)-1)
         t=np.concatenate( [ [0,0,0] , t , [max(x),max(x),max(x)]] )
@@ -326,8 +326,7 @@ class squareWell(jastrowBase):
     
     def __init__(self,aInverse=None,R0=None,Rm=None,alpha=None,cut_off=None,m=1/2.):
 
-        self.m=1./2
-        
+        self.m=m
         super().__init__(aInverse=aInverse,R0=R0,Rm=Rm,alpha=alpha,cut_off=cut_off)
           
       
@@ -429,30 +428,30 @@ class squareWell(jastrowBase):
 @register.jastrow
 class logNormal(bSpline):
 
-    def model (self,x,A,mu,alpha,a=0) :
-        x=x-a
-        y=x*0.
-        y[x>0]=A*np.exp(-alpha*(np.log(x[x>0])-mu)**2)/x[x>0]
-    
-        return y
-    
-    
     def __init__(self,mode,mean,radius,cut_off,bins=1000,amplitude=1):
-        
+        def model (x,A,mu,alpha,a=0) :
+            x=x-a
+            y=x*0.
+            y[x>0]=A*np.exp(-alpha*(np.log(x[x>0])-mu)**2)/x[x>0]
+
+
+            return y
+
+
         alpha=3./4*1./(np.log(mean)-np.log(mode) )
         
         mu=np.log(mode) + 1./(2*alpha)
         
         x=np.linspace(0,cut_off,num=bins)
-        y=np.log(self.model(x,amplitude,mu,alpha,a=radius) )
+        y=np.log(model(x,amplitude,mu,alpha,a=radius) )
         y[x<=radius]=-10
         
         super().__init__(x=x,y=y,derivativeLeft=0,derivativeRight=0,mode=mode,mean=mean,radius=radius,amplitude=amplitude)
 
 
 
-@register.jastrow("delta_phonons")
-class jastrow_delta_phonons(jastrowBase):
+@register.jastrow
+class delta_phonons(jastrowBase):
 
     def __init__(self,g,z,cut_off):
 
@@ -524,8 +523,8 @@ class jastrow_delta_phonons(jastrowBase):
 
 
 
-@register.jastrow("dipolar_rep")
-class jastrowDipolar(jastrowBase):
+@register.jastrow
+class dipolar_rep(jastrowBase):
     def __init__(self,D=None,cut_off=None,matching_point=None,alpha=None):
         
         super().__init__(D=D,cut_off=cut_off,matching_point=matching_point,alpha=None,C=None)
@@ -603,8 +602,8 @@ class jastrowDipolar(jastrowBase):
 
 
 
-@register.jastrow("delta_bound_state_phonons")
-class jastrow_delta_bound_state_phonons(jastrowBase):
+@register.jastrow
+class delta_bound_state_phonons(jastrowBase):
     def __init__(self,g,beta,cut_off):
 
         super().__init__(g=g,beta=beta,cut_off=cut_off,A=None,xI=0,k=0)    
@@ -666,7 +665,7 @@ def updateJastrows(j):
     if isinstance(j,dict):
         for key,value in j.items():
             if (key=="jastrow"):
-
+                
                 kind=value["kind"]
                 jClass = getJastrowType(kind)
                 allowedOptions= signature(jClass).parameters

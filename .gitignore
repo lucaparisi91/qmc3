@@ -1,0 +1,8 @@
+old/*
+build/*
+*~
+.Rproj.user
+*.ipynb
+test/*
+*.pyc
+external/boost/*

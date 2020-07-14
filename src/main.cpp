@@ -89,6 +89,18 @@ auto generateRandomInitialConditions(const std::vector<int> Ns, const std::vecto
   return states;
 }
 
+std::string readToString(istream & inStream)
+{
+  std::string jSonString = "";
+  std::string line;
+
+  while (std::getline(inStream, line))
+    {
+      jSonString+=line;
+    }
+  return jSonString;
+
+}
 
 
 int main(int argc, char** argv)
@@ -98,26 +110,32 @@ int main(int argc, char** argv)
     Reads input from standrard input and broadcast to all other mpi processes
 */
   pTools::init(argc,argv);
-
   std::string jSonString="";  
+
+    if ( pTools::isMaster())
+      {
+
+        if (argc==1)
+        {
+          jSonString=readToString(std::cin); 
+        }
+        else
+        {
+          ifstream fd(argv[1]);
+          jSonString = readToString(fd);
+        }
+        
+    
+      }
+    
   
-  
-  if ( pTools::isMaster())
-    {
-      std::string line;
-      while (std::getline(std::cin, line))
-	{
-	  jSonString+=line;
-	}
-  
-    }
-  
+
   pTools::broadcast(&jSonString,0);
   
   std::istringstream ss(jSonString);
   
   json_t j;
-
+  
   ss >> j;
 
   
