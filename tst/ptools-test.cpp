@@ -351,13 +351,19 @@ TEST(pTools,iWalkerSendReceive)
       initializer::initialize(w2,states2,psi,eO);
       centerOfMassSquared ob(0);
       realScalarStorer storer( "cm2",new centerOfMassSquared(0) , 100 );
+      centerOfMassStorer cmStorer("cm",100,{0,0});
+
       storer.reserve(w1);
       storer.reserve(w2);
+      cmStorer.reserve(w1);
+      cmStorer.reserve(w2);
+
       
       for(int i=0;i<355;i++)
 	{
 	  w1.getStates()[0].setRandom();
 	  storer.store(w1,psi);
+    cmStorer.store(w1,psi);
 	}
       MPI_Request sendReq;
       MPI_Request recvReq;
@@ -378,11 +384,22 @@ TEST(pTools,iWalkerSendReceive)
 	  auto & data2 = w2.getStorageScalarCorrelators().at("cm2");
 	  auto & data1 = w1.getStorageScalarCorrelators().at("cm2");
 
+    auto & dataCM1 = w1.getStorageScalarCorrelators().at("cm");
+    auto & dataCM2 = w2.getStorageScalarCorrelators().at("cm");
+    
+
 	  for (int i=0;i<data1.size();i++)
 	    {
 	      EXPECT_NEAR( data1(i) ,data2(i) , 1e-5 );
 	    }
 	  
+    for (int i=0;i<dataCM1.size();i++)
+	    {
+	      EXPECT_NEAR( dataCM1(i) ,dataCM1(i) , 1e-5 );
+	    }
+  
+    ASSERT_EQ(w1.getTimeIndex(),w2.getTimeIndex());
+    ASSERT_EQ(w1.getFillingStatus(),w2.getFillingStatus());
 	  
 	  
 	}

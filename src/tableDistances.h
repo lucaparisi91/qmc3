@@ -13,8 +13,8 @@ public:
   using state_t = ::state_t;
   using states_t = ::states_t;
   
-	tableDistances(){};
-	const auto & getGeometry() const {return *geo;}
+  tableDistances(){};
+  const auto & getGeometry() const {return *geo;}
 
 	void setGeometry(const geometry_t & geo_)  {geo=&geo_;}
 	tableDistances(geometry_t & geo_) : geo(&geo_){}

@@ -1,4 +1,5 @@
 #include "jastrow_delta.h"
+#include <nlohmann/json.hpp>
 
 
 jastrow_delta_phonons::jastrow_delta_phonons(const json_t & j)
@@ -11,7 +12,6 @@ jastrow_delta_phonons::jastrow_delta_phonons(const json_t & j)
   parameters[2]=j["beta"].get<real_t>();
   parameters[3]=j["z"].get<real_t>();
   parameters[4]=j["cut_off"].get<real_t>();
-  
   k2=M_PI/(2*parameters[4]);
 
   try
@@ -19,8 +19,8 @@ jastrow_delta_phonons::jastrow_delta_phonons(const json_t & j)
     parameters[5]=j["g"].get<real_t>();
   
   }
-  catch(const invalidInput& e)
-  {
+  catch(invalidType & e)
+  {    
     if (j["g"].get<std::string>() == "inf"  )
     {
       parameters[5]=0;
@@ -32,6 +32,8 @@ jastrow_delta_phonons::jastrow_delta_phonons(const json_t & j)
 
     
   }
+  
+
   
   
 }

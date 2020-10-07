@@ -94,8 +94,13 @@ void dmcWalker::createMPIDataType()
   const int N = getStates().size();
   const int M= 2;
   const int NScalars= 3;
+  const int nIntegers = getTimeIndex().size();
+  const int nBools = getFillingStatus().size();
+
+
   const int NstorageScalarObservables=getStorageScalarCorrelators().size();
-  const int Ntot = N*M + NScalars + NstorageScalarObservables;
+  const int Ntot = N*M + NScalars + NstorageScalarObservables + nIntegers + nBools;
+
   MPI_Aint  offsets[Ntot] ;
   int blockCounts[Ntot];
   MPI_Datatype dtypes[Ntot];
@@ -131,6 +136,7 @@ void dmcWalker::createMPIDataType()
   dtypes[k]=MPI_DOUBLE;  
   k++;
   
+  {
   auto it = getStorageScalarCorrelators().begin();
   
   while (it != getStorageScalarCorrelators().end() )
@@ -141,7 +147,39 @@ void dmcWalker::createMPIDataType()
       k++;
       it++;
     }
+
+  }
+
+  {
+  auto it = getTimeIndex().begin();
+
+  while (it != getTimeIndex().end() )
+  {
+    MPI_Get_address(& (it->second), &offsets[k]);
+    blockCounts[k]=1;
+    dtypes[k]=MPI_INT;
+    k++;
+    it++;
+  }
+
+  }
+
+  {
+  auto it = getFillingStatus().begin();
+
+  while (it != getFillingStatus().end() )
+  {
+    MPI_Get_address(& (it->second), &offsets[k]);
+    blockCounts[k]=1;
+    dtypes[k]=MPI_CXX_BOOL;
+    k++;
+    it++;
+  }
+
+  }
     
+
+
   
   MPI_Type_struct(Ntot, blockCounts, offsets, dtypes, &getMPIDatatype() );
   MPI_Type_commit(&getMPIDatatype());

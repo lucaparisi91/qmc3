@@ -285,10 +285,8 @@ class bSpline(jastrowBase):
         else:
             if der == 1:
                 A=self.Ad1
-    
+        
         return np.dot ( Alpha,    np.matmul(A,X) )/h**(der)
-
-
 
 @register.jastrow
 class unboundGaussian(bSpline):
@@ -444,7 +442,7 @@ class logNormal(bSpline):
         
         x=np.linspace(0,cut_off,num=bins)
         y=np.log(model(x,amplitude,mu,alpha,a=radius) )
-        y[x<=radius]=-10
+        y[x<=radius]=-20
         
         super().__init__(x=x,y=y,derivativeLeft=0,derivativeRight=0,mode=mode,mean=mean,radius=radius,amplitude=amplitude)
 
