@@ -32,8 +32,8 @@ include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 add_subdirectory(${PROJECT_BINARY_DIR}/../external/googletest)
 add_subdirectory(${PROJECT_BINARY_DIR}/../external/eigen)
 
-set(SOURCES  src/input.cpp src/geometry.cpp src/wavefunction/jastrows/jastrowSquareWell.cpp src/wavefunction/jastrows/jastrowSpline.cpp src/wavefunction/jastrows/jastrowHardSphereGauss.cpp src/wavefunction/jastrows/jastrowGaussGauss.cpp src/wavefunction/jastrows/jastrowPoschTeller.cpp src/wavefunction/jastrowWavefunctionThreeBody.cpp src/wavefunction/wavefunction.cpp src/wavefunction/productWavefunction.cpp src/tableDistances.cpp src/potential.cpp src/walkers.cpp src/initializer.cpp src/energy.cpp src/pairCorrelation.cpp src/trimerCorrelation.cpp src/estimators.cpp src/driver.cpp src/estimatorCollection.cpp src/tools.cpp src/moves/vmcMoves.cpp src/moves/dmcMoves.cpp src/dmcDriver.cpp src/vmcDriver.cpp src/metropolis.cpp src/branching.cpp src/orbitals.cpp src/slaters.cpp src/wavefunction/slaterDeterminant.cpp src/wavefunction/shell.cpp src/factory.cpp src/abstractFactory.cpp src/ptools.cpp src/timer.cpp src/estimatorsFactory.cpp src/correlationEstimator.cpp src/centerOfMassSquared.cpp src/hyperRadius.cpp src/wavefunction/jastrows/jastrow_delta.cpp src/wavefunction/jastrows/jastrowDipolar.cpp src/structureFactor.cpp src/parameters.cpp src/optimizationObservables.cpp
-  )
+set(SOURCES  src/input.cpp src/geometry.cpp src/wavefunction/jastrows/jastrowSquareWell.cpp src/wavefunction/jastrows/jastrowSpline.cpp src/wavefunction/jastrows/jastrowHardSphereGauss.cpp src/wavefunction/jastrows/jastrowGaussGauss.cpp src/wavefunction/jastrows/jastrowPoschTeller.cpp src/wavefunction/jastrowWavefunctionThreeBody.cpp src/wavefunction/wavefunction.cpp src/wavefunction/productWavefunction.cpp src/tableDistances.cpp src/potential.cpp src/walkers.cpp src/initializer.cpp src/energy.cpp src/pairCorrelation.cpp src/trimerCorrelation.cpp src/estimators.cpp src/driver.cpp src/estimatorCollection.cpp src/tools.cpp src/moves/vmcMoves.cpp src/moves/dmcMoves.cpp src/dmcDriver.cpp src/vmcDriver.cpp src/metropolis.cpp src/branching.cpp src/orbitals.cpp src/slaters.cpp src/wavefunction/slaterDeterminant.cpp src/wavefunction/shell.cpp src/factory.cpp src/abstractFactory.cpp src/ptools.cpp src/timer.cpp src/estimatorsFactory.cpp src/correlationEstimator.cpp src/centerOfMassSquared.cpp src/hyperRadius.cpp src/wavefunction/jastrows/jastrow_delta.cpp src/wavefunction/jastrows/jastrowDipolar.cpp src/structureFactor.cpp src/parameters.cpp src/optimizationObservables.cpp src/geometryPMC.cpp
+ pimc/action.cpp )
 
 
 add_library(main_lib STATIC ${SOURCES})
@@ -56,7 +56,7 @@ target_link_libraries(main )
 add_executable(current_test src/current_test.cpp)
 target_link_libraries(current_test main_lib ${MPI_LIBRARIES} )
 
-set(TEST_SOURCES  tst/parameters-test.cpp tst/jastrow-test.cpp tst/wavefunction-test.cpp tst/dmc-test.cpp tst/ptools-test.cpp)
+set(TEST_SOURCES  tst/parameters-test.cpp tst/jastrow-test.cpp tst/wavefunction-test.cpp tst/dmc-test.cpp tst/ptools-test.cpp tst/pimc-test.cpp)
 add_executable(tst tst/main.cpp ${TEST_SOURCES})
 target_include_directories(tst PUBLIC
                            "${PROJECT_BINARY_DIR}/../src"

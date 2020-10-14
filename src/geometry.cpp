@@ -65,6 +65,38 @@ geometryPBC::diff_t geometryPBC::differencesTwoBody(const geometryPBC::particles
 	}
 
 
+void geometryPBC::differencesTwoBody( diff_t &diffs, const geometryPBC::particles_t & particleData , int i) const 
+	{
+	    const int N = particleData.rows();
+
+        constexpr int D=difference_t::ColsAtCompileTime;
+		int k=(i*(i-1) )/2;
+
+		// loop on a row of differences matrix
+ 		for(int j=0;j<i;j++)
+ 		{
+ 			for (int d=0;d<D;d++)
+			 {
+ 				diffs(k,d)=difference( particleData(i,d) - particleData(j,d) , d);
+ 				k++;
+ 			}	
+		 }
+
+		 // loop on a column of the differences matrix
+		 for (int j=i+1;j<N ;j++ )
+		 {
+			int k = (j*(j-1) )/2 + i;
+			for (int d=0;d<D;d++)
+			 {
+			 diffs(k,d)=difference( particleData(j,d) - particleData(i,d) , d); // i and j inverted
+			 }
+
+		 }
+
+	}
+
+
+
  geometryPBC::diff_t geometryPBC::differencesTwoBody(const geometryPBC::particles_t & data1,const geometryPBC::particles_t & data2) const 
 	{
 	  int N1 = data1.rows();

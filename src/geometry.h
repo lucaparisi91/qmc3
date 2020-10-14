@@ -56,6 +56,10 @@ public:
   virtual diff_t differencesTwoBody(const particles_t & data1,const particles_t & data2) const ;
   
   virtual real_t getLBox(int i) const override {return lBox[i];}
+
+
+  virtual void differencesTwoBody(diff_t & differences , const particles_t & particleData, int i) const; // updates differences when particle i is changed
+
   
 private:
 	real_t lBox [3];

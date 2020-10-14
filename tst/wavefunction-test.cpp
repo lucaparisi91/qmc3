@@ -400,7 +400,8 @@ TEST(measurementsTest, superFluidFraction)
 
 TEST(initial_configurations,read_directory)
 {
-
+  if (getDimensions() == 1)
+  {
   auto configurations= readStatesFromDirectory("../tst/testInitalConfigurationVMC");
 
   int nWwalkers =  configurations.size() ;
@@ -421,7 +422,7 @@ TEST(initial_configurations,read_directory)
     }
 
 
-
+  }
 
 
 

@@ -181,7 +181,7 @@ void dmcWalker::createMPIDataType()
 
 
   
-  MPI_Type_struct(Ntot, blockCounts, offsets, dtypes, &getMPIDatatype() );
+  MPI_Type_create_struct(Ntot, blockCounts, offsets, dtypes, &getMPIDatatype() );
   MPI_Type_commit(&getMPIDatatype());
   
   //MPI_Get_address(getStates().data(), &offsets[0]);
