@@ -56,7 +56,7 @@ TEST(distances,updateSingleParticleDistances)
 
 TEST(configurations, init)
 {
-    int N = 1000;
+    int N = 100;
     int M = 30;
 
     pimc::particleGroup groupA{ 0 , N-1, 1.0};
@@ -64,6 +64,8 @@ TEST(configurations, init)
     pimc::pimcConfigurations configurations(M, N , getDimensions() , {groupA});
 
     auto & data = configurations.dataTensor();
+
+    data.setRandom();
 
     pimc::geometryPBC_PIMC geo(10,10,10);
 
@@ -82,12 +84,12 @@ TEST(configurations, init)
             {
                 for(int d=0;d<getDimensions();d++)
                 {
-                    kineticActionSimple+= std::pow(data(n,d,(t+1)%M ) - data(n,d,t) ,2) ;   
+                    kineticActionSimple+=std::pow(data(n,d,(t+1)%M ) - data(n,d,t) ,2) /(4*0.5*timeStep) ;   
                 }
             }
     }
 
-    ASSERT_NEAR(currentKineticAction,kineticActionSimple,1e-4);
+    ASSERT_NEAR(currentKineticAction,kineticActionSimple,1e-5);
 
 
 

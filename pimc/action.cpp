@@ -11,13 +11,13 @@ Real kineticAction::evaluate( pimcConfigurations_t & configurations , std::array
 
     auto sum= reduceOnSpringDistances( [] (Real x,Real y,Real z){ return x*x + y*y + z*z;} ,distancesBuffer,timeSlices, chainRange);
 
-    return 0;
+    return sum/(4* D * tau);
 
 }
 
 Real kineticAction::evaluate( pimcConfigurations_t & configurations )
 {
-    auto sum=evaluate(configurations  , {0 , nBeads} , {0,nChains-1} ) ;
+    auto sum=evaluate(configurations  , {0 , nBeads-1} , {0,nChains-1} ) ;
 
     return sum;
 }
