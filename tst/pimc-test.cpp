@@ -47,6 +47,24 @@ TEST(distances,updateSingleParticleDistances)
         }
     }
 
+    Eigen::Tensor<Real,3> potentialDifferences(N ,getDimensions() , T );
+
+    int jChain = N-1;
+    geo.updateEqualTimeDifferences(potentialDifferences,data, {0,T-1}, jChain , {0,N-1});
+
+
+    for (int t=0;t<T;t++)
+    {
+        for (int i=0;i<N;i++)
+        {
+            for(int d=0;d<getDimensions();d++)
+            {
+            ASSERT_NEAR( potentialDifferences(i,d,t) , data(i,d,t) - data(jChain,d,t) ,1e-4);
+            }
+        }
+    }
+
+
     //auto springDistances = geo.springDistances( timeConfigurations );
 
     //geo.springDistances(springDistances,timeConfigurations,0,2 , 0, 3  );
@@ -56,8 +74,8 @@ TEST(distances,updateSingleParticleDistances)
 
 TEST(configurations, init)
 {
-    int N = 100;
-    int M = 30;
+    const int N = 100;
+    const int M = 30;
 
     pimc::particleGroup groupA{ 0 , N-1, 1.0};
 
@@ -91,7 +109,59 @@ TEST(configurations, init)
 
     ASSERT_NEAR(currentKineticAction,kineticActionSimple,1e-5);
 
+     auto harmonicPotential = [](Real x,Real y , Real z) {return x*x + y*y + z*z;};
 
+     pimc::potentialActionOneBody<decltype(harmonicPotential)> pot1(timeStep,harmonicPotential,geo);
+
+     auto v = pot1.evaluate(configurations);
+     Real vCheck=0;
+
+     for (int t=0;t<M;t++)
+        for(int n=0;n<N;n++)
+        {
+            for(int d=0;d<getDimensions();d++)
+            {
+                vCheck+=data(n,d,t) * data(n,d,t) ;
+            }
+        }
+    ASSERT_NEAR(v,vCheck,1e-4);
+
+    pimc::potentialActionTwoBody<decltype(harmonicPotential)> pot2(timeStep, N , M , harmonicPotential,geo) ;
+
+    int jChain = 3;
+
+    v=pot2.evaluate(configurations, {0,M-1} , jChain ,  {0,N-1} );
+    vCheck=0;
+
+    for ( int t=0;t<M;t++)
+        for ( int i=0; i<N;i++ )
+        {
+            if (jChain != i)
+            {
+            for (int d=0;d<getDimensions();d++)
+            {
+                vCheck+= std::pow( data(i,d,t) - data(jChain,d,t) ,2);
+            }
+            }
+        }
+
+    ASSERT_NEAR(v,vCheck,1e-3);
+
+    v=pot2.evaluate(configurations);
+
+    vCheck=0;
+    for ( int t=0;t<M;t++)
+        for ( int i=0; i<N;i++ )
+            for(int j=0;j<i;j++)
+            {
+                for(int d=0;d<getDimensions();d++)
+                {
+                    vCheck+= std::pow( data(i,d,t) - data(j,d,t) ,2);
+                }
+
+            }
+    ASSERT_NEAR(v,vCheck,1e-3);
+    
 
 
 

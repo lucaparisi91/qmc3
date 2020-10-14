@@ -39,22 +39,7 @@ namespace pimc
 
 
 
-
-
-
-
-class harmonicPotential
-{
-    inline Real operator() ( Real  x , Real y , Real z )
-    {
-        return 0.5*(x*x + y*y + z*z);
-    }
-
-};
-
-
 using pimcConfigurations_t = pimcConfigurations;
-
 
 class kineticAction
 {
@@ -97,15 +82,22 @@ class potentialActionOneBody
         return sum;
     }
 
+    Real evaluate(pimcConfigurations_t & configurations ) 
+    {
+        const auto nChains = configurations.nChains();
+        const auto nBeads = configurations.nBeads();
+        auto sum = evaluate(configurations, {0,nBeads-1},{0,nChains-1});
 
+        return sum;
+    }
 
     private:
     functor_t V;
     Real tau;
     geometryPBC_PIMC geo;
-    
 
 };
+
 
 
 
@@ -118,16 +110,16 @@ class potentialActionTwoBody
 
 
     potentialActionTwoBody(Real tau_, int nChains_  , int nBeads_, functor_t V_, geometryPBC_PIMC geo_) : tau(tau_),V(V_),geo(geo_),nChains(nChains_),nBeads(nBeads_) ,
-    bufferDistances(nChains  , getDimensions() , nBeads  ) {}
-
+    bufferDistances(nChains_,getDimensions(),nBeads_)
+     {}
     
-    Real evaluate(pimcConfigurations_t & configurations, std::array<int,2> timeRange, int iChain, std::array<int,2>  particleRange  ) 
+    Real evaluate(const pimcConfigurations_t & configurations, std::array<int,2> timeRange, int iChain, std::array<int,2>  particleRange  ) 
     {
-        auto & data = configurations.dataTensor();
+        const auto & data = configurations.dataTensor();
 
         geo.updateEqualTimeDifferences(bufferDistances, data, timeRange , iChain, particleRange) ;
 
-        auto sum=reduceOnDifferences(bufferDistances,timeRange,particleRange);
+        auto sum=reduceOnDifferences(bufferDistances,timeRange,iChain,particleRange);
 
 
         return sum;
@@ -142,6 +134,8 @@ class potentialActionTwoBody
         }
         return sum/2.;
     };
+
+   
     
 
 
@@ -150,14 +144,30 @@ class potentialActionTwoBody
     private:
 
 
-    Real reduceOnDifferences(const Eigen::Tensor<Real,3> & tn, std::array<int,2> timeRange, std::array<int,2> particleRange  ) const 
+    Real reduceOnDifferences(const Eigen::Tensor<Real,3> & tn, std::array<int,2> timeRange, int j,  std::array<int,2> particleRange  ) const 
     {
          Real sum=0;
+
+         auto iStartLeft = particleRange[0];
+         auto iEndLeft = std::min(particleRange[1],j);
+
+         auto iStartRight = iEndLeft + 1;
+         auto iEndRight = particleRange[1];
+
+
+
+
         for(int t=timeRange[0];t<=timeRange[1] ; t++)
-            for (size_t i=particleRange[0];i<=particleRange[1];i++ )
+        {
+            for (size_t i=iStartLeft;i<=iEndLeft;i++ )
                 {
                     sum+=V( tn(i,0,t ) , tn(i,1,t) , tn(i,2,t)  ) ;
                 }
+        for (size_t i=iStartRight;i<=iEndRight;i++ )
+                {
+                    sum+=V( tn(i,0,t ) , tn(i,1,t) , tn(i,2,t)  ) ;
+                }
+        }
 
         return sum;
 

@@ -30,27 +30,28 @@ namespace pimc
         using configurationsStorage_t =  Eigen::Tensor<Real, 3> ;
 
         pimcConfigurations(size_t timeSlices, size_t nChains, int dimensions, std::vector<particleGroup>  particleGroups_) : 
-        _data(nChains, dimensions,timeSlices), particleGroups(particleGroups_)   , _springDistancesBuffer(timeSlices,dimensions,nChains),_twoBodyDistancesBuffer(nChains,nChains,timeSlices,dimensions)
+        _data(nChains, dimensions,timeSlices), particleGroups(particleGroups_)   ,N(nChains),M(timeSlices)
         {
             
         };
 
-
-
         auto &  dataTensor() {return _data;}
+         const auto &  dataTensor() const {return _data;}
+
 
         auto data() {return _data.data();}
-
-
-        auto & springDistances() {return _springDistancesBuffer;}
+        
+        auto nChains() const {return N;} 
+        
+        auto nBeads() const {return M; } 
 
         private:
 
         std::vector<particleGroup> particleGroups;
         std::vector<worm> worms;
         configurationsStorage_t _data;
-        Eigen::Tensor<Real, 3> _springDistancesBuffer;
-        Eigen::Tensor<Real,4> _twoBodyDistancesBuffer;
+        int M;
+        int N;
 
 
     };

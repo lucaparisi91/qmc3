@@ -4,12 +4,9 @@
 
 namespace pimc
 {
-
-
-
+    
     void geometryPBC_PIMC::updateEqualTimeDifferences( Eigen::Tensor<Real,3>  & differences, const  Eigen::Tensor<Real, 3> & tn, std::array<int,2> timeRange,  int j,  std::array<int,2> particleRangeB )
     {
-        
         for (size_t t = timeRange[0] ; t<= timeRange[1] ;t++  )
         {
             for ( size_t i=particleRangeB[0]  ;i<=particleRangeB[1];i++ )
