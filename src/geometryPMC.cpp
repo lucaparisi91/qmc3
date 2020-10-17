@@ -14,10 +14,12 @@ namespace pimc
                     for (int d=0;d<getDimensions();d++)
                     {
                         differences(  i  ,d , t  )  = difference(      tn(i,d, t ) - tn(j,d,t) , d);
+
                     }
                     
                 }
         }
+
     }
 
 
@@ -37,7 +39,7 @@ void geometryPBC_PIMC::updateSpringDifferences( Eigen::Tensor<Real,3> & differen
                     for (int d=0;d<getDimensions();d++)
                     {
                         differences( t, d , i )  = 
-                         difference(      tn(i,d, (t+1)%T ) - tn(i,d,t) , d);
+                         difference(      tn(i,d, (t+1)%T) - tn(i,d,t) , d);
 
                     }
                     

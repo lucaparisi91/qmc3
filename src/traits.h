@@ -32,3 +32,10 @@ using json_t = input;
 using potential_t = sumPotentials;
 
 #endif
+
+
+
+namespace pimc
+{
+    using Real = double;
+};

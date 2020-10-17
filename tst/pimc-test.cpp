@@ -4,7 +4,7 @@
 #include "tools.h"
 #include "../pimc/action.h"
 #include "../pimc/pimcConfigurations.h"
-
+#include "../pimc/moves.h"
 
 TEST(distances,updateSingleParticleDistances)
 {
@@ -69,8 +69,8 @@ TEST(distances,updateSingleParticleDistances)
 
     //geo.springDistances(springDistances,timeConfigurations,0,2 , 0, 3  );
 
-    
 }
+
 
 TEST(configurations, init)
 {
@@ -89,8 +89,7 @@ TEST(configurations, init)
 
 
     Real timeStep = 1e-2;
-    pimc::kineticAction sT(timeStep, N , M , geo);
-
+    pimc::kineticAction sT(timeStep, N , M , {groupA} , geo);
 
     Real currentKineticAction = sT.evaluate(configurations);
 
@@ -111,7 +110,7 @@ TEST(configurations, init)
 
      auto harmonicPotential = [](Real x,Real y , Real z) {return x*x + y*y + z*z;};
 
-     pimc::potentialActionOneBody<decltype(harmonicPotential)> pot1(timeStep,harmonicPotential,geo);
+     pimc::potentialActionOneBody<decltype(harmonicPotential)> pot1(timeStep,harmonicPotential, {groupA},geo);
 
      auto v = pot1.evaluate(configurations);
      Real vCheck=0;
@@ -161,9 +160,167 @@ TEST(configurations, init)
 
             }
     ASSERT_NEAR(v,vCheck,1e-3);
+
+
+
+}
+
+
+TEST(action , evaluation)
+{
+    const int N = 100;
+    const int M = 30;
+
+    pimc::particleGroup groupA{ 0 , N-1, 1.0};
+
+    pimc::pimcConfigurations configurations(M, N , getDimensions() , {groupA});
+
+    auto & data = configurations.dataTensor();
+
+    data.setRandom();
+
+    pimc::geometryPBC_PIMC geo(10,10,10);
+
+
+    Real timeStep = 1e-2;
+    pimc::kineticAction sT(timeStep, N , M , {groupA} , geo);
+
+    auto oldKineticAction = sT.evaluate(configurations);
+
+    randomGenerator_t randG;
+
+    std::array< std::array<int,2> ,2 > timeSlices ;
+    timeSlices[0]={25,29};
+    timeSlices[1]={0,9};
+
+    int iChain = 55;
+
+    auto sOld = sT.evaluate(configurations,timeSlices,iChain);
+
+    auto deltaSOld= sT.evaluate(configurations, timeSlices, iChain);
+
+    std::uniform_real_distribution<Real> unifDis(0,1);
+    Real delta=0.5;
+
+    for (int t=timeSlices[0][0];t<=timeSlices[0][1];t++)
+    {
+        for(int d=0;d<=getDimensions();d++)
+        {
+            data(iChain,d,t) += delta * unifDis(randG); 
+        }
+        
+    }
+
+    auto deltaSNew = sT.evaluate(configurations,timeSlices,iChain);
+
+    auto sNew = sT.evaluate(configurations,timeSlices,iChain);
+
+
+    auto deltaS = deltaSNew - deltaSOld;
+    auto deltaSCheck = sNew - sOld;
+
+    ASSERT_NEAR(deltaS,deltaSCheck,1e-4);
+
+}
+
+
+TEST(moves,levy_reconstructor)
+{
+    int seed = 30;
+    const int N = 100;
+    const int M = 30;
+
+    pimc::particleGroup groupA{ 0 , N-1, 1.0};
+    pimc::pimcConfigurations configurations(M, N , getDimensions() , {groupA});
+
+    pimc::pimcConfigurations configurations2(M, N , getDimensions() , {groupA});
+
+    Real timeStep=1e-3;
+
+    std::array<int,2> timeSlice= {10,26};
+
+
+    pimc::levyReconstructor levy(seed,timeStep);
+    int iChain = 30;
+    configurations2=configurations;
+
+    levy.apply(configurations,configurations,iChain,timeSlice);
+
+    auto &  data = configurations.dataTensor();
+    auto &  data2 = configurations2.dataTensor();
+
+    for (int i=0;i<N;i++)
+    {
+        for (int t=0; t<=timeSlice[0];t++)
+         {
+            for (int d=0;d<getDimensions();d++)
+            ASSERT_NEAR( data2(i,d,t) , data(i,d,t) ,1e-4);
+        }
+
+        for (int t=timeSlice[1]; t<M;t++)
+         {
+            for (int d=0;d<getDimensions();d++)
+            ASSERT_NEAR( data2(i,d,t) , data(i,d,t) ,1e-4);
+        }
+
+        if (i == iChain)
+        {
+            for (int t=timeSlice[0]+1; t<timeSlice[1];t++)
+         {
+            for (int d=0;d<getDimensions();d++)
+            ASSERT_FALSE( abs( data2(i,d,t) - data(i,d,t) ) < 1e-4);
+        }
+
+        };
+
+
+
+    }
+
+
+    levy.apply(configurations,configurations, 8,{25,40} );
+    configurations2=configurations;
+
+}
+
+TEST(moves,levy)
+{
+    int seed = 30;
+    const int N = 100;
+    const int M = 30;
+
+    pimc::particleGroup groupA{ 0 , N-1, 1.0};
+    pimc::pimcConfigurations configurations(M, N , getDimensions() , {groupA});
+    pimc::geometryPBC_PIMC geo(10,10,10);
+
+
+    pimc::pimcConfigurations configurations2(M, N , getDimensions() , {groupA});
+    Real timeStep=1e-3;
+    std::array<int,2> timeSlice= {10,26};
+
+    pimc::kineticAction sT(timeStep, N , M , {groupA} , geo);
+
+
+    auto V = [](Real x, Real y , Real z) {return x*x + y*y + z*z ;};
+
+
+    pimc::potentialActionOneBody<decltype(V)> sV(timeStep,V , {groupA},geo);
+
+    pimc::firstOrderAction S(&sT, & sV);
+
+
+    pimc::levyReconstructor levy(seed,timeStep);
+    pimc::levyMove mover(levy,20);
+
+    mover.attemptMove(configurations,S);
     
 
 
 
+
+
+
+
+    
 
 }
