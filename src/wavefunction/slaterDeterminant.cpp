@@ -3,7 +3,6 @@
 #include "orbitals.h"
 #include "walkers.h"
 
-
 template<class orbitalSet_t>
 slaterDeterminantWavefunction<orbitalSet_t>::slaterDeterminantWavefunction(const orbitalSet_t & orbitals_,const geometry_t & geo_,size_t setA_) : _orbitals( std::make_unique<orbitalSet_t>(orbitals_) ),setA(setA_),wavefunction::wavefunction(geo_) {}
 
@@ -143,9 +142,7 @@ slaterDeterminantWavefunctionComplex<orbitalSet_t>::slaterDeterminantWavefunctio
 
 
 
-
 #if DIMENSIONS == 3
-
 
 template class slaterDeterminantWavefunction<orbitalSet<sinOrbital> > ;
 template class slaterDeterminantWavefunctionComplex<orbitalSet<planeWave> > ;

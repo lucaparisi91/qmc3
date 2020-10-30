@@ -12,11 +12,10 @@ class geometry
 public:
 	using particles_t = ::state_t;
 	using diff_t =  ::difference_t;
-  
+	
 	virtual diff_t differencesTwoBody(const particles_t & data) const = 0; // distances between undistinguishible particles
 
 	virtual diff_t differencesTwoBody(const particles_t & data1, const particles_t & data2) const = 0; // distances between distinguishiblle particles
-
 
 	virtual diff_t differencesOneBody(const particles_t & data , const std::array<real_t,3> & x) const = 0;
 
@@ -36,7 +35,6 @@ real_t norm(real_t x,real_t y, real_t z);
 distance_t norm( const difference_t & diffs);
 
 
-
 class geometryPBC : public geometry
 {
 public:
@@ -54,19 +52,16 @@ public:
   virtual diff_t differencesTwoBody(const particles_t & particleData) const ;
 
   virtual diff_t differencesTwoBody(const particles_t & data1,const particles_t & data2) const ;
-  
-  virtual real_t getLBox(int i) const override {return lBox[i];}
 
+  virtual real_t getLBox(int i) const override {return lBox[i];}
 
   virtual void differencesTwoBody(diff_t & differences , const particles_t & particleData, int i) const; // updates differences when particle i is changed
 
-  
+
 private:
 	real_t lBox [3];
 	real_t lBoxInverse [3];
 
 };
-
-
 
 #endif

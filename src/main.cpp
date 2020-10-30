@@ -36,7 +36,6 @@
 #include "wavefunction/jastrows/jastrowHardSphereGauss.h"
 
 
-
 bool check_n_particles(const states_t & states,const std::vector<int> & Ns)
 {
   bool pass=true;
