@@ -7,8 +7,7 @@ factory*  factory::get()    {
   if (!singleton)
     singleton = new factory;
   return singleton;
+  
 }
 
 factory* factory::singleton = nullptr;
-
-

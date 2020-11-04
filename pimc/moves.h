@@ -8,7 +8,7 @@
 #include "metropolis.h"
 #include "geometryPMC.h"
 #include "towerSampler.h"
-
+#include "toolsPimc.h"
 
 namespace pimc
 {
@@ -24,27 +24,29 @@ class timeSliceGenerator
     std::uniform_real_distribution<float> uniformRealNumber;
 };
 
-
    class levyReconstructor
     {
         public : 
-        levyReconstructor( Real timeStep_) :  gauss(0,1), timeStep(timeStep_){}
+        levyReconstructor( ) :  gauss(0,1) {}
 
-        void apply (configurations_t & configurationsNew, configurations_t & configurationsOld, int iChain , std::array<int,2> timeRange,
-        randomGenerator_t & randG); // performs levy reconstruction on a single strand
+        void apply (configurations_t & configurationsNew, configurations_t & configurationsOld , std::array<int,2> timeRange, int iChain,Real timeStep,randomGenerator_t & randG); // performs levy reconstruction on a single strand
 
-        auto getTimeStep() const {return timeStep;} 
+
+        void apply (configurations_t & configurationsNew, std::array<int,2> timeRange,int iChain ,
+        Real timeStep,randomGenerator_t & randG)
+        {
+            apply(configurationsNew,configurationsNew,timeRange,iChain,timeStep,randG);
+        }
+
 
         private:
         
         std::array<Real,getDimensions()> mean;
         std::normal_distribution<Real> gauss;
-        Real timeStep;
+        
     };
 
-
 class firstOrderAction;
-
 
 class move 
 {
@@ -79,6 +81,8 @@ class levyMove : public move
     
     private:
 
+
+    bool isValidSlice( configurations_t & confs , const std::array<int,2> timeRange,int iChain) const;
     void copyToBuffer(configurations_t & confs, std::array<int,2> timeSlice,int iChain,int offset=0);
 
     void copyToBuffer(configurations_t & confs, std::array< std::array<int,2>  , 2> timeSlice,int iChain)
@@ -94,6 +98,7 @@ class levyMove : public move
 
     };
 
+
     void copyFromBuffer(configurations_t & confs, std::array<int,2> timeSlice,int iChain,int offset=0);
 
 
@@ -103,8 +108,79 @@ class levyMove : public move
     std::uniform_real_distribution<float> uniformRealNumber;
     
     metropolis sampler;
+    configurationsSampler confsSampler;
     Eigen::Tensor<Real,2> tmp;
     timeSliceGenerator tGen;
+
+};
+
+
+class openMove
+{
+    public:
+    // splits a chain in two morms with one overlapping bead
+    openMove(Real C_ , Real timeStep_) : C(C_),
+    timeStep(timeStep_) {}
+
+    bool attemptMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG);
+
+
+    private:
+    Real C;
+    int maxBeadLength;
+    std::array<Real, 3> tmp;
+    Real timeStep;
+
+    const Real D = 0.5;
+    configurationsSampler confsSampler;
+    std::normal_distribution<Real> gauss;
+    std::uniform_real_distribution<float> uniformRealNumber;
+
+    metropolis sampler;
+};
+
+class closeMove
+{
+    public:
+    // splits a chain in two morms with one overlapping bead
+    closeMove(Real C_ , Real timeStep_) : C(C_),
+    timeStep(timeStep_) {}
+
+    bool attemptMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG);
+    
+    private:
+    Real C;
+    int maxBeadLength;
+    std::array<Real, 3> tmp;
+    Real timeStep;
+
+    const Real D = 0.5;
+    configurationsSampler confsSampler;
+    std::normal_distribution<Real> gauss;
+    std::uniform_real_distribution<float> uniformRealNumber;
+    metropolis sampler;
+};
+
+
+// advance and recede in opposite directions
+class advanceRecedeMove
+{
+    public:
+    advanceRecedeMove(int maxAdvanceLength_);
+
+    bool attemptMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG);
+    private:
+
+    int maxAdvanceLength;
+    timeSliceGenerator tGen;
+    levyReconstructor _levy;
+    std::uniform_real_distribution<Real> distr;
+    Eigen::Tensor<Real,2> buffer;
+
+    configurationsSampler confSampler;
+    metropolis sampler;
+    std::array<Real,3> tmpPosition;
+    std::array<Real,3> tmpMean;
 
 };
 
@@ -115,7 +191,8 @@ class swapMove
     using geometry_t = geometryPBC_PIMC;
 
     swapMove(Real rmax_, int maxStepLength_, int seed);
-    bool attemptMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG); // will attempt to perfo
+    bool attemptMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG); // will attempt to perform a new move
+
 
     private:
     Real rmax;
@@ -132,9 +209,14 @@ class swapMove
     Real particleSelectionWeight;
     const Real D = 0.5;
     towerSampler particleSampler;
-    metropolis metropolisSampler;
+    metropolis metropolisSampler;  
+    timeSliceGenerator tGen;
+    configurationsSampler confSampler;
+    towerSampler chainSampler;
 
 };
+
+
 
 }
 

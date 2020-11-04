@@ -7,7 +7,6 @@
 #include "../pimc/moves.h"
 #include "../pimc/pimcObservables.h"
 
-
 TEST(distances,updateSingleParticleDistances)
 {
     pimc::geometryPBC_PIMC geo(10,10,10);
@@ -53,7 +52,6 @@ TEST(distances,updateSingleParticleDistances)
 
     int jChain = N-1;
     geo.updateEqualTimeDifferences(potentialDifferences,data, {0,T-1}, jChain , {0,N-1});
-
 
     for (int t=0;t<T;t++)
     {
@@ -260,14 +258,14 @@ TEST(moves,levy_reconstructor)
     std::array<int,2> timeSlice= {10,26};
 
 
-    pimc::levyReconstructor levy(timeStep);
+    pimc::levyReconstructor levy;
     int iChain = 30;
 
     configurations.dataTensor().setRandom();
     configurations2=configurations;
 
 
-    levy.apply(configurations,configurations,iChain,timeSlice,randG);
+    levy.apply(configurations,timeSlice,iChain,timeStep,randG);
 
     auto &  data = configurations.dataTensor();
     auto &  data2 = configurations2.dataTensor();
@@ -322,7 +320,8 @@ TEST(moves,levy_reconstructor)
 
     for (int i=0;i< nSteps ; i++)
     {
-        levy.apply(configurations,configurations,iChain,timeSlice,randG);
+        levy.apply(configurations,timeSlice,iChain,timeStep,randG);
+
 
         for(int d=0;d<getDimensions();d++)
         {
@@ -382,7 +381,8 @@ TEST(moves,levy)
 
     pimc::firstOrderAction S(&sT, & sV);
 
-    pimc::levyReconstructor levy(timeStep);
+    pimc::levyReconstructor levy;
+
     pimc::levyMove mover(levy,20);
     int success = 0;
 
@@ -418,8 +418,6 @@ TEST(moves,levy)
 
  }
 
-
-
 TEST(configurations, io)
 {
 
@@ -446,6 +444,9 @@ TEST(configurations, io)
 
     pimc::pimcConfigurations configurations2;
 
+    pimc::configurations_t configurations3(configurations);
+    const auto & data3 = configurations3.dataTensor();
+
     configurations2.load("testConfig");
 
     ASSERT_EQ(configurations.nChains() ,configurations2.nChains() );
@@ -459,7 +460,7 @@ TEST(configurations, io)
     {
             for(int d=0;d<getDimensions();d++)
             {
-                ASSERT_NEAR(  data(worm.iChainHead,d,t) , data2(worm.iChainTail,d,t) , 1e-3 );
+                ASSERT_NEAR(  data(worm.iChainHead,d,t) , data2(worm.iChainHead,d,t) , 1e-3 );
 
                 ASSERT_EQ(  mask(t,worm.iChainTail) , 0);
                 ASSERT_EQ(  mask(t,worm.iChainHead) , 1);
@@ -487,15 +488,14 @@ TEST(configurations, io)
     {
             for(int d=0;d<getDimensions();d++)
             {
-                ASSERT_NEAR(  data(worm.iChainTail,d,t) , data2(worm.iChainTail,d,t) , 1e-3 );
+                ASSERT_NEAR(  data(worm.iChainTail,d,t) , data3(worm.iChainTail,d,t) , 1e-3 );
 
                 ASSERT_EQ(  mask(t,worm.iChainTail) , 1);
 
             }
     }
-
+    
     ASSERT_EQ(configurations.worms().size(),0);
-
 
 }
 
@@ -512,7 +512,7 @@ TEST(run,free_harmonic_oscillator)
 
     configurations.dataTensor().setRandom();
 
-    pimc::levyReconstructor reconstructor(timeStep);
+    pimc::levyReconstructor reconstructor;
 
     pimc::levyMove freeMoves(reconstructor, 10);
 
@@ -531,7 +531,8 @@ TEST(run,free_harmonic_oscillator)
     pimc::firstOrderAction S(&sT, & sV);
     int nTimes = 10000;
     int success = 0;
-    int subSteps=100;
+    int subSteps=1000;
+
 
     pimc::thermodynamicEnergyEstimator energyEstimator;
     Real e=0;
@@ -557,12 +558,15 @@ TEST(run,free_harmonic_oscillator)
 
         std::cout << "Energy: " << e/( (i+1)) << std::endl;
         std::cout << "Acceptance ratio: " << success*1./((i+1)*subSteps) << std::endl;
+        
+        configurations.save("testRun/sample"+std::to_string(i));
+
     }
+
 
     ASSERT_TRUE( (success*1./nTimes )> 0);
     e/=nTimes;
     e2/=nTimes;
-
 
     //std::cout << e << " " << std::sqrt(e2 - e*e) << std::endl;
 

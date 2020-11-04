@@ -2,7 +2,6 @@
 #include "pimcConfigurations.h"
 #include "action.h"
 
-
 namespace pimc
 {
 

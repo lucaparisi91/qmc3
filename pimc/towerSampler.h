@@ -5,12 +5,28 @@ namespace pimc
 class towerSampler
 {
     public:
-    towerSampler() : uniformRealNumber(0,1),totWeight(0) {} 
     
-    towerSampler(int max_num_weights) : accWeights(max_num_weights) {}
+    towerSampler(int max_num_weights) : _accWeights(max_num_weights),uniformRealNumber(0,1), _totWeight(0) {}
+
+    void resize(int max_num_weights)  {_accWeights.resize(max_num_weights);} 
+    
 
 
-    virtual void reset() {totWeight=0;int iCurrentWeight;}
+    towerSampler() : towerSampler(0) {} 
+   
+
+    virtual void reset() {_totWeight=0;int iCurrentWeight=0;}
+    
+    void accumulateWeight(Real weight) {
+        _totWeight+=weight;
+        _accWeights[iCurrentWeight]=_totWeight;
+        iCurrentWeight++;
+    }
+
+    int sample(randomGenerator_t & randG)
+    {
+        return sample(_accWeights,_totWeight,randG);
+    }
 
     int sample(std::vector<Real> & accWeights, Real totWeight, randomGenerator_t & randG)
     {
@@ -23,8 +39,9 @@ class towerSampler
 
     private:
     std::uniform_real_distribution<float> uniformRealNumber;
-    std::vector<Real> accWeights;
-    Real totWeight;
+    std::vector<Real> _accWeights;
+    Real _totWeight;
+    int iCurrentWeight=0;
 
 };
 
