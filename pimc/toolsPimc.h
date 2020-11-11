@@ -1,9 +1,17 @@
+#ifndef TOOLSPIMC_H
+#define TOOLSPIMC_H
+
 #include <random>
 #include "pimcConfigurations.h"
 
 namespace pimc{
 
+    enum periodicity {periodic = 1 , open = 0};
+
+
+    std::array<std::array<int,2>, 2> splitPeriodicTimeSlice(const std::array<int,2> & timeSlice, int nBeads);
     
+
     Real freeParticleLogProbability(std::array<Real,3> & delta,Real tau,Real mass=1);
 
 class configurationsSampler
@@ -27,3 +35,5 @@ class configurationsSampler
 
 
 }
+
+#endif

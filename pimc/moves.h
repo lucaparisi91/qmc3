@@ -27,7 +27,8 @@ class timeSliceGenerator
    class levyReconstructor
     {
         public : 
-        levyReconstructor( ) :  gauss(0,1) {}
+        levyReconstructor( int maxReconstructionLength) :  gauss(0,1),buffer(maxReconstructionLength,getDimensions()) {}
+        
 
         void apply (configurations_t & configurationsNew, configurations_t & configurationsOld , std::array<int,2> timeRange, int iChain,Real timeStep,randomGenerator_t & randG); // performs levy reconstruction on a single strand
 
@@ -37,12 +38,14 @@ class timeSliceGenerator
         {
             apply(configurationsNew,configurationsNew,timeRange,iChain,timeStep,randG);
         }
-
-
-        private:
         
+        private:
+
         std::array<Real,getDimensions()> mean;
         std::normal_distribution<Real> gauss;
+        Eigen::Tensor< Real , 2 > buffer;
+        int _maxReconstructionLength;
+
         
     };
 

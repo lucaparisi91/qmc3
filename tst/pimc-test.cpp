@@ -169,7 +169,6 @@ TEST(configurations, init)
     ASSERT_NEAR(v,vCheck,1e-3);
 
 
-
 }
 
 
@@ -258,7 +257,7 @@ TEST(moves,levy_reconstructor)
     std::array<int,2> timeSlice= {10,26};
 
 
-    pimc::levyReconstructor levy;
+    pimc::levyReconstructor levy(M);
     int iChain = 30;
 
     configurations.dataTensor().setRandom();
@@ -381,7 +380,7 @@ TEST(moves,levy)
 
     pimc::firstOrderAction S(&sT, & sV);
 
-    pimc::levyReconstructor levy;
+    pimc::levyReconstructor levy(M);
 
     pimc::levyMove mover(levy,20);
     int success = 0;
@@ -418,9 +417,52 @@ TEST(moves,levy)
 
  }
 
-TEST(configurations, io)
+void testChain(pimc::pimcConfigurations & configurations, int iChain, int expectedHead, int expectedTail)
 {
+    auto const & chainInfo = configurations.getChainsInfo(); 
+    const auto & chain = chainInfo[iChain];
+    const auto & mask = configurations.getMask(); 
 
+    ASSERT_EQ( chain.getHead() , expectedHead   );
+    ASSERT_EQ( chain.getTail() , expectedTail   );
+
+    if (expectedHead > expectedTail)
+    {
+        for(int t=expectedTail+1;t<expectedHead;t++)
+        {
+            ASSERT_EQ(mask(t,iChain) , 1  );
+        }
+        for(int t=0;t<=expectedTail;t++)
+        {
+            ASSERT_EQ(mask(t,iChain) , 0  );
+        }
+        for(int t=expectedHead;t<configurations.nBeads();t++)
+        {
+            ASSERT_EQ(mask(t,iChain) , 0  );
+        }
+
+    }
+    else 
+    {
+        for(int t=expectedTail;t<=expectedHead;t++)
+        {
+            ASSERT_EQ(mask(t,iChain) , 0  );
+        }
+        for(int t=0;t<expectedTail;t++)
+        {
+            ASSERT_EQ(mask(t,iChain) , 1  );
+        }
+        for(int t=expectedHead+1;t<configurations.nBeads();t++)
+        {
+            ASSERT_EQ(mask(t,iChain) , 1  );
+        }
+
+    }
+
+}
+
+TEST(configurations, worms)
+{
     const int N = 10;
     const int M = 50;
 
@@ -429,74 +471,53 @@ TEST(configurations, io)
     pimc::pimcConfigurations configurations(M , getDimensions() , {groupA});
     
     auto & data = configurations.dataTensor();
-    data.setRandom();
-    int time=10;
+    const auto & mask = configurations.getMask();
 
-    int iWorm=configurations.open(time, 5 );
+    data.setRandom();
+
+    int time=10;
+    int iChain=5;
+    
+    configurations.open(time, iChain );
+    int iWorm=0;
 
     ASSERT_EQ( configurations.worms().size() , 1 );
     ASSERT_EQ(iWorm,0);
 
-    auto worm = configurations.worms()[iWorm];
+    auto currentWorm = configurations.worms()[iWorm];
 
+    ASSERT_EQ(currentWorm.getTail().index(),N);
+    ASSERT_EQ(currentWorm.getHead().index(),iChain);
+    ASSERT_EQ(currentWorm.getHead().getNextChain().index(),
+    currentWorm.getTail().index() );
+    ASSERT_EQ(currentWorm.getTail().getPrevChain().index(),
+    currentWorm.getHead().index() );
+
+    ASSERT_EQ(currentWorm.getTail().getTail() ,currentWorm.getHead().getHead() - 1 );
+
+    testChain( configurations,iChain, time, -1);
+    testChain( configurations,currentWorm.getTail().index(), M, time-1);
+
+    // test closing of configurations
+
+    configurations.close(0);
+
+    ASSERT_EQ( configurations.worms().size() , 0 );
+
+    testChain( configurations,iChain, M, -1);
+
+
+    ASSERT_EQ(configurations.getGroups()[0].size() , N   );
+    ASSERT_EQ(currentWorm.getHead().index() , currentWorm.getHead().getNextChain().index()    );
+
+    // test advance/recede tail
+    configurations.open(time,iChain);
+
+    currentWorm = configurations.worms()[0];
+    int delta=2;
+    configurations.moveHead( 0 , delta  );
+    testChain(configurations,iChain,time+delta,-1);
     
-    configurations.save("testConfig");
-
-    pimc::pimcConfigurations configurations2;
-
-    pimc::configurations_t configurations3(configurations);
-    const auto & data3 = configurations3.dataTensor();
-
-    configurations2.load("testConfig");
-
-    ASSERT_EQ(configurations.nChains() ,configurations2.nChains() );
-    ASSERT_EQ(configurations.nBeads() ,configurations2.nBeads() );
-
-    const auto & data2 = configurations2.dataTensor();
-    const auto & mask2 = configurations2.getMask();
-    const auto & mask = configurations.getMask();
-
-    for (int t=0;t<time;t++)
-    {
-            for(int d=0;d<getDimensions();d++)
-            {
-                ASSERT_NEAR(  data(worm.iChainHead,d,t) , data2(worm.iChainHead,d,t) , 1e-3 );
-
-                ASSERT_EQ(  mask(t,worm.iChainTail) , 0);
-                ASSERT_EQ(  mask(t,worm.iChainHead) , 1);
-
-            }
-    }
-
-    for (int t=time+1;t<configurations.nBeads();t++)
-    {
-            for(int d=0;d<getDimensions();d++)
-            {
-                ASSERT_NEAR(  data(worm.iChainTail,d,t) , data2(worm.iChainTail,d,t) , 1e-3 );
-
-                
-                ASSERT_EQ(  mask(t,worm.iChainTail) , 1);
-                ASSERT_EQ(  mask(t,worm.iChainHead) , 0);
-              
-            }
-        
-    }
-
-    configurations.close(iWorm);
-
-    for (int t=0;t<configurations.nBeads();t++)
-    {
-            for(int d=0;d<getDimensions();d++)
-            {
-                ASSERT_NEAR(  data(worm.iChainTail,d,t) , data3(worm.iChainTail,d,t) , 1e-3 );
-
-                ASSERT_EQ(  mask(t,worm.iChainTail) , 1);
-
-            }
-    }
-    
-    ASSERT_EQ(configurations.worms().size(),0);
-
 }
 
 TEST(run,free_harmonic_oscillator)
@@ -512,7 +533,7 @@ TEST(run,free_harmonic_oscillator)
 
     configurations.dataTensor().setRandom();
 
-    pimc::levyReconstructor reconstructor;
+    pimc::levyReconstructor reconstructor(M);
 
     pimc::levyMove freeMoves(reconstructor, 10);
 

@@ -4,7 +4,6 @@
 #include <sstream>
 #include <algorithm>
 
-
 namespace fs = std::filesystem;
 
 namespace pimc
@@ -32,274 +31,14 @@ int getNParticles( const std::vector<particleGroup> & groups )
     return N;
 }
 
-chain::chain(int index, int maxLength) : iChain(index) , _iTail(-1),_iHead(maxLength),_maxLength(maxLength){
-    setNextChain(this);
-    setPrevChain(this);
-}
-
-void chain::setHead(int i)
-{
-    if ( (i>_maxLength) or (i<-1) )
-    {
-        throw invalidInput("Head not contained on this chain");
-    }
-    else
-    {
-        _iHead=i;
-    }
-
-}
-
-void chain::setTail(int i)
-{
-    if ( (i>=_maxLength) or (i<-1) )
-    {
-        throw invalidState("Tail not contained on this chain.");
-    }
-    else
-    {
-        _iTail=i;
-
-    }
-
-}
-
-bool chain::contains( const std::array<int,2> & timeRange) const
-{
-    if (timeRange[0] <0 or timeRange[1]<0 )
-    {
-        throw invalidInput("Time indices should alwais be non negative.");
-    }
-
-    if ( getHead() > getTail()   )
-    {
-        if (timeRange[0] > getTail())
-        {
-            if ( timeRange[1] < getHead() )
-            {
-                return true;
-            }
-            else if (not hasHead() )
-            {
-                return getNextChain().contains({0,timeRange[1]- _maxLength});
-            }
-
-        
-        }
-
-    }
-    else
-    {
-        if(
-             (timeRange[0] < getHead() )
-            and (timeRange[1] < getHead() )
-        )
-        {return true;} 
-
-        if(
-             (timeRange[0] > getTail() )
-            and (timeRange[1] < _maxLength )
-        )
-            {
-                return true;
-            }
-        else
-        {
-            return getNextChain().contains({0,timeRange[1]-_maxLength} );
-        }
-        
-
-        
-
-
-    }
-    
-    
-    return false;
-}
-
-chain* chain::moveTail(int i)
-{
-if (not hasTail() )
-    {
-        throw invalidState("No tail to move.");
-    }
-    else
-    {
-        int newTail=getTail() + i;
-
-        if ( hasHead() )
-        {
-            if ( 
-                ( getHead() - newTail )*( getHead() - getTail() )<0
-                 ) // ordering between chain and head changes
-                 {
-                    throw invalidInput("Head and tail cannot cross.");
-                 }
-
-        }
-        
-        
-        if (newTail <= -1)
-        {
-            setTail(-1);
-
-            if ( getPrevChain().hasTail() )
-            {
-                throw invalidState("Next chain already has a tail");
-            }
-            getPrevChain().setTail(_maxLength-1);
-            return getPrevChain().moveTail(1 + newTail);
-        }
-        else
-        {
-
-        if (newTail >= _maxLength)
-        {
-            setTail(-1);
-
-            if ( getNextChain().hasTail() )
-            {
-                throw invalidState("Next chain already has a tail");
-            }
-
-            getNextChain().setTail(0);
-            return getNextChain().moveTail(newTail - _maxLength);
-
-        }
-        else
-        {
-            setTail(newTail);
-        }
-            
-        }
-        
-    }
-
-
-    return this;
-}
-
-// moves the head to the next position
-void pimcConfigurations::moveHead( int iWorm, int delta )
-{
-    auto & currentWorm = _worms[iWorm];
-    chain & oldChainHead=currentWorm.getHead();
-    currentWorm.moveHead(delta);
-    updateMask(oldChainHead);
-
-    if (currentWorm.getHead().index() != oldChainHead.index() ) // head moved to an other chain
-    {
-        updateMask(currentWorm.getHead());
-    }
-
-};
-
-
-void pimcConfigurations::moveTail( int iWorm, int delta )
-{
-    auto & currentWorm = _worms[iWorm];
-    chain & oldChainTail=currentWorm.getTail();
-    currentWorm.moveTail(delta);
-    updateMask(oldChainTail);
-
-    if (currentWorm.getTail().index() != oldChainTail.index() ) // head moved to an other chain
-    {
-        updateMask(currentWorm.getTail());
-    }
-
-};
-
-
-chain * chain::moveHead(int i)
-{
-    if (not hasHead() )
-    {
-        throw invalidState("No head to move.");
-    }
-    else
-    {
-        int newHead=getHead() + i;
-
-        if (newHead >= _maxLength)
-        {
-            setHead(_maxLength);
-            if ( getNextChain().hasHead() )
-            {
-                throw invalidState("Next chain already has a head");
-            }
-
-            getNextChain().setHead(0);
-            return getNextChain().moveHead(newHead - _maxLength);
-
-        }
-        else
-        {
-            if ( 
-                ( newHead - getTail() )*( getHead() - getTail() )<0
-                 ) // ordering between chain and head changes
-                 {
-                    throw invalidInput("Head and tail cannot cross.");
-                 }
-        }
-        
-    }
-
-    return this;
-
-}
-
-
-void chain::join(chain* chainRight)
-{
-    auto chainLeft= this;
-    chainLeft->setNextChain(chainRight);
-    chainRight->setPrevChain(chainLeft);
-}
-
-worm::worm(chain * head_or_tail)
-{
-    if (!( head_or_tail->hasHead() xor head_or_tail->hasTail() ) )
-    {
-        throw invalidInput("Could not determine valid heads and tails");
-    }
-
-    if (head_or_tail->hasHead()  )
-    {
-        _head=head_or_tail;
-        _tail=& (head_or_tail->getPrevChain());   
-    }
-    else 
-    {
-        _tail=head_or_tail;
-        _head=&(head_or_tail->getNextChain());
-    }
-
-}
-
-void worm::moveHead(int delta)
-{
-   _head= getHead().moveHead(delta);
-}
-void worm::moveTail(int delta)
-{
-   _tail= getTail().moveTail(delta);
-}
-
-
-
-worm::worm(chain * head,chain* tail): 
-    _tail(tail),_head(head) {}
-
-
 pimcConfigurations::pimcConfigurations(
     size_t timeSlices, int dimensions, const std::vector<particleGroup> &  particleGroups_) :
     particleGroups(particleGroups_),
-    M(timeSlices),
-    N(getTotalSize(particleGroups_)), // number of chains(includign padding chains)
-    _data(N,dimensions,timeSlices),// contains a copy for buffer operations
+    M(timeSlices),N(getTotalSize(particleGroups_)),
+    _data(N,dimensions,timeSlices),
      _mask( timeSlices,N),
-    _nParticles(getNParticles(particleGroups_))// number of chains without the padding
+    _nParticles(getNParticles(particleGroups_)),
+    emptyGroup{0,-1,-1,0.}
 {
     for (const auto & group : particleGroups)
     {
@@ -313,12 +52,6 @@ pimcConfigurations::pimcConfigurations(
         }
     }
 
-    for(int i=0;i<N;i++)
-    {
-        _chains.emplace_back(  i, nBeads() );
-    }
-
-    
 }; 
 
 void pimcConfigurations::deleteBeads(   std::array<int,2> timeRange, int iChain )
@@ -337,85 +70,60 @@ void pimcConfigurations::createBeads(   std::array<int,2> timeRange, int iChain 
     }
 }
 
-void pimcConfigurations::open( int time, int iChain ,bool copyBack)
+int pimcConfigurations::open(   int time, int iChain ,bool copyBack)
 {
-    
     if ( _worms.size() > 0 )
     {
         throw missingImplementation("More then on worm is not supported.");
+
     }
     auto & group = getGroupByChain(iChain);
-
-    group.iEnd+=1;
-    int iChain2 = group.iEnd;
-
-    // update chain information and add worm info
-
-    auto  & chain1 = _chains[iChain];
-    auto  & chain2 = _chains[iChain2];
-
-    if (chain1.isOpen()) 
-    {
-        throw invalidState("The chain is already open.");
-    }
-
-    chain1.setHead(time);
-    chain1.setTail(-1);
-
-    chain2.setHead(nBeads());
-    chain2.setTail(time);
     
-    chain2.join(&chain1.getNextChain() );
-    chain1.join(&chain2 );
+    if(copyBack)
+    {
+        for(int t=0;t<=time;t++)
+        {
+            for(int d=0;d<getDimensions();d++)
+            {
+                _data(group.iEnd+1,d,t)=_data(iChain,d,t);
+            }
+        }
+    }
+    
+    group.iEnd+=1;
+    int iChain2 = group.iEnd; 
 
+    deleteBeads({0,time-1},iChain);
+    createBeads({time+1,nBeads()-1},iChain);
 
-    updateMask(chain1);
-    updateMask(chain2);
+    createBeads({0,time},iChain2);
+    deleteBeads({time+1,nBeads()-1},iChain2);
 
-    worm newWorm(&chain1, & chain2);
-    _worms.push_back(newWorm);
+    _worms.push_back({iChain2,iChain,time,time});
+    return _worms.size()-1;
+}
 
-    moveTail(_worms.size()-1,-1);
+void pimcConfigurations::close( int iWorm, bool copyBack )
+{
+    const auto & worm = _worms[iWorm];
 
+    auto & group = getGroupByChain(worm.iChainHead);
 
+    // copy the data from the head to the tail
     if (copyBack)
-    {throw missingImplementation("No copyback implemented");}
-
-}
-
-void pimcConfigurations::updateMask( const chain & chain)
-{
-
-    if (chain.getTail() < chain.getHead())
     {
-        createBeads({chain.getTail()+1,chain.getHead()-1},chain.index() );
-        deleteBeads({0,chain.getTail() },chain.index() );
-        deleteBeads({chain.getHead(),nBeads() -1 },chain.index() );
-
-    }
-    else
-    {
-        deleteBeads({chain.getHead(),chain.getTail() },chain.index() );
-        createBeads({0,chain.getHead()-1 },chain.index() );
-        createBeads({chain.getTail()+1,nBeads() - 1 },chain.index() );
+        copyData({0,worm.iHead}, worm.iChainHead,worm.iChainTail);
     }
 
-}
 
-void pimcConfigurations::close( int iWorm )
-{
-    auto & sWorm = _worms[iWorm];
+    createBeads({0,nBeads()-1},worm.iChainTail );
+    
+    // remove the worm from the proper group
 
-    int iChainHead=sWorm.getHead().index();
-    int iChainTail=sWorm.getTail().index();
-
-    auto & group = getGroupByChain(iChainHead);
-
-    sWorm.getHead().join(& (sWorm.getTail().getNextChain()) );
-    sWorm.getHead().setHead(nBeads());
-    sWorm.getHead().setTail(-1);
-
-    updateMask(sWorm.getHead() );
+    if (worm.iChainHead != group.iEnd)
+    {
+        swap(worm.iChainHead,group.iEnd);
+    }
 
 
     group.iEnd-=1;
@@ -434,7 +142,7 @@ void pimcConfigurations::close( int iWorm )
 }
 
 
-void pimcConfigurations::save(const std::string & dirname,const std::string & format ) const
+void pimcConfigurations::save(const std::string & dirname,const std::string & format )
 {
 
     if ( ! fs::exists(dirname) ) 
@@ -474,7 +182,7 @@ void pimcConfigurations::save(const std::string & dirname,const std::string & fo
     else if (format == "binary")
     {
         f.open(dirname + "/particles.dat",std::ios::binary);
-        f.write(reinterpret_cast<const char*>(_data.data()), nBeads()*nChains()*getDimensions()*sizeof(double));
+        f.write(reinterpret_cast<char*>(_data.data()), nBeads()*nChains()*getDimensions()*sizeof(double));
     }
 
 
@@ -484,6 +192,21 @@ void pimcConfigurations::save(const std::string & dirname,const std::string & fo
     j["dimensions"]=getDimensions();
     j["timeSlices"]=nBeads();
     j["format"]=format;
+    
+
+    std::vector<nlohmann::json> wormObjects;
+
+    for(int i=0;i<_worms.size();i++)
+    {
+        nlohmann::json jWorm;
+        jWorm["iChainHead"]=_worms[i].iChainHead;
+        jWorm["iChainTail"]=_worms[i].iChainTail;
+        jWorm["iHead"]=_worms[i].iHead;
+        jWorm["iTail"]=_worms[i].iTail;
+        wormObjects.push_back(jWorm);
+    }
+
+    j["worms"]=wormObjects;
 
     std::vector<nlohmann::json> jGroups;
     for( const auto & group  : particleGroups)
@@ -499,9 +222,6 @@ void pimcConfigurations::save(const std::string & dirname,const std::string & fo
     f.open(dirname + "/description.dat",std::ios::binary);
     f << j ;
     f.close();
-
-    throw missingImplementation("Saving of chain info not yet implemented");
-
 }
 
 void pimcConfigurations::load(const std::string & dirname)
@@ -564,8 +284,17 @@ void pimcConfigurations::load(const std::string & dirname)
         f.read(reinterpret_cast<char*>(_data.data()),N*getDimensions()*M*sizeof(double));
     }
 
-    throw missingImplementation("Chain info not saved");
-    
+    for (const auto & wormJ : j["worms"])
+    {
+       _worms.push_back( {
+           wormJ["iChainHead"].get<int>() ,
+           wormJ["iChainTail"].get<int>(),
+           wormJ["iHead"].get<int>(),
+           wormJ["iTail"].get<int>()
+       });
+    }
+
+
     // set up the groups
     particleGroups={};
     
@@ -627,6 +356,11 @@ void pimcConfigurations::copyDataFromBuffer( const Eigen::Tensor<Real,2> & buffe
         
         }
 
+
+
+
+
+
 void pimcConfigurations::swapData( pimcConfigurations & confFrom, const std::array<int,2> & timeRangeFrom,const std::array<int,2> & particleRangeFrom ,
         pimcConfigurations & confTo,
        int timeOffsetTo, int particleOffsetTo)
@@ -648,10 +382,58 @@ void pimcConfigurations::swapData( pimcConfigurations & confFrom, const std::arr
 
         }
 
+
+
+void pimcConfigurations::updateMask(const worm & wormOld,const worm & wormNew)
+{
+
+    // unmask the chains previously covered by worms
+    createBeads({0,nBeads()-1},wormOld.iChainHead);
+    createBeads({0,nBeads()-1},wormOld.iChainTail);
+
+    // create the masking for the new worm
+    createBeads({0,wormNew.iHead},wormNew.iChainHead);
+    createBeads({wormNew.iTail,nBeads()-1},wormNew.iChainTail);
+    deleteBeads({0,wormNew.iTail-1},wormNew.iChainTail);
+    deleteBeads({wormNew.iChainHead+1,nBeads()-1},wormNew.iChainHead);
+
+}
+
 void pimcConfigurations::swap(int particleA, int particleB)
 {
-    throw missingImplementation("Particle swap not yet supported");
+    swapData(particleA,particleB);
+
+    // if a worm containts the chain A or B swap the chain
+    // Update the mask after updating the worm configuration
+    for (int i=0;i<_worms.size();i++)
+    {
+        auto worm= _worms[i];
+
+        if ( particleA == worm.iChainHead)
+        {
+            worm.iChainHead=particleB;
+        }
+        else if (particleA == worm.iChainTail)
+        {
+            worm.iChainTail=particleB;
+        }
+
+        if ( particleB == worm.iChainHead)
+        {
+            worm.iChainHead=particleA;
+        }
+        else if (particleB == worm.iChainTail)
+        {
+            worm.iChainTail=particleA;
+        }
+
+        updateWorm(i,worm);
+
+    }
+
 }
+
+
 
 };
 

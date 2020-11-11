@@ -5,7 +5,7 @@
 #include "geometryPMC.h"
 #include "pimcConfigurations.h"
 #include "tools.h"
-
+#include "toolsPimc.h"
 
 namespace pimc
 {
@@ -87,6 +87,36 @@ class action
     {
         return evaluate(configurations,timeRanges[0] , iParticle ) + evaluate(configurations,timeRanges[1],iParticle);
     }
+
+    virtual Real evaluate( configurations_t & configurations , std::array< std::array<int,2> ,2> timeRanges, int iParticle, int jParticle)
+    {
+        return evaluate(configurations,timeRanges[0] , iParticle ) + evaluate(configurations,timeRanges[1],jParticle);
+    }
+
+    virtual Real evaluate( configurations_t & configurations , std::array<int,2> timeRange, int iChain, periodicity timeBc )
+    {
+        if (timeBc == periodicity::periodic)
+        {
+            const auto & chain = configurations.getChainsInfo()[iChain];
+            int iChainNext = chain.getNextChain().index();
+
+            auto timeRanges=splitPeriodicTimeSlice(timeRange,configurations.nBeads() );
+
+            return evaluate( configurations,timeRanges[0],iChain) + evaluate( configurations, timeRanges[1],iChainNext) ; 
+        }
+        else
+        {
+            return evaluate(configurations, timeRange,iChain);
+        }
+
+    }
+
+    
+
+
+
+
+
 
 
     const auto & getGeometry() const {return _geo ;}

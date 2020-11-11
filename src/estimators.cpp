@@ -2,6 +2,7 @@
 #include <fstream>
 #include "tools.h"
 #include "ptools.h"
+#include <iomanip>
 
 
 template<class observable_t>
@@ -87,6 +88,8 @@ void realHistogramEstimator::write(std::ostream & stream)
 
 void realScalarEstimator::write(std::ostream & stream)
 {
+    stream << std::scientific <<  std::setprecision(12);
+
   if ( getAccumulator().getWeight() > 0 )
     {
       estimatorObservable<realScalarObservable>::write(stream);
@@ -99,7 +102,8 @@ void realVectorEstimator::write(std::ostream & stream)
 {
   auto out=getAccumulator().average();
   auto & x = getObservable().x();
-  
+  stream << std::scientific <<  std::setprecision(12);
+
   for (int i=0;i<x.size();i++)
     {
       stream << x[i] << " " <<  out[i] << std::endl ;

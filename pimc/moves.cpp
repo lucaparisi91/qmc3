@@ -2,8 +2,10 @@
 #include "action.h"
 #include "qmcExceptions.h"
 
+
 namespace pimc
 {      
+
 
     std::array<int,2> timeSliceGenerator::operator()(randomGenerator_t & randG, int nBeads , int maxBeadLength)
     {
@@ -16,42 +18,44 @@ namespace pimc
     }
 
 
-    std::array<std::array<int,2>, 2> splitPeriodicTimeSlice(const std::array<int,2> & timeSlice, int nBeads)
-    {
-        auto [t0,t1] = timeSlice;
-        std::array<std::array<int,2>, 2> timeSlices;
-
-        if ( t1 < nBeads )
-        {
-            timeSlices[0]={t0,t1};
-            timeSlices[1]={0,-1};
-        }
-        else 
-        {
-            timeSlices[0]={t0, nBeads-1   };
-            timeSlices[1]={0,t1%nBeads};
-        }
-
-        return timeSlices;
-
-    }
-
-
-
     void levyReconstructor::apply (configurations_t & configurationsNew, configurations_t & configurationsOld, std::array<int,2> timeRange,int iChain ,Real timeStep,randomGenerator_t & randG)
     {
         int l = timeRange[1] - timeRange[0];
+
         const auto & dataOld = configurationsOld.dataTensor() ;
         auto & dataNew = configurationsNew.dataTensor() ;
-        auto T=configurationsNew.nBeads();
+        
+        const auto & chainsInfo = configurationsNew.getChainsInfo();
+
+        int iChainNext = chainsInfo[iChain].getNextChain().index();
+
+        auto timeRanges = splitPeriodicTimeSlice(timeRange,configurationsOld.nBeads());
 
 
+        // copy initial and final configurations to the buffer
+        if ( timeRange[1] >= configurationsOld.nBeads() )
+        {
+        
+            for (int d=0;d<getDimensions();d++)
+            {
+                buffer(l,d)=dataOld(iChainNext,d,timeRanges[1][1]);
+            }
+
+        }
+        else
+        {
+            for (int d=0;d<getDimensions();d++)
+            {
+                buffer(l,d)=dataOld(iChainNext,d,timeRange[1]);
+            }
+
+        }
 
         for (int d=0;d<getDimensions();d++)
-        {
-            dataNew(iChain,d,timeRange[0]%T)=dataOld(iChain,d,timeRange[0]%T);
-            dataNew(iChain,d,timeRange[1]%T)=dataOld(iChain,d,timeRange[1]%T);
-        }
+            {
+                buffer(0,d)=dataOld(iChain,d,timeRange[0]);
+            }
+
 
         for (int t=0;t<l-1;t++)
         {
@@ -62,62 +66,25 @@ namespace pimc
                 {
                 mean[d] = 
                 (
-                dataNew(iChain ,d, ( timeRange[0] + t )%T )*(l-t-1) 
-                + dataOld(iChain,d , timeRange[1]%T) )
-                /( l - t) ;
+                buffer(t ,d )*(l-t-1) 
+                + buffer(l,d ) )
+                /( l - t) 
+                ;
+
                 Real variance = (l-t-1) * 1. /(l-t) *timeStep;
 
-                dataNew(iChain,d, (timeRange[0] +t + 1)%T) = mean[d] + eta *sqrt(variance) ;
+                buffer( t + 1,d ) = mean[d] + eta *sqrt(variance) ;
                 }
         }
 
-    }
+        // copy the generated data back to the new configurations
+        configurationsNew.copyDataFromBuffer( buffer, timeRanges[0], iChain   );
+        configurationsNew.copyDataFromBuffer( buffer, timeRanges[1], iChain , timeRanges[0][1] - timeRanges[0][0] );
 
+    }
 
 levyMove::levyMove(levyReconstructor & levy_, int maxBeadLength_) : _levy(levy_) , uniformRealNumber(0,1),maxBeadLength(maxBeadLength_) , tmp(maxBeadLength_,getDimensions() ) {}
 
-bool levyMove::isValidSlice( configurations_t & confs , const std::array<int,2> timeRange,int iChain) const
-{
-    int iWorm=confs.findWorm(iChain);
-    if (iWorm >0)
-    {
-        auto & worm= confs.worms()[iWorm];
-        if (worm.iChainHead == iChain )
-        {
-            if(timeRange[1]>worm.iHead)
-                {
-                    return false;
-                }
-            else
-            {
-                return true;
-            }
-            
-        }   
-        else if (worm.iChainTail == iChain )
-        {
-            if ( 
-                (timeRange[0]<worm.iTail) or 
-                (timeRange[1]>(confs.nBeads()-1) )
-                )
-                {
-                    return false;
-                }
-                else
-                {
-                    return true;
-                }
-        }
-
-        else
-        {
-            throw invalidState("Chain does not seem to be a worm.");
-        }
-
-    }
-
-    return true;    
-}
 
 
 bool levyMove::attemptMove( configurations_t & confs, firstOrderAction & ST,randomGenerator_t & randG)
@@ -126,29 +93,37 @@ bool levyMove::attemptMove( configurations_t & confs, firstOrderAction & ST,rand
     int nChains = confs.nChains();
     int nBeads = confs.nBeads();
     auto & S = ST.getPotentialAction();
-    
-    int iChain=confsSampler.sampleChain(confs,randG);
 
+    int iChain=confsSampler.sampleChain(confs,randG);
 
     auto timeRange = tGen(randG,nBeads,maxBeadLength);
 
-    if (not isValidSlice(confs,timeRange,iChain) )
+    auto timeRanges = splitPeriodicTimeSlice(timeRange,confs.nBeads());
+    const auto & currentChain = confs.getChainsInfo()[iChain];
+
+    int iChainNext = currentChain.getNextChain().index();
+
+    if (not currentChain.contains(timeRange) ) // if crosses a head or tail
     {
         return false;
     }
-
-    auto timeRanges = splitPeriodicTimeSlice(timeRange,nBeads);
+    
     
     auto & data = confs.dataTensor();
 
-    const auto sOld = S.evaluate(confs,timeRanges,iChain);
+    auto sOld = S.evaluate(confs, timeRanges[0], iChain);
+    sOld += S.evaluate(confs, timeRanges[1], iChainNext);
+
 
     // copy to internal buffer beads to move
-    copyToBuffer(confs,timeRanges,iChain);
+    copyToBuffer(confs,timeRanges[0],iChain);
+    copyToBuffer(confs,timeRanges[1],iChainNext, timeRanges[0][1]  - timeRanges[0][0] );
+
 
     _levy.apply(confs,timeRange,iChain,S.getTimeStep(),randG);
 
-    const auto  sNew= S.evaluate(confs,timeRanges, iChain) ;
+    auto  sNew= S.evaluate(confs,timeRanges[0], iChain) ;
+    sNew+=S.evaluate(confs,timeRanges[1], iChainNext) ;
 
     const auto actionDifference = sNew - sOld;
 
@@ -156,8 +131,9 @@ bool levyMove::attemptMove( configurations_t & confs, firstOrderAction & ST,rand
 
     if (! accepted)
     {
-        // copy old beads from initial data
-        copyFromBuffer(confs,timeRanges, iChain);
+        // copy back old beads
+        copyFromBuffer(confs,timeRanges[0],iChain);
+        copyFromBuffer(confs,timeRanges[1],iChainNext, timeRanges[0][1]  - timeRanges[0][0] );
     }
 
     return accepted;
@@ -196,14 +172,16 @@ bool swapMove::attemptMove(configurations_t & confs, firstOrderAction & S,random
     int iWorm = std::floor(  uniformRealNumber(randG) * worms.size() );
     auto  oldWorm = worms[iWorm];
 
+    auto & headChain = oldWorm.getHead();
+
+
     auto & Spot = S.getPotentialAction();
 
     // selects a time slice length at random. Refuse if reconstructed time slice crosses over the end bead
 
-
     int l = std::floor(uniformRealNumber(randG) * maxStepLength);
 
-    std::array<int,2> timeSlice = {oldWorm.iHead,oldWorm.iHead + l};
+    std::array<int,2> timeSlice = {headChain.getHead(),headChain.getHead() + l};
 
     if (timeSlice[1] >= confs.nBeads() )
     {
@@ -214,7 +192,7 @@ bool swapMove::attemptMove(configurations_t & confs, firstOrderAction & S,random
     // tower sampling a particle i with gaussian weights on the relative distances
 
    
-    const auto & group = confs.getGroup(oldWorm.iChainHead);
+    const auto & group = confs.getGroup(headChain.index() );
 
     std::array<Real, 3> distance;
     chainSampler.reset();
@@ -224,7 +202,7 @@ bool swapMove::attemptMove(configurations_t & confs, firstOrderAction & S,random
         Real norm=0;
         for(int d=0;d<getDimensions();d++)
         {
-            distance[d]=geo.difference(  data(oldWorm.iChainHead,d,timeSlice[0]) - data(i,d,timeSlice[1]),d);
+            distance[d]=geo.difference(  data(headChain.index(),d,timeSlice[0]) - data(i,d,timeSlice[1]),d);
         }
 
         particleSelectionWeight=exp(freeParticleLogProbability(distance,S.getTimeStep(),group.mass));
@@ -232,7 +210,12 @@ bool swapMove::attemptMove(configurations_t & confs, firstOrderAction & S,random
     }
 
     int iPartner=particleSampler.sample(randG);
-    if (confs.isWorm(iPartner) )
+
+    const auto & chainsInfo = confs.getChainsInfo();
+
+    const auto & partnerChain = chainsInfo[iPartner];
+
+    if ( partnerChain.isOpen() )
     {
         return false;
     }
@@ -243,33 +226,34 @@ bool swapMove::attemptMove(configurations_t & confs, firstOrderAction & S,random
     // perform levy reconstruction
     for(int d=0;d<getDimensions();d++)
         {
-            data(oldWorm.iChainHead,d,timeSlice[1])=data(iPartner,d,timeSlice[1]);
+            data(iPartner,d,timeSlice[1])=data(headChain.index(),d,timeSlice[1]);
         }
 
-    _levy.apply(confs,  timeSlice,oldWorm.iChainHead , Spot.getTimeStep() ,randG );
+    _levy.apply(confs,  timeSlice,iPartner, Spot.getTimeStep() ,randG );
 
-    //updates the worm
-    worm newWorm(oldWorm);
-    newWorm.iChainHead=iPartner;
-    confs.updateWorm(iWorm,newWorm);
 
-    deltaS-=Spot.evaluate(confs,timeSlice,oldWorm.iChainHead,Spot.getTimeStep() );
+    deltaS-=Spot.evaluate(confs,timeSlice,iPartner,Spot.getTimeStep() );
 
 
     bool accept = metropolisSampler.acceptLog(-deltaS,randG);
-
-    if (accept)
+    if (accept) 
     {
-        confs.copyData({timeSlice[1],confs.nBeads()-1},iPartner,oldWorm.iChainHead);
+        // swap partner and head chain data below head time 
+        confs.swapData({ headChain.getTail() + 1 ,headChain.getHead()-1},iPartner,headChain.getHead() );
+
+        // relink swapped chains
+        int iPrevPartner = partnerChain.getPrevChain().index();
+        confs.join(headChain.getPrevChain().index(),iPartner);
+        confs.join(iPrevPartner,headChain.index() );
+
     }
     else
     {
-        confs.updateWorm(iWorm,oldWorm);
+        
     }    
 
     return accept;
 }
-
 
 void tableMoves::push_back(move * move_,Real weight)
 {
@@ -288,94 +272,126 @@ move & tableMoves::sample(randomGenerator_t & randG)
 
 bool openMove::attemptMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG )
 {
-    
+
     int iChain = confsSampler.sampleChain(confs,randG);
     Real var=2*D*timeStep;
 
     int iTime= std::floor( uniformRealNumber(randG) * confs.nBeads() );
 
-    // creates the additional bead
+    const auto & headChain = confs.getChainsInfo()[iChain];
+
     
-    int iWorm=confs.open(iTime,iChain,false);
-    auto worm = confs.worms()[iWorm];
+    // creates a worm
+    confs.open(iTime,iChain);
+    
+    const auto & currentWorm=confs.worms()[0];
+    
+    int iChainHead=currentWorm.getHead().index();
+    int iChainTail=currentWorm.getTail().index();
+
     auto & data = confs.dataTensor();
     Real distanceSquared=0;
+    const auto & geo = S.getGeometry();
+    
 
+    std::array<Real,3> difference;
     for (int d=0;d<getDimensions();d++)
     {
-        data(worm.iChainHead,d,iTime)=gauss(randG) + data(iChain,d,iTime);
-        distanceSquared+=std::pow( data(worm.iChainHead,d,iTime)-data(worm.iChainTail,d,iTime),2);
+        data(iChainTail,d,iTime)=gauss(randG) + data(iChainHead,d,iTime);
+        difference[d]=
+            geo.difference( 
+                data(iChainHead,d,iTime)-data(iChainTail,d,iTime),d
+            );
     }
-
 
 
     action & potS = S.getPotentialAction();
 
     std::array<int,2> timeSlice={iTime,iTime};
-    auto deltaS=potS.evaluate(confs,timeSlice,worm.iChainHead);
+    auto deltaS=0; // at first first order there is no change in potential action
 
-    auto propRatio = -deltaS + 0.5*log(2*M_PI*var) + 0.5*distanceSquared/(var) + log(C); // proposed ratio for the new proposal
+    Real mass = 1.;
+
+
+    auto propRatio = -deltaS - freeParticleLogProbability(difference,S.getTimeStep(),mass);
 
     bool accept = sampler.acceptLog(propRatio,randG);
 
     if ( accept)
     {
-        // copy  the lower half of the old chain
-        for(int t=0; t< iTime ; t++)
-        {
-            for(int d=0;d<getDimensions();d++)
-            {
-                  data(worm.iChainHead,d,t)=data(worm.iChainTail,d,t);
-            }
-          
-        }
+        confs.copyData({iTime+1,confs.nBeads()-1},iChainHead,iChainTail);
     }
     else
     {
-        confs.close(iWorm,false);
+        confs.close(0);
     }
 
     return accept;
 
 };
-
 
 bool closeMove::attemptMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG )
 {
     
     int iWorm = 0;
     Real var=2*D*timeStep;
-    auto worm = confs.worms()[iWorm];
+    const auto & currentWorm=confs.worms()[0];
+
+    int iChainHead=currentWorm.getHead().index();
+    int iChainTail=currentWorm.getTail().index();
+
+
+    int iTime=currentWorm.getHead().getHead();
+
+    if ( iTime != currentWorm.getTail().getTail() )
+    {
+        throw missingImplementation("Head and tail have to be the same in the close move fpr now ");
+    }
+
 
     auto & data = confs.dataTensor();
-    Real distanceSquared=0;
+    const auto & geo = S.getGeometry();
+    
 
+    std::array<Real,3> difference;
     for (int d=0;d<getDimensions();d++)
     {
-
-        distanceSquared+=std::pow( data(worm.iChainHead,d,worm.iHead)-data(worm.iChainTail,d,worm.iTail),2);
+        data(iChainTail,d,iTime)=gauss(randG) + data(iChainHead,d,iTime);
+        difference[d]=
+            geo.difference( 
+                data(iChainHead,d,iTime)-data(iChainTail,d,iTime),d
+            );
     }
+
 
     action & potS = S.getPotentialAction();
 
-    std::array<int,2> timeSlice={worm.iHead,worm.iHead};
-    auto deltaS=-potS.evaluate(confs,timeSlice,worm.iChainHead);
+    std::array<int,2> timeSlice={iTime,iTime};
+    auto deltaS=0; // at first first order there is no change in potential action
 
-    auto propRatio = -deltaS - 0.5*log(2*M_PI*var) - 0.5*distanceSquared/(var) - log(C) ; // proposed ratio for the new proposal
+    Real mass = 1.;
+
+
+    auto propRatio = - deltaS +freeParticleLogProbability(difference,S.getTimeStep(),mass);
 
     bool accept = sampler.acceptLog(propRatio,randG);
 
     if ( accept)
     {
-        confs.close(iWorm,true);
+        confs.copyData({iTime+1,confs.nBeads()-1},iChainTail,iChainHead);
+    }
+    else
+    {
+        confs.close(0);
     }
 
     return accept;
+    
 };
 
 
 advanceRecedeMove::advanceRecedeMove(int maxAdvanceLength_) :
-maxAdvanceLength(maxAdvanceLength_),buffer(maxAdvanceLength_,getDimensions())
+maxAdvanceLength(maxAdvanceLength_),buffer(maxAdvanceLength_,getDimensions()) , _levy(maxAdvanceLength)
 {
 
 }
@@ -389,87 +405,69 @@ bool advanceRecedeMove::attemptMove(configurations_t & confs , firstOrderAction 
     }
 
     int iWorm= std::floor(distr(randG) * confs.worms().size() );
-    auto oldWorm=confs.worms()[iWorm];
+    auto & currentWorm=confs.worms()[iWorm];
+
+    int iChainHead=currentWorm.getHead().index();
+    int iChainTail=currentWorm.getTail().index();
+
 
     int l = std::floor(distr(randG)*maxAdvanceLength);
 
-    std::array<int,2> timeRange = {oldWorm.iHead,oldWorm.iHead + l};
-    auto timeRanges = splitPeriodicTimeSlice(timeRange,confs.nBeads());
+    std::array<int,2> timeRangeHead = {currentWorm.getHead().getHead(),currentWorm.getHead().getHead() + l};
+    std::array<int,2> timeRangeTail = {currentWorm.getTail().getTail(),currentWorm.getTail().getTail() + l};
+    
+    
 
-    // copy head to be overwritten to buffer. Only if time slice wraps around the time boundary    
-    confs.copyDataToBuffer(buffer,timeRanges[1],oldWorm.iChainHead);
+    auto timeRangesHead = splitPeriodicTimeSlice( timeRangeHead,confs.nBeads());
+    auto timeRangesTail = splitPeriodicTimeSlice( timeRangeTail,confs.nBeads());
+
 
     Real deltaS=0;
 
-    
-     auto & sPot= S.getPotentialAction();
+    auto & sPot= S.getPotentialAction();
 
-    // compute the potential action of tail and head to be overwritten    
-    std::array<int,2> tailSlice={confs.nBeads()- (timeRanges[1][1]-timeRanges[1][0] + 1),confs.nBeads()-1};
-    deltaS-=sPot.evaluate(confs,tailSlice,oldWorm.iChainTail);
-    deltaS-=sPot.evaluate(confs,timeRanges[1],oldWorm.iChainHead);
-    
-    //configurations_t::copyData(confs,tailSlice,{oldWorm.iChainTail,oldWorm.iChainTail},confs,timeRanges[1][0] ,oldWorm.iChainHead);
+    // action of tail to be masked
+    deltaS-=sPot.evaluate(confs,timeRangesTail[0],iChainTail);
+    deltaS-=sPot.evaluate(confs,timeRangesTail[1],iChainTail);
 
-    
+    // copy the head bead
     auto & data = confs.dataTensor();
+    int tBeadHead= (timeRangeHead[1] >= confs.nBeads() ) ? timeRangeHead[1] - confs.nBeads() : timeRangeHead[1];
 
-    int tHead=timeRange[1]%confs.nBeads();
+    int iHeadBead= (timeRangeHead[1] >= confs.nBeads() ) ? iChainHead : iChainTail;
 
     for(int d=0;d<getDimensions();d++)
     {
-        tmpMean[d]=data(oldWorm.iChainHead,d,tHead);
+        tmpMean[d]=data(iHeadBead,d,tBeadHead);
     }
 
     confSampler.sampleFreeParticlePosition(tmpPosition,tmpMean, S.getTimeStep() * l, randG  );
 
     for(int d=0;d<getDimensions();d++)
     {
-        data(oldWorm.iChainHead,d,tHead)=tmpPosition[d];
+        data(iChainHead,d,tBeadHead)=tmpPosition[d];
     }
 
-    _levy.apply(confs,timeRange,oldWorm.iChainHead,sPot.getTimeStep(),randG);
+    _levy.apply(confs,timeRangeHead,iChainHead,sPot.getTimeStep(),randG);
 
-    //copy the overwirtten beads at the beginning head to the beginning of the tail
-    configurations_t::copyData(confs,timeRanges[1],{oldWorm.iChainHead,oldWorm.iChainHead},confs,0,oldWorm.iChainTail);
 
     // update worm configuration
-    worm newWorm(oldWorm);
+    confs.moveTail(iChainHead,l);
+    confs.moveTail(iChainTail,l);
 
-    if (timeRange[1]< confs.nBeads()) // does not wrap time boundary
-    {
-        newWorm.iHead=timeRange[1];
-        newWorm.iTail=timeRange[1];
-    }
-    else
-    {
-        newWorm.iHead=timeRanges[0][1];
-        newWorm.iTail=timeRanges[0][1];
-        std::swap(newWorm.iChainHead,newWorm.iChainTail);
-
-    }
-    
-    confs.updateWorm(iWorm,newWorm);
-
-    // evaluate potential due to reconstructed head beads. If wraps time boundary some will be in the tail
-    deltaS+=sPot.evaluate(confs,timeRanges[0],oldWorm.iChainHead);
-    deltaS+=sPot.evaluate(confs,timeRanges[1],oldWorm.iChainTail);
+    // evaluate potential due to reconstructed head beads
+    deltaS+=sPot.evaluate(confs,timeRangesHead[0],iChainHead);
+    deltaS+=sPot.evaluate(confs,timeRangesHead[1],iChainTail);
 
     bool accept = sampler.acceptLog(-deltaS,randG);
 
     if (not accept)
     {
-        confs.updateWorm(iWorm,oldWorm);
-        confs.copyDataFromBuffer(buffer,timeRanges[1],oldWorm.iChainHead);
+        confs.moveHead(iWorm,-l);
+        confs.moveTail(iWorm,-l);    
     }
 
-
     return accept;
-
-
-
-
-
 
 }
 
