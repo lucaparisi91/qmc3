@@ -11,7 +11,7 @@
 
 namespace pimc
 {
-    
+
 class mask
 {
 public:
@@ -48,8 +48,8 @@ public:
     chain() ;
 
     bool isOpen() const {return hasHead() or hasTail() ;}
-    bool hasHead() const {return next!=-1;}
-    bool hasTail() const {return prev!=-1;}
+    bool hasHead() const {return next==-1;}
+    bool hasTail() const {return prev==-1;}
 
     bool isEmpty() const {return head -  tail <= 1; }
     void checkChainValid(); 
@@ -187,7 +187,7 @@ public:
         int getHead(int iChain) {return _chains[iChain].head;};
         int getTail(int iChain){return _chains[iChain].tail; };
 
-        void removeChain(int iChain);
+        void removeChain(int iChain); // orders of chain is not mantained
 
         void join( int iChainLeft, int iChainRight);
 

@@ -378,7 +378,7 @@ TEST(moves,levy)
     pimc::pimcConfigurations configurations2(M , getDimensions() , {groupA});
 
     
-    Real timeStep=1e-3;
+    Real timeStep=1e-2;
     std::array<int,2> timeSlice= {10,26};
 
     pimc::kineticAction sT(timeStep, N + 1 , M  , geo);
@@ -435,8 +435,8 @@ void testChain(pimc::pimcConfigurations & configurations, int iChain, int expect
 
     const auto & mask = configurations.getMask(); 
 
-    ASSERT_EQ( chain->getHead() , expectedHead   );
-    ASSERT_EQ( chain->getTail() , expectedTail   );
+    ASSERT_EQ( chain.head , expectedHead   );
+    ASSERT_EQ( chain.tail , expectedTail   );
 
     if (expectedHead > expectedTail)
     {
@@ -479,7 +479,6 @@ TEST(configurations, worms)
     const int N = 10;
     const int M = 50;
 
-
     pimc::particleGroup groupA{ 0 , N-1, N + 1 , 1.0};
 
     pimc::pimcConfigurations configurations(M , getDimensions() , {groupA});
@@ -491,33 +490,88 @@ TEST(configurations, worms)
 
     configurations.fillHeads();
 
-
     int time=10;
     int iChain=0;
 
     // test open
-    auto currentWorm =configurations.getWorm(configurations.open( iChain ));
+    configurations.setHead( iChain , M );
 
-    ASSERT_EQ( configurations.nWorms() , 1 );
+    ASSERT_EQ( configurations.heads().size() , 1 );
+    ASSERT_EQ( configurations.tails().size() , 1 );
     
-    ASSERT_EQ(currentWorm->getHead()->index(),iChain);
-    ASSERT_EQ(currentWorm->getTail()->index(),iChain);
+    ASSERT_EQ( configurations.heads()[0],iChain);
+    ASSERT_EQ(configurations.tails()[0],iChain);
 
-    ASSERT_TRUE(currentWorm->getHead()->hasHead() );
-    ASSERT_TRUE(currentWorm->getTail()->hasTail() );
+
+    ASSERT_TRUE( configurations.getChain(iChain).hasHead()     );
+    ASSERT_TRUE(  configurations.getChain(iChain).hasTail() );
+
 
     // test close
 
-    configurations.close(0);
-    ASSERT_FALSE(configurations.getChain(iChain)->hasHead() );
-    ASSERT_FALSE(configurations.getChain(iChain)->hasTail() );
+    configurations.join(iChain,iChain);
+    ASSERT_FALSE(configurations.getChain(iChain).hasHead() );
+    ASSERT_FALSE(configurations.getChain(iChain).hasTail() );
+    ASSERT_EQ( configurations.heads().size() , 0 );
+    ASSERT_EQ( configurations.tails().size() , 0 );
 
-    // test advance/recede head
+    // test creation of a new head and join
+     iChain=5;
+    configurations.setHead(iChain,M);
+    configurations.pushChain(0);
+    configurations.setHead(N,time);
+    configurations.setTail(N,-1);
+    testChain(configurations, N, time, -1);
+    testChain(configurations, iChain, M, -1); 
+    configurations.join(iChain,N);
+
+    ASSERT_EQ( configurations.heads().size() , 1 );
+    ASSERT_EQ( configurations.tails().size() , 1 );
+
+
+    ASSERT_EQ( configurations.tails()[0] , iChain );
+    ASSERT_EQ( configurations.heads()[0] , N );
+   
+
+
+    // test creation of a new tail and join
+
     iChain=5;
-    currentWorm=configurations.getWorm(configurations.open(iChain));
-    ASSERT_TRUE(currentWorm->getHead()->hasHead() );
+    configurations.setTail(iChain,-1);
+    int newChain=configurations.pushChain(0);
+    configurations.setHead(newChain,M);
+    configurations.setTail(newChain,time);
+    testChain(configurations, newChain, M, time);
+    testChain(configurations, iChain, M, -1); 
+    configurations.join(newChain,iChain); 
 
+
+    ASSERT_EQ( configurations.heads().size() , 1 );
+    ASSERT_EQ( configurations.tails().size() , 1 );
+
+    ASSERT_EQ( configurations.tails()[0] , newChain );
+    ASSERT_EQ( configurations.heads()[0] , N );
+    ASSERT_EQ(newChain,N+1);
+    ASSERT_FALSE(configurations.getChain(N).hasTail() );
+    ASSERT_FALSE(configurations.getChain(N+1).hasHead() );
+
+
+    // test remove
+    configurations.setTail(N,-1);
+
+    ASSERT_EQ( configurations.tails().size() , 2 );
+
+    configurations.setHead(N+1,0);
     
+    ASSERT_EQ( configurations.tails()[1] , N );
+    ASSERT_EQ( configurations.tails()[0] , N + 1 );
+
+    configurations.removeChain(N); 
+    configurations.removeChain(N);
+
+    ASSERT_EQ( configurations.tails()[0] , iChain );
+    ASSERT_EQ( configurations.heads()[0] , iChain );
+
 }
 
 TEST(run,free_harmonic_oscillator)

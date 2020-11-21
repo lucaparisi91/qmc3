@@ -1,4 +1,7 @@
 #include "toolsPimc.h"
+#include "qmcExceptions.h"
+
+
 
 namespace pimc
 {
@@ -8,15 +11,32 @@ std::array<std::array<int,2>, 2> splitPeriodicTimeSlice(const std::array<int,2> 
         auto [t0,t1] = timeSlice;
         std::array<std::array<int,2>, 2> timeSlices;
 
+        if ( (t1 - t0 ) >= nBeads )
+        {
+            throw invalidInput("Length of time slice should be samller then the number of beads");
+        }
+
+        
         if ( t1 < nBeads )
         {
-            timeSlices[0]={t0,t1};
-            timeSlices[1]={0,-1};
+            if ( t0< 0 )
+            {
+                timeSlices[0]={nBeads + t0,nBeads-1};
+                timeSlices[1]={0,t1};
+            }
+            else
+            {
+                timeSlices[0]={t0,t1};
+                timeSlices[1]={0,-1};
+            }
+            
+            
         }
         else 
         {
-            timeSlices[0]={t0, nBeads-1   };
-            timeSlices[1]={0,t1%nBeads};
+                timeSlices[0]={t0, nBeads-1   };
+                timeSlices[1]={0,t1%nBeads};
+
         }
 
         return timeSlices;

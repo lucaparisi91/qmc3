@@ -9,7 +9,7 @@ namespace fs = std::filesystem;
 
 namespace pimc
 {
-    
+
 int getTotalSize( const std::vector<particleGroup> & groups )
 {
     int nMax=0;
@@ -60,7 +60,7 @@ void pimcConfigurations::setHead( int iChain, int newHead )
     currentChain.head=newHead;
     currentChain.next=-1;
 
-    if ( oldNext  > 0 )
+    if ( oldNext  >= 0 )
     {
         setTail(oldNext,_chains[oldNext].tail);
         _heads.push_back( iChain);
@@ -82,20 +82,22 @@ void pimcConfigurations::setTail( int iChain, int newTail )
     }
     else
     {
-        deleteBeads({oldTail,newTail},iChain);
+        deleteBeads({oldTail+1,newTail},iChain);
     }
 
     auto & currentChain=_chains[iChain];
 
-    if ( currentChain.prev > 0 )
-    {
-        _tails.push_back(iChain);
-        setHead(currentChain.prev,_chains[currentChain.prev].head);
-
-    }
+    int oldPrev=currentChain.prev;
 
     currentChain.tail=newTail;
     currentChain.prev=-1;
+
+
+    if ( oldPrev  >= 0 )
+    {
+        setHead(oldPrev,_chains[oldPrev].head);
+        _tails.push_back( iChain);
+    }
 
 };
 
@@ -106,7 +108,7 @@ pimcConfigurations::pimcConfigurations(
     M(timeSlices),
     N(getTotalSize(particleGroups_)), // number of chains(includign padding chains)
     _data(N,dimensions,2*timeSlices ),// contains a copy for buffer operations
-     _mask( timeSlices,N),
+     _mask( timeSlices+1,N),
     _nParticles(getNParticles(particleGroups_))// number of chains without the padding
 {
     _chains.resize(N);
@@ -130,7 +132,7 @@ void pimcConfigurations::fillHead(int iChain)
         for (int d=0;d<getDimensions();d++)
         {
             _data(iChain,d,currentChain.head )=_data(currentChain.next,d, 
-            _chains[currentChain.next].tail
+            _chains[currentChain.next].tail + 1
             );
         }
 
@@ -206,13 +208,14 @@ void pimcConfigurations::removeChain( int iChain)
     // unregister chain
     if ( !(getChain(iChain).hasHead()) or !( getChain(iChain).hasTail()) )
     {
-        throw "Cannot remove chain with no head or tail";
+        throw invalidState("Cannot remove chain with no head or tail");
     }
 
     swap(iChain,group.iEnd);
 
     deleteTailFromList(group.iEnd);
     deleteHeadFromList(group.iEnd);
+
 
     group.iEnd-=1;
 
@@ -222,7 +225,7 @@ void pimcConfigurations::deleteHeadFromList(int iChain)
 {
     // delete the head from the list of heads
     auto it = std::find(_heads.begin(),_heads.end(),iChain) ;
-    if ( it== _heads.begin() )
+    if ( it== _heads.end() )
     {
         throw invalidState("Could not find the head among registered heads.");
     }
@@ -250,14 +253,11 @@ void pimcConfigurations::deleteTailFromList(int iChain)
 
 void pimcConfigurations::join( int iChainLeft, int iChainRight)
 {
-    if (
-         ( _chains[iChainLeft].next > -1  ) 
-        or 
-        (_chains[iChainRight].prev > -1)
-    )
-    {
-        throw invalidState("Can only join heads with tails");
-    }
+    setHead(iChainLeft,_chains[iChainLeft].head);
+    setTail(iChainRight,_chains[iChainRight].tail);
+
+    
+
     
     _chains[iChainLeft].next=iChainRight;
     _chains[iChainRight].prev=iChainLeft;
@@ -508,6 +508,7 @@ void pimcConfigurations::swap(int particleA, int particleB)
     auto chainA=_chains[particleA];
     auto chainB=_chains[particleB];
 
+
     if (chainA.prev != -1)
     {
         _chains[chainA.prev].next=particleB; 
@@ -533,13 +534,19 @@ void pimcConfigurations::swap(int particleA, int particleB)
     // swap A and B indices in the head list
     std::replace(_heads.begin(),_heads.end(),particleA,-1);
     std::replace(_heads.begin(),_heads.end(),particleB,particleA);
-    std::replace(_heads.begin(),_heads.end(),-1,particleA);
+    std::replace(_heads.begin(),_heads.end(),-1,particleB);
 
 
     // swap A and B indices in the tail list
     std::replace(_tails.begin(),_tails.end(),particleA,-1);
     std::replace(_tails.begin(),_tails.end(),particleB,particleA);
-    std::replace(_tails.begin(),_tails.end(),-1,particleA);
+    std::replace(_tails.begin(),_tails.end(),-1,particleB);
+
+    // swap data
+
+    swapData(particleA,particleB);
+
+
 
 
 }

@@ -111,7 +111,7 @@ bool levyMove::attemptMove( configurations_t & confs, firstOrderAction & ST,rand
 
     // copy to internal buffer beads to move
     copyToBuffer(confs,timeRanges[0],iChain);
-    copyToBuffer(confs,timeRanges[1],iChainNext, timeRanges[0][1]  - timeRanges[0][0] );
+    copyToBuffer(confs,timeRanges[1],iChainNext, timeRanges[0][1]  - timeRanges[0][0] + 1);
 
 
     _levy.apply(confs,timeRange,iChain,S.getTimeStep(),randG);
@@ -128,7 +128,7 @@ bool levyMove::attemptMove( configurations_t & confs, firstOrderAction & ST,rand
     {
         // copy back old beads
         copyFromBuffer(confs,timeRanges[0],iChain);
-        copyFromBuffer(confs,timeRanges[1],iChainNext, timeRanges[0][1]  - timeRanges[0][0] );
+        copyFromBuffer(confs,timeRanges[1],iChainNext, timeRanges[0][1]  - timeRanges[0][0] + 1 );
     }
 
     return accepted;
@@ -447,10 +447,11 @@ bool closeMove::attemptMove(configurations_t & confs , firstOrderAction & S,rand
             confs.copyDataToBuffer(buffer,timeRanges[1],timeRanges[0][1] - timeRanges[0][0]+1);
 
         }
-
+    
     return accept;
     }
 };
+
 
 moveHead::moveHead(int maxAdvanceLength_) :
 maxAdvanceLength(maxAdvanceLength_),buffer(maxAdvanceLength_,getDimensions()) , _levy(maxAdvanceLength)
@@ -458,25 +459,69 @@ maxAdvanceLength(maxAdvanceLength_),buffer(maxAdvanceLength_,getDimensions()) , 
 
 }
 
+bool moveHead::attemptRecedeMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG,int iChainHead,int l)
+{
+
+   auto headChain = confs.getChain(iChainHead);
+
+  
+   std::array<int,2> timeRange = {  headChain.head  - l, headChain.head-1};
+
+
+   auto timeRanges=splitPeriodicTimeSlice(timeRange,confs.nBeads() );
+
+
+   Real deltaS=0;
+
+    auto & sPot= S.getPotentialAction();
+
+
+    deltaS+=sPot.evaluate(confs,timeRanges[0],headChain.prev);
+    deltaS+=sPot.evaluate(confs,timeRanges[1],iChainHead);
+
+    bool accept = sampler.acceptLog(-deltaS,randG);
+
+    if ( accept)
+    {
+        if ( timeRange[0] < 0 )
+        {
+            confs.setHead(headChain.prev,timeRanges[0][0]);
+            confs.removeChain( iChainHead );
+        }
+        else
+        {
+            confs.setHead(headChain.prev,timeRange[0]);
+        }
+        
+    }
+    else
+    {
+
+    }
+
+
+    return accept;
+}
+
 
 bool moveHead::attemptMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG)
 {
-     int iChainHead= std::floor(distr(randG) * confs.heads().size() );
+    int iChainHead= std::floor(distr(randG) * confs.heads().size() );
     auto headChain = confs.getChain(iChainHead);
     int l = std::floor(distr(randG) * 2 *confs.nBeads() -confs.nBeads() );
 
 
     if (l>=0 )
     {
-        attemptAdvanceMove(confs,S,randG,iChainHead,l);
+       return  attemptAdvanceMove(confs,S,randG,iChainHead,l);
     }
     else
     {
-        throw missingImplementation("Recede move");
+        throw attemptRecedeMove(confs,S,randG,iChainHead,std::abs(l) );
     }
 
+    return false;
 }
-
 
 
 

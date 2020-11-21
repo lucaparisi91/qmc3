@@ -68,14 +68,16 @@ namespace pimc
         return sum;
     };
 
-
+    
 using pimcConfigurations_t = pimcConfigurations;
 
 class action
 {
     public:
-    
+
+
     action(Real timeStep, const geometryPBC_PIMC & geo_) : _geo(geo_), _timeStep(timeStep) {}
+
 
     virtual Real evaluate(configurations_t & configurations, std::array<int,2> timeRange, int iParticle)=0;
 
