@@ -93,23 +93,7 @@ class action
         return evaluate(configurations,timeRanges[0] , iParticle ) + evaluate(configurations,timeRanges[1],jParticle);
     }
 
-    virtual Real evaluate( configurations_t & configurations , std::array<int,2> timeRange, int iChain, periodicity timeBc )
-    {
-        if (timeBc == periodicity::periodic)
-        {
-            const auto & chain = configurations.getChainsInfo()[iChain];
-            int iChainNext = chain.getNextChain().index();
-
-            auto timeRanges=splitPeriodicTimeSlice(timeRange,configurations.nBeads() );
-
-            return evaluate( configurations,timeRanges[0],iChain) + evaluate( configurations, timeRanges[1],iChainNext) ; 
-        }
-        else
-        {
-            return evaluate(configurations, timeRange,iChain);
-        }
-
-    }
+    
 
     
 
@@ -141,8 +125,7 @@ class kineticAction : public action
     D(0.5)  , action::action(tau_,geo_) {}
 
     virtual Real evaluate( pimcConfigurations_t & configurations , std::array<int,2> timeSlices , std::array<int,2> chainRange ); // evaluates the kinetic action to recalculate from beads(iParticle, timeSliceStart: timeSliceEnd, uses in internal buffer for computing derivatives)
-
-
+    
     virtual Real evaluate( pimcConfigurations_t & configurations , std::array<int,2> timeSlices , int iChain );
 
     virtual Real evaluate( pimcConfigurations_t & configurations , std::array<int,2> timeSlices , int iChain1 , int iChain2 );

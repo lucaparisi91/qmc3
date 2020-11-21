@@ -3,7 +3,6 @@
 namespace pimc
 {
 
-
 std::array<std::array<int,2>, 2> splitPeriodicTimeSlice(const std::array<int,2> & timeSlice, int nBeads)
     {
         auto [t0,t1] = timeSlice;
@@ -25,36 +24,6 @@ std::array<std::array<int,2>, 2> splitPeriodicTimeSlice(const std::array<int,2> 
     }
 
 
-
-int configurationsSampler::sampleChain(configurations_t & confs,randomGenerator_t & randG)
-{
-    // sample a chain with probability 1/ N_particles 
-    int iParticle = uniformRealNumber(randG)*confs.nParticles();
-    int k=0;
-    int iChain=-1;
-
-    for(const auto & group : confs.getGroups() )
-    {
-        k+=group.size();
-        
-        if (k> iParticle)
-        {
-            iChain = group.iEnd + 1 - (k-iParticle);
-        }
-    }
-    
-    return iChain;
-}
-
-void configurationsSampler::sampleFreeParticlePosition(
-    std::array<Real,getDimensions()> & x,const std::array<Real,getDimensions()> & mean,Real tau,randomGenerator_t & randG,Real mass
-){
-    Real var = 2 * D * tau / mass;
-    for(int d=0;d<getDimensions();d++)
-    {
-        x[d]=mean[d] + normal(randG)*sqrt(var);       
-    }
-}
 
 Real freeParticleLogProbability(std::array<Real,3> & delta,Real tau,Real mass)
     {

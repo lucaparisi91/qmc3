@@ -7,10 +7,11 @@
 #include "../src/tools.h"
 #include <unsupported/Eigen/CXX11/Tensor>
 #include "qmcExceptions.h"
+#include "toolsPimc.h"
 
 namespace pimc
 {
-
+    
 class mask
 {
 public:
@@ -18,7 +19,6 @@ public:
     mask( int nBeads, int nChains) : _mask(nChains,nBeads) {_mask.setConstant(1);}
 
     void setConstant(int value){_mask.setConstant(value);}
-
 
     auto & operator()(int i,int j) {return _mask(j,i);}
     const auto &  operator()(int i,int j) const {return _mask(j,i);}
@@ -34,86 +34,31 @@ struct particleGroup
     int iEnd; // end of the active group
     int iEndExtended; // extended memory for additional particles
     Real mass;
-
-    auto size() const {return iEnd - iStart + 1;}
     
+    auto size() const {return iEnd - iStart + 1;}  
 };
 
+
+class pimcConfigurations;
 
 struct chain
 {
 
 public:
+    chain() ;
 
-    chain(int index, int max_length);
-        
-    void join(chain * chainRight);
-    
     bool isOpen() const {return hasHead() or hasTail() ;}
-    bool hasHead() const {return _iHead != _maxLength;}
-    bool hasTail() const {return _iTail!=-1;}
+    bool hasHead() const {return next!=-1;}
+    bool hasTail() const {return prev!=-1;}
 
-    bool contains(const std::array<int,2> & timeRange) const ;
+    bool isEmpty() const {return head -  tail <= 1; }
+    void checkChainValid(); 
 
-    
+    int prev; // previous chain , null for a tail
+    int next; // next chain, null for a head
+    int head; // time Slice of the Head, will be M for closed chains and tails
+    int tail; // time slice of the tail , -1 if not a a worm tail
 
-
-    chain &  getNextChain()  {return *_nextChain; }
-    chain &  getPrevChain() {return *_prevChain; }
-
-    const chain &  getNextChain() const  {return *_nextChain; }
-    const chain &  getPrevChain() const {return *_prevChain; }
-
-
-    void setNextChain(chain * chainNew)  {_nextChain=chainNew;}
-    void setPrevChain(chain * chainNew) {_prevChain=chainNew;}
-
-
-    void setHead (int i);
-    void setTail(int i);
-
-
-    chain * moveHead(int delta); // returns the location of the new head 
-    chain * moveTail(int delta); // retruns the location of the new tail
-
-    
-    int  index() const {return iChain; }
-
-    const int & getHead () const {return _iHead; }
-    const int & getTail  () const {return _iTail; }
-
-    private:    
-
-    int iChain;
-    chain* _prevChain; // previous chain , null for a tail
-    chain* _nextChain; // next chain, null for a head
-    int _iHead; // time Slice of the Head, will be M for closed chains and tails
-    int _iTail; // time slice of the tail , -1 if not a a worm tail
-    int _maxLength; // maximum number of beads
-
-};
-
-struct worm
-{
-    worm() : worm(nullptr,nullptr) {}
-    worm(chain* head_or_tail);
-
-    worm(chain * head, chain * tail) ;
-
-    auto &  getTail() {return *_tail;}
-    auto &  getHead() {return *_head;}
-
-    const auto &  getTail() const {return *_tail;}
-    const auto &  getHead() const {return *_head;}
-
-
-    void moveHead(int delta); // moves the head by delta steps (positive or negative)
-    void moveTail(int delta);
-
-    private:
-
-    chain * _tail;
-    chain * _head;
 };
 
     class pimcConfigurations
@@ -125,18 +70,23 @@ struct worm
         ) {}
 
         pimcConfigurations(size_t timeSlices, int dimensions, const std::vector<particleGroup> & particleGroups_);
-        bool isOpen() {return _worms.size()> 0 ;}
+        bool isOpen() {return (_tails.size() > 0) or (_heads.size() > 0)  ;}
 
         auto &  dataTensor() {return _data;}
-         const auto &  dataTensor() const {return _data;}
-
+        const auto &  dataTensor() const {return _data;}
 
         auto data() {return _data.data();}
         
         auto nChains() const {return N;} 
-        
+
+
         auto nBeads() const {return M; } 
 
+        void fillHead(int i);
+
+        void fillHeads();
+
+        const auto & getChain(int i) {return _chains[i];}
 
         const auto & getGroup(int iChain) const
         {
@@ -151,15 +101,9 @@ struct worm
             throw invalidInput("missing group for particle " + std::to_string(iChain));
         }
 
-        void open( int time, int iChain,bool copyBack=false); // adds a worm
-        void close(int iWorm); // closes the ith worm (not the the ith chain)
 
-
-        const auto & worms() const {return _worms;} // do not allows worms to be manipulated outside of class to keep the mask in sync
-
-
-        void moveHead( int iWorm, int delta);
-        void moveTail( int iWorm, int delta);
+        void setHead( int iChain, int delta);
+        void setTail( int iChain, int delta);
 
 
         void save(const std::string & directoryName,const std::string & format="csv") const;
@@ -173,8 +117,7 @@ struct worm
         static void copyData(const pimcConfigurations & confFrom, const std::array<int,2> & timeRangeFrom, const std::array<int,2> & particleRangeFrom ,
           Eigen::Tensor<Real,3> & dataTo, int timeOffsetTo, int particleOffestTo );
 
-
-          static void copyData(const pimcConfigurations & confFrom, const std::array<int,2> & timeRangeFrom, const std::array<int,2> & particleRangeFrom ,
+        static void copyData(const pimcConfigurations & confFrom, const std::array<int,2> & timeRangeFrom, const std::array<int,2> & particleRangeFrom ,
          pimcConfigurations & confTo, int timeOffsetTo, int     particleOffestTo )
          {
              copyData(confFrom,timeRangeFrom,particleRangeFrom,confTo.dataTensor(),timeOffsetTo,particleOffestTo);
@@ -186,11 +129,21 @@ struct worm
              pimcConfigurations::copyData(*this,timeRange,{iParticleFrom,iParticleFrom},(*this),timeRange[0],iParticleTo);
          }
 
+          void copyData(const std::array<int,2> & timeRange, int iParticleFrom, int timeOffset, int iParticleTo)
+         {
+             pimcConfigurations::copyData(*this,timeRange,{iParticleFrom,iParticleFrom},(*this),timeOffset,iParticleTo);
+         }
 
-         void copyDataToBuffer( Eigen::Tensor<Real,2> & buffer, std::array<int,2> & timeRange, int iParticle ,int timeOffset=0) const;
+
+        const auto & tails () {return _tails;}
+        const auto & heads () {return _heads;}
 
 
-         void copyDataFromBuffer(const  Eigen::Tensor<Real,2> & buffer, std::array<int,2> & timeRange, int iParticle ,int timeOffset=0);
+        void swapTails(int iChainLeft,int iChainRight);
+
+         void copyDataToBuffer(  Eigen::Tensor<Real,2> & buffer, const std::array<int,2> & timeRange, int iParticle ,int timeOffset=0) const;
+
+         void copyDataFromBuffer(const Eigen::Tensor<Real,2> & buffer, const std::array<int,2> & timeRange, int iParticle ,int timeOffset=0);
 
         void swapData( pimcConfigurations & confFrom, const std::array<int,2> & timeRangeFrom,const std::array<int,2> & particleRangeFrom ,
         pimcConfigurations & confTo,
@@ -208,8 +161,6 @@ struct worm
 
         void swap(int iParticleFrom, int iParticleTo);
 
-        void setHead(chain & chain, int time);
-
 
         particleGroup & getGroupByChain(int iChain) {
             for (auto & group : particleGroups )
@@ -222,42 +173,83 @@ struct worm
             throw invalidInput("Chain is not contained in any group");
         }
 
-        void join( int chainLeft, int chainRight)
-        {
-            _chains[chainLeft].join(&( _chains[chainRight]));
-        }
-
-
+        
         const auto & getMask() const  {return _mask;}
 
-        const auto & getChainsInfo() const {return _chains;}
+
+        int pushChain(particleGroup & group);
+        int pushChain(int iGroup);
+
+
+        int next(int iChain);
+        int prev(int iChain);
+
+        int getHead(int iChain) {return _chains[iChain].head;};
+        int getTail(int iChain){return _chains[iChain].tail; };
+
+        void removeChain(int iChain);
+
+        void join( int iChainLeft, int iChainRight);
+
+        void deleteHeadFromList(int iChain); // deletes the head from the list
+
+        void deleteTailFromList(int iChain); // deletes the tail from the list
+
 
         protected:
+
+
         void updateMask(const chain & chainToUpdate);
-
-
         void deleteBeads(   std::array<int,2> timeRange, int iChain ); // deactive the beads in the mask
 
         void createBeads(   std::array<int,2> timeRange, int iChain ); // activates the bead in the mask
+        
+        const auto & getChains() {return _chains; }
+
+
+        int nWorms() {return (_heads.size() + _tails.size() )/2;};
 
 
         private:
-        
-
 
         int M;
         int N;
 
         std::vector<particleGroup> particleGroups;
-        std::vector<worm> _worms; // order is not preserved during closes
         configurationsStorage_t _data;
         std::vector<chain> _chains;
+
+        // accelleration structures
+        std::vector<int> _tails;
+        std::vector<int> _heads;
         mask _mask;
         int _nParticles;
-
     };
 
     using configurations_t = pimcConfigurations; 
+
+
+
+
+
+class configurationsSampler
+{
+    public:
+    configurationsSampler() : uniformRealNumber(0,1) {}
+    
+    int sampleChain(configurations_t & confs,randomGenerator_t & randG);
+
+    void sampleFreeParticlePosition(std::array<Real,3> & x,const std::array<Real,3> & mean,Real tau,randomGenerator_t & randG,Real mass=1);
+    
+
+    private:
+    std::uniform_real_distribution<float> uniformRealNumber;
+    std::normal_distribution<Real> normal;
+
+    const Real D = 0.5;
+
+};
+
 
 };
 

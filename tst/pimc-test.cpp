@@ -7,6 +7,7 @@
 #include "../pimc/moves.h"
 #include "../pimc/pimcObservables.h"
 
+
 TEST(distances,updateSingleParticleDistances)
 {
     pimc::geometryPBC_PIMC geo(10,10,10);
@@ -71,7 +72,6 @@ TEST(distances,updateSingleParticleDistances)
 
 }
 
-
 TEST(configurations, init)
 {
     const int N = 20;
@@ -83,6 +83,10 @@ TEST(configurations, init)
     auto & data = configurations.dataTensor();
 
     data.setRandom();
+
+    configurations.fillHeads();
+
+
 
     pimc::geometryPBC_PIMC geo(10,10,10);
 
@@ -102,6 +106,10 @@ TEST(configurations, init)
 
     for(int n=0;n<N;n++)
     {
+        for (int d=0;d<getDimensions();d++)
+        {
+             ASSERT_NEAR(data(n,d,M), data(n,d,0)  , 1e-5);
+        }
         for (int t=0;t<M;t++)
             {
                 for(int d=0;d<getDimensions();d++)
@@ -166,8 +174,9 @@ TEST(configurations, init)
                 }
 
             }
-    ASSERT_NEAR(v,vCheck,1e-3);
 
+
+    ASSERT_NEAR(v,vCheck,1e-3);
 
 }
 
@@ -184,6 +193,8 @@ TEST(action , evaluation)
     auto & data = configurations.dataTensor();
 
     data.setRandom();
+
+    configurations.fillHeads();
 
     pimc::geometryPBC_PIMC geo(10,10,10);
 
@@ -238,7 +249,6 @@ TEST(action , evaluation)
 
 }
 
-
 TEST(moves,levy_reconstructor)
 {
     int seed = 30;
@@ -261,6 +271,8 @@ TEST(moves,levy_reconstructor)
     int iChain = 30;
 
     configurations.dataTensor().setRandom();
+    configurations.fillHeads();
+
     configurations2=configurations;
 
 
@@ -293,10 +305,7 @@ TEST(moves,levy_reconstructor)
 
         };
 
-
-
     }
- 
 
     // test if gaussian distribution is sampled for a 3 point time slice
 
@@ -310,7 +319,7 @@ TEST(moves,levy_reconstructor)
 
     std::array<Real,getDimensions()> averagePositionSquared {0,0,0};
     std::array<Real,getDimensions()> averagePositionExtremes {0,0,0};
-    int nSteps=10000;
+    int nSteps=100000;
 
     for( int d=0;d<getDimensions();d++)
     {
@@ -360,6 +369,7 @@ TEST(moves,levy)
     pimc::pimcConfigurations configurations(M , getDimensions() , {groupA});
      auto & data = configurations.dataTensor();
     data.setRandom();
+    configurations.fillHeads();
 
     pimc::geometryPBC_PIMC geo(10,10,10);
 
@@ -419,12 +429,14 @@ TEST(moves,levy)
 
 void testChain(pimc::pimcConfigurations & configurations, int iChain, int expectedHead, int expectedTail)
 {
-    auto const & chainInfo = configurations.getChainsInfo(); 
-    const auto & chain = chainInfo[iChain];
+    
+    const auto chain = configurations.getChain(iChain);
+
+
     const auto & mask = configurations.getMask(); 
 
-    ASSERT_EQ( chain.getHead() , expectedHead   );
-    ASSERT_EQ( chain.getTail() , expectedTail   );
+    ASSERT_EQ( chain->getHead() , expectedHead   );
+    ASSERT_EQ( chain->getTail() , expectedTail   );
 
     if (expectedHead > expectedTail)
     {
@@ -461,13 +473,15 @@ void testChain(pimc::pimcConfigurations & configurations, int iChain, int expect
 
 }
 
+
 TEST(configurations, worms)
 {
     const int N = 10;
     const int M = 50;
 
-    pimc::particleGroup groupA{ 0 , N-1, N , 1.0};
-    
+
+    pimc::particleGroup groupA{ 0 , N-1, N + 1 , 1.0};
+
     pimc::pimcConfigurations configurations(M , getDimensions() , {groupA});
     
     auto & data = configurations.dataTensor();
@@ -475,48 +489,34 @@ TEST(configurations, worms)
 
     data.setRandom();
 
+    configurations.fillHeads();
+
+
     int time=10;
-    int iChain=5;
+    int iChain=0;
+
+    // test open
+    auto currentWorm =configurations.getWorm(configurations.open( iChain ));
+
+    ASSERT_EQ( configurations.nWorms() , 1 );
     
-    configurations.open(time, iChain );
-    int iWorm=0;
+    ASSERT_EQ(currentWorm->getHead()->index(),iChain);
+    ASSERT_EQ(currentWorm->getTail()->index(),iChain);
 
-    ASSERT_EQ( configurations.worms().size() , 1 );
-    ASSERT_EQ(iWorm,0);
+    ASSERT_TRUE(currentWorm->getHead()->hasHead() );
+    ASSERT_TRUE(currentWorm->getTail()->hasTail() );
 
-    auto currentWorm = configurations.worms()[iWorm];
-
-    ASSERT_EQ(currentWorm.getTail().index(),N);
-    ASSERT_EQ(currentWorm.getHead().index(),iChain);
-    ASSERT_EQ(currentWorm.getHead().getNextChain().index(),
-    currentWorm.getTail().index() );
-    ASSERT_EQ(currentWorm.getTail().getPrevChain().index(),
-    currentWorm.getHead().index() );
-
-    ASSERT_EQ(currentWorm.getTail().getTail() ,currentWorm.getHead().getHead() - 1 );
-
-    testChain( configurations,iChain, time, -1);
-    testChain( configurations,currentWorm.getTail().index(), M, time-1);
-
-    // test closing of configurations
+    // test close
 
     configurations.close(0);
+    ASSERT_FALSE(configurations.getChain(iChain)->hasHead() );
+    ASSERT_FALSE(configurations.getChain(iChain)->hasTail() );
 
-    ASSERT_EQ( configurations.worms().size() , 0 );
+    // test advance/recede head
+    iChain=5;
+    currentWorm=configurations.getWorm(configurations.open(iChain));
+    ASSERT_TRUE(currentWorm->getHead()->hasHead() );
 
-    testChain( configurations,iChain, M, -1);
-
-
-    ASSERT_EQ(configurations.getGroups()[0].size() , N   );
-    ASSERT_EQ(currentWorm.getHead().index() , currentWorm.getHead().getNextChain().index()    );
-
-    // test advance/recede tail
-    configurations.open(time,iChain);
-
-    currentWorm = configurations.worms()[0];
-    int delta=2;
-    configurations.moveHead( 0 , delta  );
-    testChain(configurations,iChain,time+delta,-1);
     
 }
 

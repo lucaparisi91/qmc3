@@ -22,11 +22,6 @@ namespace pimc
 
     }
 
-
-
-
-
-
 void geometryPBC_PIMC::updateSpringDifferences( Eigen::Tensor<Real,3> & differences , const  Eigen::Tensor<Real, 3> & tn, std::array<int,2> timeRange, std::array<int,2> particleRange )
     {
         size_t N = particleRange[1] - particleRange[0]+ 1;
@@ -39,7 +34,7 @@ void geometryPBC_PIMC::updateSpringDifferences( Eigen::Tensor<Real,3> & differen
                     for (int d=0;d<getDimensions();d++)
                     {
                         differences( t, d , i )  = 
-                         difference(      tn(i,d, (t+1)%T) - tn(i,d,t) , d);
+                         difference(      tn(i,d, (t+1) ) - tn(i,d,t) , d);
 
                     }
                     
