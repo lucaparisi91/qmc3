@@ -8,6 +8,7 @@
 #include <unsupported/Eigen/CXX11/Tensor>
 #include "qmcExceptions.h"
 #include "toolsPimc.h"
+#include <list>
 
 namespace pimc
 {
@@ -87,6 +88,9 @@ public:
         void fillHeads();
 
         const auto & getChain(int i) {return _chains[i];}
+
+        const auto & getChain(int i) const {return _chains[i];}
+
 
         const auto & getGroup(int iChain) const
         {
@@ -194,6 +198,8 @@ public:
         void deleteHeadFromList(int iChain); // deletes the head from the list
 
         void deleteTailFromList(int iChain); // deletes the tail from the list
+
+        std::list<int> buildPolimerList(int iChain) const; // build a list of all chains in the same permutation cycle as iChain 
 
 
         protected:

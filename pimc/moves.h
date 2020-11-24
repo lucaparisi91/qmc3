@@ -46,6 +46,7 @@ class timeSliceGenerator
 
 class firstOrderAction;
 
+
 class move 
 {
     public:
@@ -58,12 +59,22 @@ class tableMoves
 {
     public:
     tableMoves() : totalWeight(0){}
-    void push_back( move * move_,Real weight) ; 
+    void push_back( move * move_,Real weight,const std::string & name="Unkown move") ; 
 
-    move & sample(randomGenerator_t & random); // selects a move
+    bool attemptMove(configurations_t & confs, firstOrderAction & S,randomGenerator_t & randG);
 
+    Real acceptanceRatio(int i) {return _nSuccess[i]*1./_nTrials[i];}
+
+    std::ostream & operator>> (std::ostream & os);
     private:
+    
+    int sample(randomGenerator_t & random); 
+
     std::vector<move*> _moves;
+    std::vector<Real> _nTrials;
+    std::vector<Real> _nSuccess;
+    std::vector<std::string> _names;
+
     std::vector<Real>  accumulatedWeights;
     Real totalWeight;
     towerSampler sampler;
@@ -178,11 +189,9 @@ class moveHead
     bool attemptAdvanceMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG, int iChain, int l);
 
     bool attemptRecedeMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG, int iChain, int l);
-    
+
 
     private:
-
-
 
     int maxAdvanceLength;
     timeSliceGenerator tGen;
@@ -195,6 +204,30 @@ class moveHead
     std::array<Real,3> tmpPosition;
     std::array<Real,3> tmpMean;
 };
+
+// advance and recede in opposite directions
+class translateMove : public move
+{
+    public:
+    translateMove(Real max_delta, int maxBeads);
+    
+    bool attemptMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG);
+
+    private:
+
+    Real _max_delta;
+    std::uniform_real_distribution<Real> distr;
+    Eigen::Tensor<Real,2> buffer;
+    std::array<Real,getDimensions()> delta;
+    configurationsSampler confSampler;
+    metropolis sampler;
+    std::vector<int> currentPolimerList;
+    
+
+};
+
+
+
 
 
 class swapMove
@@ -227,6 +260,8 @@ class swapMove
     towerSampler chainSampler;
 
 };
+
+
 
 
 

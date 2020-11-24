@@ -60,15 +60,30 @@ void pimcConfigurations::setHead( int iChain, int newHead )
     currentChain.head=newHead;
     currentChain.next=-1;
 
+
     if ( oldNext  >= 0 )
     {
         setTail(oldNext,_chains[oldNext].tail);
         _heads.push_back( iChain);
     }
 
-    
 };
 
+std::list<int> pimcConfigurations::buildPolimerList(int iChain) const
+{
+    std::list<int> chains;
+
+    int iCurrentChain=iChain;
+    do
+    {
+        chains.emplace_back(iCurrentChain);
+        iCurrentChain=getChain(iCurrentChain).next ;
+    } while (
+        (iCurrentChain != -1) and 
+        (iCurrentChain != iChain)    
+        );
+    return chains;
+}
 
 void pimcConfigurations::setTail( int iChain, int newTail )
 {
@@ -289,9 +304,9 @@ void pimcConfigurations::swapTails(int iChain1, int iChain2)
         }
 }
 
+
 void pimcConfigurations::save(const std::string & dirname,const std::string & format ) const
 {
-
     if ( ! fs::exists(dirname) ) 
     { 
         fs::create_directory(dirname); // create src folder
@@ -301,38 +316,52 @@ void pimcConfigurations::save(const std::string & dirname,const std::string & fo
 
     if ( format == "csv" )
     {
-    
+        const std::string delim = "\t";
+
+
         f.open(dirname + "/particles.dat");
         //f.write(reinterpret_cast<char*>(_data.data()), nBeads()*nChains()*getDimensions()*sizeof(double));
-        f << "particle time x y z" << std::endl;
+        f << "particle"<<" time" << delim << "x" << delim << "y" << delim << "z" <<delim << "mask" << std::endl;
         f << std::setprecision(7);
 
-        for (int t=0;t<nBeads() ;t++ )
+        for (int t=0;t<=nBeads() ;t++ )
         {
                 for (int i=0;i<nChains();i++)
                 {
-                    if (_mask(t,i) == 1)
-                        {
-                            f<< i << " " << t << " ";
-                            for (int d=0;d<getDimensions();d++)
-                            {
-                                
-                                f <<  _data(i,d,t) << " ";
-                            }
-                            f<< std::endl;
-                        }
-                    
+                
+                    f<< i << delim << t << delim;
+                    for (int d=0;d<getDimensions();d++)
+                    {
+                        
+                        f <<  _data(i,d,t) << delim;
+                    }
+                    f<< delim << _mask(t,i) << std::endl;
                 }
         }
         f.close();
+        f.open(dirname + "/chains.dat");
+        f << "chain" << delim << "prev" << delim << "next"<< delim << "head" << delim << "tail"<< std::endl;
+
+         // network information
+        for (const auto & group : particleGroups)
+        {
+            for (int i=group.iStart;i<=group.iEnd;i++)
+            {
+                auto chain = getChain(i);
+                f << i << delim << chain.prev << delim << chain.next << delim<< chain.head << delim << chain.tail << std::endl;
+            }
+        }
+
     }
     else if (format == "binary")
     {
         f.open(dirname + "/particles.dat",std::ios::binary);
         f.write(reinterpret_cast<const char*>(_data.data()), nBeads()*nChains()*getDimensions()*sizeof(double));
+
+        throw missingImplementation("Binary format not yet supported.");
     }
 
-
+   
     nlohmann::json j;
 
     j["nChains"]= nChains();
@@ -351,11 +380,9 @@ void pimcConfigurations::save(const std::string & dirname,const std::string & fo
     }
 
     j["groups"]=jGroups;
-    f.open(dirname + "/description.dat",std::ios::binary);
+    f.open(dirname + "/description.json");
     f << j ;
     f.close();
-
-    throw missingImplementation("Saving of chain info not yet implemented");
 
 }
 

@@ -490,6 +490,9 @@ TEST(configurations, worms)
 
     configurations.fillHeads();
 
+    configurations.save("randomConfiguration");
+
+
     int time=10;
     int iChain=0;
 
@@ -572,28 +575,40 @@ TEST(configurations, worms)
     ASSERT_EQ( configurations.tails()[0] , iChain );
     ASSERT_EQ( configurations.heads()[0] , iChain );
 
+
 }
+
 
 TEST(run,free_harmonic_oscillator)
 {   
-    int N=10;
-    int M=100;
+    int N=100;
+    int M=60;
+
+
+
 
     pimc::geometryPBC_PIMC geo(30,30,30);
 
     Real timeStep = 1e-1;
-    pimc::particleGroup groupA{ 0 , N-1, N , 1.0};
+    pimc::particleGroup groupA{ 0 , N-1, N - 1 , 1.0};
     pimc::pimcConfigurations configurations(M , getDimensions() , {groupA});
 
     configurations.dataTensor().setRandom();
 
+    configurations.fillHeads();
+
     pimc::levyReconstructor reconstructor(M);
 
-    pimc::levyMove freeMoves(reconstructor, 10);
+    pimc::levyMove freeMoves(reconstructor, 30);
+
+    Real delta=0.2;
+
+    pimc::translateMove translMove(delta,M*N);
 
     pimc::tableMoves table;
 
-    table.push_back(& freeMoves,timeStep);
+    table.push_back(& freeMoves,0.8,"levy");
+    table.push_back(& translMove,0.2,"translate");
 
     randomGenerator_t randG(100);
 
@@ -604,44 +619,65 @@ TEST(run,free_harmonic_oscillator)
     pimc::potentialActionOneBody<decltype(V)> sV(timeStep,V ,geo);
 
     pimc::firstOrderAction S(&sT, & sV);
-    int nTimes = 10000;
+    int nTimes = 200;
     int success = 0;
-    int subSteps=1000;
+    int subSteps=100;
+    int correlationSteps=20;
 
 
     pimc::thermodynamicEnergyEstimator energyEstimator;
     Real e=0;
     Real e2=0;
 
+    std::ofstream f;
+
+    f.open("energy.dat");
+
+
     for (int i=0;i< nTimes ; i++)
     {
-        for (int j=0;j<subSteps;j++)
+        Real eStep=0;
+
+        for (int k=0;k< subSteps;k++)
         {
-            auto & move = table.sample(randG);
-            bool accepted=move.attemptMove(configurations, S, randG);
+            
+            for (int j=0;j<correlationSteps;j++)
+            {
+                bool accepted=table.attemptMove(configurations, S, randG);
 
-            if (accepted)
-            {success+=1;}
+                if (accepted)
+                {success+=1;}
 
+            }
+            
+            Real tmp=energyEstimator(configurations,S);
+            e+=tmp;
+            e2+=tmp*tmp;
+            eStep+=tmp;
+     
         }
-        
-        Real tmp=energyEstimator(configurations,S);
-        e+=tmp;
-        e2+=tmp*tmp;
+
+       
+        f << i << "\t" << eStep/subSteps << std::endl ;
 
         //std::cout << e << std::endl;
 
-        std::cout << "Energy: " << e/( (i+1)) << std::endl;
-        std::cout << "Acceptance ratio: " << success*1./((i+1)*subSteps) << std::endl;
-        
+        std::cout << "Energy: " << e/( (i+1)*subSteps) << std::endl;
+        std::cout << "Acceptance ratio: " << success*1./((i+1)*subSteps*correlationSteps) << std::endl;
+
+        table >> std::cout;
+
+
         configurations.save("testRun/sample"+std::to_string(i));
+
 
     }
 
-
+    f.close();
     ASSERT_TRUE( (success*1./nTimes )> 0);
     e/=nTimes;
     e2/=nTimes;
+
 
     //std::cout << e << " " << std::sqrt(e2 - e*e) << std::endl;
 

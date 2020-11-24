@@ -27,19 +27,25 @@ namespace pimc
         */
         int l = timeRange[1] - timeRange[0];
 
-        const auto & dataOld = configurations.dataTensor() ;
-        auto & dataNew = configurations.dataTensor() ;
+        auto & data = configurations.dataTensor() ;
         
         auto timeRanges = splitPeriodicTimeSlice(timeRange,configurations.nBeads() );
 
         const auto & currentChain = configurations.getChain(iChain);
         int iChainNext=currentChain.next;
 
+        int lastBeadChain= timeRange[1] > configurations.nBeads() ? iChainNext : iChain ;
+        int lastBeadTime= timeRange[1] > configurations.nBeads() ? timeRanges[1][1] : timeRange[1] ;
 
+
+        if (lastBeadChain == -1 )
+        {
+            throw invalidState("Crossing a head in reconstruction.");
+        }
 
         for (int d=0;d<getDimensions();d++)
             {
-                dataNew(iChain,d,timeRange[0])=dataOld(iChain,d,timeRange[0]);
+                data(iChain,d,timeRange[1])=data(lastBeadChain,d,lastBeadTime);
             }
 
 
@@ -47,20 +53,21 @@ namespace pimc
         for (int t=0;t<l-1;t++)
         {
            
-            Real eta = gauss(randG);
+            
 
             for (int d=0;d<getDimensions();d++)
                 {
+                Real eta = gauss(randG);
                 mean[d] = 
                 (
-                dataNew(iChain,d,t+timeRange[0])*(l-t-1) 
-                + dataNew(iChain,d , l + timeRange[0]  ) )
+                data(iChain,d,t+timeRange[0])*(l-t-1) 
+                + data(iChain,d , l + timeRange[0]  ) )
                 /( l - t) 
                 ;
 
                 Real variance = (l-t-1) * 1. /(l-t) *timeStep;
 
-                dataNew(iChain,d, timeRange[0] + t + 1 ) = mean[d] + eta *sqrt(variance) ;
+                data(iChain,d, timeRange[0] + t + 1 ) = mean[d] + eta *sqrt(variance) ;
                 }
         }
         
@@ -115,7 +122,9 @@ bool levyMove::attemptMove( configurations_t & confs, firstOrderAction & ST,rand
 
 
     _levy.apply(confs,timeRange,iChain,S.getTimeStep(),randG);
-    confs.copyData( { timeRanges[0][1]+1 , timeRange[1] } , iChain, iChainNext ); // time periodic boundary conditions
+    confs.copyData( { timeRanges[0][1]+1 , timeRange[1] } , iChain, 0,iChainNext ); // time periodic boundary conditions
+
+
 
     auto  sNew= S.evaluate(confs,timeRanges[0], iChain) ;
     sNew+=S.evaluate(confs,timeRanges[1], iChainNext) ;
@@ -129,8 +138,11 @@ bool levyMove::attemptMove( configurations_t & confs, firstOrderAction & ST,rand
         // copy back old beads
         copyFromBuffer(confs,timeRanges[0],iChain);
         copyFromBuffer(confs,timeRanges[1],iChainNext, timeRanges[0][1]  - timeRanges[0][0] + 1 );
+         confs.fillHead(iChain);
+   
     }
 
+    
     return accepted;
 }
 
@@ -246,22 +258,148 @@ bool swapMove::attemptMove(configurations_t & confs, firstOrderAction & S,random
     return accept;
 }
 
+std::ostream & tableMoves::operator>> (std::ostream & os)
+{
+    for (int i=0;i<_moves.size();i++)
+    {
+        if (_nTrials[i] > 0 )
+        {
+            os << _names[i] << ":\t" << acceptanceRatio(i) << std::endl;
+        }
+        else
+        {
+            os << _names[i] << ":\t" << "-" << std::endl;
+        }        
+    }
+
+    return os;
+
+}
+
+bool tableMoves::attemptMove(configurations_t & confs, firstOrderAction & S,randomGenerator_t & randG)
+{
+    int iMove=sample(randG);
+
+    auto  move = (_moves[ iMove ]);
+    bool success=move->attemptMove(confs,S,randG);
+
+    _nTrials[iMove]++;
+
+    if (success)
+    {
+    _nSuccess[iMove]++;
+    }
 
 
-void tableMoves::push_back(move * move_,Real weight)
+    return success;
+};
+
+
+void tableMoves::push_back(move * move_,Real weight,const std::string & name)
 {
     totalWeight+=weight;
     accumulatedWeights.push_back(totalWeight);
     _moves.push_back(move_);
+    _names.push_back(name);
+    _nTrials.push_back(0);
+    _nSuccess.push_back(0);
+
 };
 
-move & tableMoves::sample(randomGenerator_t & randG)
+
+int tableMoves::sample(randomGenerator_t & randG)
 {
     int iMove = sampler.sample(accumulatedWeights,totalWeight,randG);
-    return *(_moves[iMove]);
+    return iMove;
 };
 
 openMove::openMove(Real C_ , int maxReconstructedLength_) : C(C_), _levy(maxReconstructedLength_) ,  _maxReconstructedLength(maxReconstructedLength_) ,buffer(maxReconstructedLength_,getDimensions()){}
+
+
+
+translateMove::translateMove(Real max_delta, int maxBeads) : _max_delta(max_delta),buffer(maxBeads,getDimensions())  , distr(-1.,1.)
+{
+
+
+}
+
+bool translateMove::attemptMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG )
+{
+
+    auto & Spot = S.getPotentialAction();
+    std::array<int,2> timeRange={0,confs.nBeads()-1};
+
+    // sample a chain
+    int iChain = confSampler.sampleChain(confs,randG);
+    auto & data = confs.dataTensor();
+
+    auto chainsInThePolimer = confs.buildPolimerList(iChain); 
+
+    Real deltaS = 0;
+
+    // evaluate the action in the old configuration
+
+     for (auto iCurrentChain : chainsInThePolimer)
+     {
+        deltaS-= Spot.evaluate(confs,timeRange,iCurrentChain);   
+     }
+
+
+
+
+    int iSeq=0; // ith chain in the list
+    for (auto iCurrentChain : chainsInThePolimer)
+    {
+
+        // save old data to buffer
+        confs.copyDataToBuffer(buffer,{0,confs.nBeads()},iCurrentChain,iSeq*confs.nBeads());
+
+
+         // translate the whole 
+        for (int d=0;d<getDimensions();d++)
+        {
+            delta[d]=distr(randG)*_max_delta;
+        }
+
+        for(int t=0;t<=confs.nBeads();t++)
+            {
+                for (int d=0;d<getDimensions();d++)
+                {
+                    data(iCurrentChain,d,t)+=delta[d];
+                }    
+
+            }
+
+        iSeq++; 
+    }
+
+
+    //evaluate the action in the new configuration
+
+     for (auto iCurrentChain : chainsInThePolimer)
+     {
+        deltaS+= Spot.evaluate(confs,timeRange,iCurrentChain);   
+     }
+
+
+
+    bool accept = sampler.acceptLog(-deltaS,randG);
+
+    if ( not accept)
+    {
+        // copy back configurations in al chains of the permutation cycle
+        int iSeq=0;
+        for (auto iCurrentChain : chainsInThePolimer)
+        {
+          confs.copyDataFromBuffer(buffer,{0,confs.nBeads()},iCurrentChain,iSeq*confs.nBeads());
+        }
+        iSeq++;
+
+    }
+
+    return accept;
+
+}
 
 
 bool openMove::attemptMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG )
@@ -331,7 +469,7 @@ bool openMove::attemptMove(configurations_t & confs , firstOrderAction & S,rando
             confs.setTail(tailChain,iTime);
             confs.setHead(tailChain,confs.nBeads() );
             confs.setHead(iChain,iTime+1);
-            confs.join(headChain.prev,tailChain);
+            confs.join(tailChain,headChain.next);
             confs.copyData({iTime+1,confs.nBeads()-1}, iChain, tailChain );
 
             for (int d=0;d<getDimensions();d++) // copy back the original bead in the new tail
@@ -522,7 +660,6 @@ bool moveHead::attemptMove(configurations_t & confs , firstOrderAction & S,rando
 
     return false;
 }
-
 
 
 bool moveHead::attemptAdvanceMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG,int iChainHead,int l)
