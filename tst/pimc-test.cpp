@@ -608,7 +608,7 @@ TEST(run,free_harmonic_oscillator)
     pimc::tableMoves table;
 
     table.push_back(& freeMoves,0.8,"levy");
-    //table.push_back(& translMove,0.2,"translate");
+    table.push_back(& translMove,0.2,"translate");
 
     randomGenerator_t randG(100);
 
