@@ -122,7 +122,7 @@ pimcConfigurations::pimcConfigurations(
     particleGroups(particleGroups_),
     M(timeSlices),
     N(getTotalSize(particleGroups_)), // number of chains(includign padding chains)
-    _data(N,dimensions,2*timeSlices ),// contains a copy for buffer operations
+    _data(N,dimensions,2*(timeSlices+1) ),// contains a copy for buffer operations
      _mask( timeSlices+1,N),
     _nParticles(getNParticles(particleGroups_))// number of chains without the padding
 {
@@ -134,6 +134,8 @@ pimcConfigurations::pimcConfigurations(
         _chains[i].next=i;
         _chains[i].prev=i;
     }
+
+    
 
 }; 
 
@@ -330,12 +332,28 @@ void pimcConfigurations::save(const std::string & dirname,const std::string & fo
                 {
                 
                     f<< i << delim << t << delim;
-                    for (int d=0;d<getDimensions();d++)
-                    {
-                        
-                        f <<  _data(i,d,t) << delim;
-                    }
-                    f<< delim << _mask(t,i) << std::endl;
+
+                    #if DIMENSIONS == 3    
+                        f <<  _data(i,0,t) << delim;
+                        f <<  _data(i,1,t) << delim;
+                        f <<  _data(i,1,t) << delim;   
+                    #endif
+
+                    #if DIMENSIONS == 1    
+                        f <<  _data(i,0,t) << delim;
+                        f <<  0 << delim;
+                        f << 0 << delim;   
+                    #endif
+
+                    #if DIMENSIONS == 2    
+                        f <<  _data(i,0,t) << delim;
+                        f <<  _data(i,1,t) << delim;
+                        f <<  0 << delim;   
+                    #endif
+
+
+
+                    f << _mask(t,i) << std::endl;
                 }
         }
         f.close();
@@ -378,7 +396,7 @@ void pimcConfigurations::save(const std::string & dirname,const std::string & fo
         jGroup["iEndExtended"]=group.iEndExtended;
         jGroups.push_back(jGroup);
     }
-
+    
     j["groups"]=jGroups;
     f.open(dirname + "/description.json");
     f << j ;
@@ -606,11 +624,13 @@ void configurationsSampler::sampleFreeParticlePosition(
     Real var = 2 * D * tau / mass;
     for(int d=0;d<getDimensions();d++)
     {
-        x[d]=mean[d] + normal(randG)*sqrt(var);       
+        x[d]=mean[d] + normal(randG)*std::sqrt(var);       
     }
 }
 
 
 
 };
+
+
 

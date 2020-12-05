@@ -28,7 +28,7 @@ class timeSliceGenerator
    class levyReconstructor
     {
         public : 
-        levyReconstructor( int maxReconstructionLength) :  gauss(0,1),buffer(maxReconstructionLength,getDimensions()) {}
+        levyReconstructor( int maxReconstructionLength) :  gauss(0,1),buffer(maxReconstructionLength*2,getDimensions()) {}
 
 
         void apply (configurations_t & configurations, std::array<int,2> timeRange,int iChain ,
@@ -46,7 +46,6 @@ class timeSliceGenerator
 
 class firstOrderAction;
 
-
 class move 
 {
     public:
@@ -55,10 +54,10 @@ class move
 };
 
 
-class tableMoves
+class sectorTableMoves
 {
     public:
-    tableMoves() : totalWeight(0){}
+    sectorTableMoves() : totalWeight(0){}
     void push_back( move * move_,Real weight,const std::string & name="Unkown move") ; 
 
     bool attemptMove(configurations_t & confs, firstOrderAction & S,randomGenerator_t & randG);
@@ -71,6 +70,7 @@ class tableMoves
     int sample(randomGenerator_t & random); 
 
     std::vector<move*> _moves;
+
     std::vector<Real> _nTrials;
     std::vector<Real> _nSuccess;
     std::vector<std::string> _names;
@@ -79,6 +79,37 @@ class tableMoves
     Real totalWeight;
     towerSampler sampler;
 };
+
+
+class tableMoves
+{
+    public:
+
+    tableMoves(){}
+    
+    void push_back( move * move_,Real weight,sector_t sector,const std::string & name="Unkown move") ; 
+
+    bool attemptMove(configurations_t & confs, firstOrderAction & S,randomGenerator_t & randG);
+
+    std::ostream & operator>> (std::ostream & os);
+
+    private:
+
+    sectorTableMoves openTab;
+    sectorTableMoves closedTab;
+
+    Real nOpenSectorMoves=0;
+    Real nClosedSectorMoves=0;
+
+};
+
+
+
+
+
+
+
+
 
 class levyMove : public move
 {
@@ -92,24 +123,6 @@ class levyMove : public move
 
 
     bool isValidSlice( configurations_t & confs , const std::array<int,2> timeRange,int iChain) const;
-    void copyToBuffer(configurations_t & confs, std::array<int,2> timeSlice,int iChain,int offset=0);
-
-    void copyToBuffer(configurations_t & confs, std::array< std::array<int,2>  , 2> timeSlice,int iChain)
-    {
-        copyToBuffer(confs,timeSlice[0],iChain) ;
-        copyToBuffer(confs,timeSlice[1],iChain,timeSlice[0][1]-timeSlice[0][0] + 1); 
-    };
-
-    void copyFromBuffer(configurations_t & confs, std::array< std::array<int,2>  , 2> timeSlice,int iChain)
-    {
-        copyFromBuffer(confs,timeSlice[0],iChain) ;
-        copyFromBuffer(confs,timeSlice[1],iChain, timeSlice[0][1]-timeSlice[0][0] + 1);
-
-    };
-
-
-    void copyFromBuffer(configurations_t & confs, std::array<int,2> timeSlice,int iChain,int offset=0);
-
 
     int maxBeadLength;
 
@@ -118,13 +131,13 @@ class levyMove : public move
     
     metropolis sampler;
     configurationsSampler confsSampler;
-    Eigen::Tensor<Real,2> tmp;
+    Eigen::Tensor<Real,2> buffer;
     timeSliceGenerator tGen;
 
 };
 
 
-class openMove
+class openMove : public move
 {
     public:
     // splits a chain in two morms with one overlapping bead
@@ -136,7 +149,6 @@ class openMove
     Real C;
     int _maxReconstructedLength;
     std::array<Real, 3> tmp;
-    Real timeStep;
 
     const Real D = 0.5;
     configurationsSampler confsSampler;
@@ -149,13 +161,7 @@ class openMove
 
 
 
-
-
-
-
-
-
-class closeMove
+class closeMove : public move
 {
     public:
     // splits a chain in two morms with one overlapping bead
@@ -164,9 +170,7 @@ class closeMove
 
     private:
     Real C;
-    int maxBeadLength;
     std::array<Real, 3> tmp;
-    Real timeStep;
     int _maxLength;
 
     levyReconstructor _levy;
@@ -179,31 +183,53 @@ class closeMove
 };
 
 // advance and recede in opposite directions
-class moveHead
+class moveHead : public move
 {
     public:
     moveHead(int maxAdvanceLength_);
 
     bool attemptMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG);
-    
-    bool attemptAdvanceMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG, int iChain, int l);
-
-    bool attemptRecedeMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG, int iChain, int l);
-
 
     private:
 
-    int maxAdvanceLength;
-    timeSliceGenerator tGen;
-    levyReconstructor _levy;
-    std::uniform_real_distribution<Real> distr;
-    Eigen::Tensor<Real,2> buffer;
+    int _maxReconstructedLength;
+    std::array<Real, 3> tmp;
 
-    configurationsSampler confSampler;
+    const Real D = 0.5;
+    configurationsSampler confsSampler;
+    std::normal_distribution<Real> gauss;
+    std::uniform_real_distribution<float> uniformRealNumber;
+    levyReconstructor _levy;
     metropolis sampler;
-    std::array<Real,3> tmpPosition;
-    std::array<Real,3> tmpMean;
+    Eigen::Tensor<Real,2> buffer;
 };
+
+
+class moveTail : public move
+{
+    public:
+    moveTail(int maxAdvanceLength_);
+
+    bool attemptMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG);
+
+    private:
+
+
+    int _maxReconstructedLength;
+    std::array<Real, 3> tmp;
+
+    const Real D = 0.5;
+    configurationsSampler confsSampler;
+    std::normal_distribution<Real> gauss;
+    std::uniform_real_distribution<float> uniformRealNumber;
+    levyReconstructor _levy;
+    metropolis sampler;
+    Eigen::Tensor<Real,2> buffer;
+};
+
+
+
+
 
 // advance and recede in opposite directions
 class translateMove : public move
@@ -222,42 +248,31 @@ class translateMove : public move
     configurationsSampler confSampler;
     metropolis sampler;
     std::vector<int> currentPolimerList;
-    
 
 };
 
-
-
-
-
-class swapMove
+class swapMove : public move
 {
     public:
     using geometry_t = geometryPBC_PIMC;
 
-    swapMove(Real rmax_, int maxStepLength_, int seed);
+    swapMove( int maxStepLength_, int maxN);
     bool attemptMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG); // will attempt to perform a new move
 
-
     private:
-    Real rmax;
-    Real sigma;
 
     int maxStepLength;
     levyReconstructor _levy;
     randomGenerator_t randG;
     std::uniform_real_distribution<float> uniformRealNumber;
-    geometry_t geo;
-    Eigen::Tensor<Real,2> tmpChainWorm;
-    Eigen::Tensor<Real,2> tmpChainParticle;
+    Eigen::Tensor<Real,2> buffer;
     std::vector<Real> particleSelectionAccWeights;
     Real particleSelectionWeight;
     const Real D = 0.5;
-    towerSampler particleSampler;
     metropolis metropolisSampler;  
     timeSliceGenerator tGen;
     configurationsSampler confSampler;
-    towerSampler chainSampler;
+    towerSampler particleSampler;
 
 };
 

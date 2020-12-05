@@ -27,16 +27,24 @@ private:
     Eigen::Tensor<int, 2> _mask;
 };
 
+enum sector_t{ diagonal = 0 , offDiagonal = 1 , any = 2} ;
+
+
+
+
+
 struct particleGroup
 {
-    
+    particleGroup( int iStart_,int iEnd_,int iEndExtended_,Real mass_ = 1, sector_t sector_ = sector_t::diagonal) : 
+    iStart(iStart_),iEnd(iEnd_),iEndExtended(iEndExtended_),mass(mass_),sector(sector_) {}
     bool contains(int iParticle) const {return (iParticle>= iStart) and (iParticle<=iEnd);}
     int iStart; // start of the particle group
     int iEnd; // end of the active group
     int iEndExtended; // extended memory for additional particles
     Real mass;
-    
+    sector_t sector;
     auto size() const {return iEnd - iStart + 1;}  
+
 };
 
 
@@ -67,11 +75,14 @@ public:
         public:
         using configurationsStorage_t =  Eigen::Tensor<Real, 3> ;
 
+        
         pimcConfigurations() : pimcConfigurations(0,getDimensions(), {} 
         ) {}
 
+
         pimcConfigurations(size_t timeSlices, int dimensions, const std::vector<particleGroup> & particleGroups_);
         bool isOpen() {return (_tails.size() > 0) or (_heads.size() > 0)  ;}
+
 
         auto &  dataTensor() {return _data;}
         const auto &  dataTensor() const {return _data;}
@@ -117,6 +128,8 @@ public:
         int nParticles() const {return _nParticles;}
 
         const auto & getGroups() const {return particleGroups;}
+
+
 
         static void copyData(const pimcConfigurations & confFrom, const std::array<int,2> & timeRangeFrom, const std::array<int,2> & particleRangeFrom ,
           Eigen::Tensor<Real,3> & dataTo, int timeOffsetTo, int particleOffestTo );
@@ -206,6 +219,7 @@ public:
 
 
         void updateMask(const chain & chainToUpdate);
+
         void deleteBeads(   std::array<int,2> timeRange, int iChain ); // deactive the beads in the mask
 
         void createBeads(   std::array<int,2> timeRange, int iChain ); // activates the bead in the mask
@@ -216,10 +230,12 @@ public:
         int nWorms() {return (_heads.size() + _tails.size() )/2;};
 
 
+
         private:
 
         int M;
         int N;
+
 
         std::vector<particleGroup> particleGroups;
         configurationsStorage_t _data;
@@ -241,17 +257,16 @@ public:
 class configurationsSampler
 {
     public:
-    configurationsSampler() : uniformRealNumber(0,1) {}
+    configurationsSampler() : uniformRealNumber(0,1),normal(0,1) {}
     
     int sampleChain(configurations_t & confs,randomGenerator_t & randG);
 
-    void sampleFreeParticlePosition(std::array<Real,3> & x,const std::array<Real,3> & mean,Real tau,randomGenerator_t & randG,Real mass=1);
-    
+    void sampleFreeParticlePosition(std::array<Real,getDimensions()> & x,const std::array<Real,getDimensions()> & mean,Real tau,randomGenerator_t & randG,Real mass=1);    
 
     private:
     std::uniform_real_distribution<float> uniformRealNumber;
     std::normal_distribution<Real> normal;
-
+    
     const Real D = 0.5;
 
 };

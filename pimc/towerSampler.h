@@ -6,18 +6,22 @@ class towerSampler
 {
     public:
     
-    towerSampler(int max_num_weights) : _accWeights(max_num_weights),uniformRealNumber(0,1), _totWeight(0) {}
+    towerSampler(int max_num_weights) : _accWeights(max_num_weights,0.),uniformRealNumber(0,1), _totWeight(0),iCurrentWeight(0) {}
 
-    void resize(int max_num_weights)  {_accWeights.resize(max_num_weights);} 
+    void resize(int max_num_weights)  {_accWeights.resize(max_num_weights,0.);} 
     
 
 
     towerSampler() : towerSampler(0) {} 
    
 
-    virtual void reset() {_totWeight=0;int iCurrentWeight=0;}
+    virtual void reset() {_totWeight=0;iCurrentWeight=0;}
     
     void accumulateWeight(Real weight) {
+        if ( iCurrentWeight >= _accWeights.size() )
+        {
+            _accWeights.resize(iCurrentWeight+1);    
+        }
         _totWeight+=weight;
         _accWeights[iCurrentWeight]=_totWeight;
         iCurrentWeight++;
@@ -31,9 +35,15 @@ class towerSampler
     int sample(std::vector<Real> & accWeights, Real totWeight, randomGenerator_t & randG)
     {
         Real randomWeight=uniformRealNumber(randG) * totWeight;
+
+         if (iCurrentWeight== 0)
+        {
+            throw invalidState("Nothing to sample.");
+        }
         int i=0;
         for(i=0; accWeights[i]<randomWeight;i++) {}
 
+       
         return i;
     }
 
@@ -41,7 +51,7 @@ class towerSampler
     std::uniform_real_distribution<float> uniformRealNumber;
     std::vector<Real> _accWeights;
     Real _totWeight;
-    int iCurrentWeight=0;
+    int iCurrentWeight;
 
 };
 

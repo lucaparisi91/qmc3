@@ -2,11 +2,8 @@
 #include "action.h"
 #include "qmcExceptions.h"
 
-
-
 namespace pimc
 {      
-
 
     std::array<int,2> timeSliceGenerator::operator()(randomGenerator_t & randG, int nBeads , int maxBeadLength)
     {
@@ -18,7 +15,6 @@ namespace pimc
         return {t0,t1};
     }
 
-
     void levyReconstructor::apply (configurations_t & configurations, std::array<int,2> timeRange,int iChain ,Real timeStep,randomGenerator_t & randG)
     {
         /* Does not take into account time periodic boundary conditions
@@ -28,17 +24,16 @@ namespace pimc
         int l = timeRange[1] - timeRange[0];
 
         auto & data = configurations.dataTensor() ;
-        
-        auto timeRanges = splitPeriodicTimeSlice(timeRange,configurations.nBeads() );
+
 
         const auto & currentChain = configurations.getChain(iChain);
         int iChainNext=currentChain.next;
 
-        int lastBeadChain= timeRange[1] > configurations.nBeads() ? iChainNext : iChain ;
-        int lastBeadTime= timeRange[1] > configurations.nBeads() ? timeRanges[1][1] : timeRange[1] ;
+        //int lastBeadChain= timeRange[1] > configurations.nBeads() ? iChainNext : iChain ;
+        //int lastBeadTime= timeRange[1] > configurations.nBeads() ? timeRanges[1][1] : timeRange[1] ;
 
 
-        if (lastBeadChain == -1 )
+ /*         if (lastBeadChain == -1 )
         {
             throw invalidState("Crossing a head in reconstruction.");
         }
@@ -47,13 +42,12 @@ namespace pimc
             {
                 data(iChain,d,timeRange[1])=data(lastBeadChain,d,lastBeadTime);
             }
+  */
 
-
+        
         // performs the actual copy
         for (int t=0;t<l-1;t++)
         {
-           
-            
 
             for (int d=0;d<getDimensions();d++)
                 {
@@ -77,7 +71,7 @@ namespace pimc
 
     }
 
-levyMove::levyMove(levyReconstructor & levy_, int maxBeadLength_) : _levy(levy_) , uniformRealNumber(0,1),maxBeadLength(maxBeadLength_) , tmp(maxBeadLength_,getDimensions() ) {}
+levyMove::levyMove(levyReconstructor & levy_, int maxBeadLength_) : _levy(levy_) , uniformRealNumber(0,1),maxBeadLength(maxBeadLength_) , buffer(( maxBeadLength_+1)*2,getDimensions() ) {}
 
 bool levyMove::attemptMove( configurations_t & confs, firstOrderAction & ST,randomGenerator_t & randG)
 {
@@ -96,16 +90,15 @@ bool levyMove::attemptMove( configurations_t & confs, firstOrderAction & ST,rand
     int iChainNext = currentChain.next;
 
     if (
-        (timeRanges[0][1] > currentChain.head )
-         or (
-            ( currentChain.next != -1 ) and
+        (timeRange[1] > confs.nBeads() and  (currentChain.next == -1 ) )
+        or (   ( currentChain.next != -1 ) and
             ( confs.getChain(iChainNext).head <= timeRanges[1][1]   )
-        )
     )
+        )
+
+    
     {
         return false; // do not accept if the time range is not included inside a chain (including time PBC)
-
-
     }
 
 
@@ -117,13 +110,23 @@ bool levyMove::attemptMove( configurations_t & confs, firstOrderAction & ST,rand
 
 
     // copy to internal buffer beads to move
-    copyToBuffer(confs,timeRanges[0],iChain);
-    copyToBuffer(confs,timeRanges[1],iChainNext, timeRanges[0][1]  - timeRanges[0][0] + 1);
+     confs.copyDataToBuffer(buffer,timeRanges[0],iChain);
+     if (iChainNext!=-1)
+     {
+        confs.copyDataToBuffer(buffer,timeRanges[1],iChainNext, timeRanges[0][1]  - timeRanges[0][0] + 1);
+     }
 
+      if (timeRange[1] > confs.nBeads() )//copy the end bead in second chain to the first chain
+    {
 
+        confs.copyData( { timeRanges[1][1] , timeRanges[1][1] } , iChainNext, timeRange[1],iChain );
+    }
     _levy.apply(confs,timeRange,iChain,S.getTimeStep(),randG);
-    confs.copyData( { timeRanges[0][1]+1 , timeRange[1] } , iChain, 0,iChainNext ); // time periodic boundary conditions
-
+    if (iChainNext!=-1)
+     {
+         confs.copyData( { timeRanges[0][1]+1 , timeRange[1] } , iChain, 0,iChainNext ); // time periodic boundary conditions
+     }
+    
 
 
     auto  sNew= S.evaluate(confs,timeRanges[0], iChain) ;
@@ -136,8 +139,11 @@ bool levyMove::attemptMove( configurations_t & confs, firstOrderAction & ST,rand
     if (! accepted)
     {
         // copy back old beads
-        copyFromBuffer(confs,timeRanges[0],iChain);
-        copyFromBuffer(confs,timeRanges[1],iChainNext, timeRanges[0][1]  - timeRanges[0][0] + 1 );
+        confs.copyDataFromBuffer(buffer,timeRanges[0],iChain);
+        if (iChainNext!=-1)
+         {
+        confs.copyDataFromBuffer(buffer,timeRanges[1],iChainNext, timeRanges[0][1]  - timeRanges[0][0] + 1);
+         }
          confs.fillHead(iChain);
    
     }
@@ -146,119 +152,120 @@ bool levyMove::attemptMove( configurations_t & confs, firstOrderAction & ST,rand
     return accepted;
 }
 
-void levyMove::copyToBuffer(configurations_t & confs, std::array<int,2> timeRange,int iChain, int offset)
-{
-    auto & data = confs.dataTensor();
+swapMove::swapMove(int maxStepLength_,int maxN) :
+ maxStepLength(maxStepLength_),buffer(maxStepLength_*2,getDimensions() )
+ , uniformRealNumber(0,1) ,_levy(maxStepLength_+2),particleSampler(maxN)
+{}
 
-    for (int t=timeRange[0] , tt=offset ;t<=timeRange[1];t++ & tt++ )
-        {
-            for (int d=0;d<getDimensions();d++)
-            {
-            tmp(tt,d)=data(iChain,d,t);
-            }
-        }
-};
-
-void levyMove::copyFromBuffer(configurations_t & confs, std::array<int,2> timeRange,int iChain,int offset)
-{
-    auto & data = confs.dataTensor();
-    for (int t=timeRange[0],tt=offset ;t<=timeRange[1];t++ & tt++ )
-        {
-            for (int d=0;d<getDimensions();d++)
-            {
-                data(iChain,d,t)=tmp(tt,d);
-            }
-        }
-};
 
 bool swapMove::attemptMove(configurations_t & confs, firstOrderAction & S,randomGenerator_t & randG)
 {
+    if ( ! confs.isOpen() )
+    {
+        throw invalidState("Swap move can only be done in the G sector.");
+    }
      auto & data = confs.dataTensor();
-    // selects a worm at random
+    // selects an head at random
 
-    int iChainHead = std::floor(  uniformRealNumber(randG) * confs.tails().size() );
-
-    const auto  headChain=confs.getChain(iChainHead);
-
-
+    int _iChainHead =  std::floor(  uniformRealNumber(randG) * confs.heads().size() ) ;
+    int iChainHead =  confs.heads()[_iChainHead] ;
 
     auto & Spot = S.getPotentialAction();
 
     // selects a time slice length at random. Refuse if reconstructed time slice crosses over the end bead
 
-    int l = std::floor(uniformRealNumber(randG) * maxStepLength);
+    int l = std::floor(uniformRealNumber(randG) * maxStepLength) + 1;
+    //int l = maxStepLength;
 
-    std::array<int,2> timeSlice = {headChain.head,headChain.head + l};
-
-    if (timeSlice[1] >= confs.nBeads() )
-    {
-        return false;
-    } // no time wrap allowed
+    
+    int iHead=confs.nBeads();
 
     
     // tower sampling a particle i with gaussian weights on the relative distances
    
     const auto & group = confs.getGroup( iChainHead );
+    auto & geo = S.getGeometry();
 
     std::array<Real, 3> distance;
-    chainSampler.reset();
+    particleSampler.reset();
+
+    Real weightForwardMove = 0;
+    
+    for(int i=group.iStart;i<=group.iEnd;i++)
+    {
+        
+        for(int d=0;d<getDimensions();d++)
+        {
+            distance[d]=geo.difference(  data(iChainHead,d,iHead) - data(i,d,l),d);
+        }
+
+        particleSelectionWeight=exp(freeParticleLogProbability(distance,S.getTimeStep()*l,group.mass));
+        weightForwardMove+=particleSelectionWeight;
+        particleSampler.accumulateWeight(particleSelectionWeight);
+    }
+
+    int iPartner=particleSampler.sample(randG) + group.iStart;
+
+    if ( confs.getChain(iPartner).hasTail() )
+    {
+        return false;
+    }
+
+    // metropolic test based on ratio of forward and backward move
+    Real weightBackwardMove= 0;
 
     for(int i=group.iStart;i<=group.iEnd;i++)
     {
         Real norm=0;
         for(int d=0;d<getDimensions();d++)
         {
-            distance[d]=geo.difference(  data(iChainHead,d,timeSlice[0]) - data(i,d,timeSlice[1]),d);
+            distance[d]=geo.difference(  data(iPartner,d,0) - data(i,d,l),d);
         }
 
-        particleSelectionWeight=exp(freeParticleLogProbability(distance,S.getTimeStep(),group.mass));
-        chainSampler.accumulateWeight(particleSelectionWeight);
+
+        weightBackwardMove+=exp(freeParticleLogProbability(distance,S.getTimeStep()*l,group.mass));
     }
 
-    int iPartner=particleSampler.sample(randG);
+
+    bool acceptPartner = metropolisSampler.acceptLog(log(weightForwardMove) - log(weightBackwardMove) ,randG) ;
 
     
     const auto  partnerChain = confs.getChain(iPartner);
 
-    if ( partnerChain.isOpen() )
+    if ( not acceptPartner  ) 
     {
         return false;
     }
 
     Real deltaS=0;
-    deltaS-=Spot.evaluate(confs,timeSlice,iPartner);
+    deltaS-=Spot.evaluate(confs,{0,l-1},iPartner);
 
-    // perform levy reconstruction
+    confs.copyDataToBuffer(buffer,{0,l-1},iPartner);
+
+
+    // performs levy reconstruction between the head and the bead
     for(int d=0;d<getDimensions();d++)
         {
-            data(iPartner,d,timeSlice[1])=data(iChainHead,d,timeSlice[1]);
+            data(iPartner,d,0)=data(iChainHead,d,iHead);
         }
-
-    _levy.apply(confs,  timeSlice,iPartner, Spot.getTimeStep() ,randG );
-
-
-    deltaS-=Spot.evaluate(confs,timeSlice,iPartner,Spot.getTimeStep() );
-
+    _levy.apply(confs,  {0,l },iChainHead, Spot.getTimeStep() ,randG );
+    deltaS+=Spot.evaluate(confs,{0,l-1},iPartner);
 
     bool accept = metropolisSampler.acceptLog(-deltaS,randG);
     if (accept) 
     {
-        // swap partner and head chain data below head time 
-        confs.swapData({ headChain.tail + 1 ,headChain.head-1},iPartner,headChain.head );
-
-        // relink swapped chains
-        confs.swapTails(iChainHead,iPartner);
-
+        confs.join(iChainHead,iPartner );
     }
     else
     {
-               
+        confs.copyDataFromBuffer(buffer,{0,l-1},iPartner);
     }    
 
     return accept;
 }
 
-std::ostream & tableMoves::operator>> (std::ostream & os)
+
+std::ostream & sectorTableMoves::operator>> (std::ostream & os)
 {
     for (int i=0;i<_moves.size();i++)
     {
@@ -276,7 +283,7 @@ std::ostream & tableMoves::operator>> (std::ostream & os)
 
 }
 
-bool tableMoves::attemptMove(configurations_t & confs, firstOrderAction & S,randomGenerator_t & randG)
+bool sectorTableMoves::attemptMove(configurations_t & confs, firstOrderAction & S,randomGenerator_t & randG)
 {
     int iMove=sample(randG);
 
@@ -290,15 +297,13 @@ bool tableMoves::attemptMove(configurations_t & confs, firstOrderAction & S,rand
     _nSuccess[iMove]++;
     }
 
-
     return success;
 };
 
 
-void tableMoves::push_back(move * move_,Real weight,const std::string & name)
+void sectorTableMoves::push_back(move * move_,Real weight,const std::string & name)
 {
-    totalWeight+=weight;
-    accumulatedWeights.push_back(totalWeight);
+    sampler.accumulateWeight(weight);
     _moves.push_back(move_);
     _names.push_back(name);
     _nTrials.push_back(0);
@@ -306,20 +311,17 @@ void tableMoves::push_back(move * move_,Real weight,const std::string & name)
 
 };
 
-
-int tableMoves::sample(randomGenerator_t & randG)
+int sectorTableMoves::sample(randomGenerator_t & randG)
 {
-    int iMove = sampler.sample(accumulatedWeights,totalWeight,randG);
+    int iMove = sampler.sample(randG);
     return iMove;
 };
 
-openMove::openMove(Real C_ , int maxReconstructedLength_) : C(C_), _levy(maxReconstructedLength_) ,  _maxReconstructedLength(maxReconstructedLength_) ,buffer(maxReconstructedLength_,getDimensions()){}
-
-
+openMove::openMove(Real C_ , int maxReconstructedLength_) : C(C_), _levy(maxReconstructedLength_+2) ,  _maxReconstructedLength(maxReconstructedLength_+2) ,buffer(2*(maxReconstructedLength_+2),getDimensions()),
+gauss(0,1),uniformRealNumber(0,1){}
 
 translateMove::translateMove(Real max_delta, int maxBeads) : _max_delta(max_delta),buffer(maxBeads,getDimensions())  , distr(-1.,1.)
 {
-
 
 }
 
@@ -394,349 +396,398 @@ bool translateMove::attemptMove(configurations_t & confs , firstOrderAction & S,
           confs.copyDataFromBuffer(buffer,{0,confs.nBeads()},iCurrentChain,iSeq*confs.nBeads());
         }
         iSeq++;
-
     }
 
     return accept;
 
 }
 
-
 bool openMove::attemptMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG )
 {
+    Real timeStep = S.getTimeStep();
+
+    if ( confs.isOpen() )
+    {
+        throw invalidState("The configuration is already open.");
+    }
 
     int iChain = confsSampler.sampleChain(confs,randG);
-    Real var=2*D*timeStep;
+    int iChainTail=confs.getChain(iChain).next;
 
-    int iTime= std::floor( uniformRealNumber(randG) * confs.nBeads() );
-    //int l= std::floor( uniformRealNumber(randG) * (confs.nBeads() -1) ) +1; // distance from itime where the head is formed
-
-    int l=1;
-    std::array<int,2> timeRange{iTime,iTime+l};
-
-
+    int iHead=confs.nBeads();
     
+    //int l= std::floor( uniformRealNumber(randG) * (_maxReconstructedLength -2) ) + 1 ; // distance from itime where the head is formed
 
-    //auto iTime=confs.nBeads();
+    int l = _maxReconstructedLength - 2;
 
-    const auto headChain = confs.getChain(iChain);
-
+    int t0= iHead - l;
+    Real deltaS=0;
+    std::array timeRange={t0  , iHead -1 };
 
     auto & data = confs.dataTensor();
-    Real distanceSquared=0;
-    const auto & geo = S.getGeometry();
-
 
     std::array<Real,3> difference;
-    std::array<Real,3 > oldBead;
+    auto & sPot = S.getPotentialAction();
 
-    // save the candidate head bead at time iTime + 1
+    deltaS-=sPot.evaluate(confs,timeRange,iChain);
+
+    confs.copyDataToBuffer(buffer,{t0,iHead},iChain,0);
+
+    // generates the head
+    
+    const auto & geo = S.getGeometry();
+    std::array<Real,getDimensions()> headPosition;
+    std::array<Real,getDimensions()> startPosition;
+
     for (int d=0;d<getDimensions();d++)
     {
-        oldBead[d]=data(iChain,d,iTime+1);
+        startPosition[d]=data(iChain,d,t0);
     }
-
-    // generate the position of the new bead
-    for (int d=0;d<getDimensions();d++)
-    {
-        
-        data(iChain,d,iTime+1)=gauss(randG) + data(iChain,d,iTime+1);
-        difference[d]=
-            geo.difference( 
-                data(iChain,d,iTime)-data(iChain,d,iTime+1),d
-            );
-    }
-
-    auto deltaS=0;
 
     Real mass = confs.getGroupByChain(iChain).mass;
 
-    auto propRatio = -deltaS - freeParticleLogProbability(difference,S.getTimeStep(),mass);
+    confsSampler.sampleFreeParticlePosition(headPosition,startPosition,timeStep*l,randG,mass);
+
+    for (int d=0;d<getDimensions();d++)
+    {
+        data(iChain,d,iHead)=headPosition[d];
+    }
+
+
+    // perform levy reconstruction on l beads
+    _levy.apply(confs,{t0,iHead},iChain,timeStep,randG);
+
+    // evaluates the action
+    deltaS+=sPot.evaluate(confs,timeRange,iChain);
+
+
+    // compute the acceptance ratio
+    for (int d=0;d<getDimensions();d++)
+    {
+    
+        difference[d]=
+            geo.difference( 
+                data(iChain,d,iHead)-data(iChain,d,t0),d
+            );
+    }
+    auto propRatio = -deltaS - freeParticleLogProbability(difference,S.getTimeStep()*l,mass) + log(C);
+
 
     bool accept = sampler.acceptLog(propRatio,randG);
 
     if ( accept)
     {
 
-        if (iTime==confs.nBeads() - 1) // next chain will be the new tail
-        {
-            int tailChain=headChain.next;
-            confs.setHead(iChain,iTime+1);
-        }
-        else // creates a new chain to contain the new tail
-        {
-            int tailChain=confs.pushChain(confs.getGroupByChain(iChain));
-            confs.setTail(tailChain,iTime);
-            confs.setHead(tailChain,confs.nBeads() );
-            confs.setHead(iChain,iTime+1);
-            confs.join(tailChain,headChain.next);
-            confs.copyData({iTime+1,confs.nBeads()-1}, iChain, tailChain );
-
-            for (int d=0;d<getDimensions();d++) // copy back the original bead in the new tail
-            {
-                data(tailChain,d,iTime+1)=oldBead[d];
-            }
-            confs.fillHead(tailChain);
-        }
+        confs.setHead(iChain,iHead);
     }
     else
     {
-        for (int d=0;d<getDimensions();d++) // copy back the original bead
-        {
-            data(iChain,d,iTime+1)=oldBead[d]; 
-        }
-
+        confs.copyDataFromBuffer(buffer,{t0,iHead},iChain,0);
     }
 
     return accept;
 };
 
 
-closeMove::closeMove(Real C_ , int maxReconstructionLength) : C(C_),_levy(maxReconstructionLength),_maxLength(maxReconstructionLength),buffer(maxReconstructionLength,getDimensions()){}
-
+closeMove::closeMove(Real C_ , int maxReconstructionLength) : C(C_),_levy(2*(maxReconstructionLength+2)),_maxLength(maxReconstructionLength+2),buffer((maxReconstructionLength+2)*2,getDimensions()),gauss(0,1),uniformRealNumber(0,1)
+{}
 
 bool closeMove::attemptMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG )
 {
-    
-    int iWorm = 0;
-    Real var=2*D*timeStep;
 
-    int iChainHead=std::floor( uniformRealNumber(randG)*confs.heads().size());
-    int iChainTail=std::floor( uniformRealNumber(randG)*confs.tails().size());
+    int iChainHead=confs.heads()[std::floor(uniformRealNumber(randG) * confs.heads().size() )];
+    int iChainTail=confs.tails()[std::floor(uniformRealNumber(randG) * confs.tails().size() )];
+
+    Real timeStep = S.getTimeStep();
+
+
+    int iHead=confs.nBeads();
+    int iTail = 0;
     
-    auto headChain=confs.getChain(iChainTail);
-    auto tailChain=confs.getChain(iChainHead);
+    //int l= std::floor( uniformRealNumber(randG) * (_maxLength -2) ) + 1 ; // distance from itime where the head is formed
+    int l = _maxLength - 2;
+    
+    auto & sPot = S.getPotentialAction();
+
+
+    Real deltaS=0;
+    int t0= iHead - l;
+
+    std::array timeRange={iHead - l , iHead -1 };
 
     auto & data = confs.dataTensor();
+
+    std::array<Real,3> difference;
+
+    deltaS-=sPot.evaluate(confs,{t0,iHead-1},iChainHead);
+
+    confs.copyDataToBuffer(buffer,{t0,iHead },iChainHead,0);
+
+    // copy first valid bead of tail of the head
+    Real distanceSquared=0;
     const auto & geo = S.getGeometry();
-   
-    int iTime=headChain.head - 1;    
+    std::array<Real,3> headPosition;
+    std::array<Real,3> startPosition;
 
-    int l = tailChain.tail - headChain.head + 1;
-
-    l= l > confs.nBeads()/2. ? l=l-confs.nBeads() : 
-    (l< -confs.nBeads()/2. ) ? l + confs.nBeads() : l;  // time pbc
-    action & potS = S.getPotentialAction();
-    Real deltaS=0;
-
-    if (l< 0 )
+    for (int d=0;d<getDimensions();d++)
     {
-        throw missingImplementation("Head should be lower then the tail ");
+        data(iChainHead,d, iHead )=data(iChainTail,d,iTail);
     }
-    else
-    {
-        std::array<int,2> timeRange={iTime,iTime + l};
-        auto timeRanges= splitPeriodicTimeSlice(timeRange,confs.nBeads());
 
-        // save configurations to buffer
-        confs.copyDataToBuffer(buffer,timeRanges[0],iChainHead);
-        confs.copyDataToBuffer(buffer,timeRanges[1],timeRanges[0][1] - timeRanges[0][0]+1);
-
-
-        // apply the reconstruction
-        for(int d=0;d<getDimensions();d++)
-        {
-            data(iChainHead,d,timeRange[1] )=data(iChainTail,d,tailChain.tail+1);
-        }
-        _levy.apply(confs, timeRange,iChainHead,S.getTimeStep(),randG);
-        confs.copyData( {confs.nBeads() , timeRange[0]-1 } , iChainHead , 0,iChainTail  );
-
-        // evaluate the difference in potential action
-        deltaS-=potS.evaluate(confs,timeRanges[0],iChainHead);
-        std::array<int,2> rangeWrapped=timeRanges[1];
-        rangeWrapped[1]=-1;
-        deltaS-=potS.evaluate(confs,rangeWrapped,iChainTail);
-
-        // evaluates the free particle propagator
-        std::array<Real,3> difference;
-        for (int d=0;d<getDimensions();d++)
-        {
-            difference[d]=
-                geo.difference( 
-                    data(iChainHead,d,iTime)-data(iChainTail,d,iTime),d
-                );
-        }
-
-        Real mass = 1.;
-        auto propRatio = - deltaS +freeParticleLogProbability(difference,S.getTimeStep(),mass);
-        bool accept = sampler.acceptLog(propRatio,randG);
-
-        if ( accept )
-        {
-            // change positions of heads and tails
-            if ( timeRange[1] >= confs.nBeads() )
-            { // join the two chains
-                confs.setHead(iChainHead,confs.nBeads() );
-                confs.setTail(iChainTail,-1 );
-                confs.join(iChainHead,iChainTail);
-            }
-            else
-            {
-                confs.setHead(iChainTail,timeRange[1] );
-                confs.join(iChainHead,tailChain.next);
-                
-            }
-            
-        }
-        else
-        {
-            // copy back old configurations
-            confs.copyDataToBuffer(buffer,timeRanges[0],iChainHead);
-            confs.copyDataToBuffer(buffer,timeRanges[1],timeRanges[0][1] - timeRanges[0][0]+1);
-
-        }
+    Real mass = confs.getGroupByChain(iChainHead).mass;
     
-    return accept;
+    // perform levy reconstruction on l beads
+    _levy.apply(confs,{t0,iHead},iChainHead,timeStep,randG);
+
+    // evaluates the action
+    deltaS+=sPot.evaluate(confs,{t0,iHead-1},iChainHead);
+
+    // compute the acceptance ratio
+    for (int d=0;d<getDimensions();d++)
+    {
+        difference[d]=
+            geo.difference( 
+                data(iChainHead,d,t0)-data(iChainHead,d,iHead),d
+            );
     }
-};
+
+    auto propRatio = -deltaS + freeParticleLogProbability(difference,S.getTimeStep()*l,mass) -log(C);
 
 
-moveHead::moveHead(int maxAdvanceLength_) :
-maxAdvanceLength(maxAdvanceLength_),buffer(maxAdvanceLength_,getDimensions()) , _levy(maxAdvanceLength)
-{
-
-}
-
-bool moveHead::attemptRecedeMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG,int iChainHead,int l)
-{
-
-   auto headChain = confs.getChain(iChainHead);
-
-  
-   std::array<int,2> timeRange = {  headChain.head  - l, headChain.head-1};
-
-
-   auto timeRanges=splitPeriodicTimeSlice(timeRange,confs.nBeads() );
-
-
-   Real deltaS=0;
-
-    auto & sPot= S.getPotentialAction();
-
-
-    deltaS+=sPot.evaluate(confs,timeRanges[0],headChain.prev);
-    deltaS+=sPot.evaluate(confs,timeRanges[1],iChainHead);
-
-    bool accept = sampler.acceptLog(-deltaS,randG);
+    bool accept = sampler.acceptLog(propRatio,randG);
 
     if ( accept)
     {
-        if ( timeRange[0] < 0 )
-        {
-            confs.setHead(headChain.prev,timeRanges[0][0]);
-            confs.removeChain( iChainHead );
-        }
-        else
-        {
-            confs.setHead(headChain.prev,timeRange[0]);
-        }
+        confs.join(iChainHead,iChainTail);
+        confs.fillHead(iChainHead);
         
     }
     else
     {
-
+        confs.copyDataFromBuffer(buffer,{t0,iHead },iChainHead,0);
     }
+    
 
+    
 
     return accept;
+
+};
+
+
+moveHead::moveHead(int maxAdvanceLength_) :
+_maxReconstructedLength(maxAdvanceLength_+2),buffer((maxAdvanceLength_+2)*2,getDimensions()) , _levy((maxAdvanceLength_+2)*2),gauss(0,1),uniformRealNumber(0,1)
+{
+
+}
+
+
+moveTail::moveTail(int maxAdvanceLength_) :
+_maxReconstructedLength(maxAdvanceLength_+2),buffer((maxAdvanceLength_+2)*2,getDimensions()) , _levy((maxAdvanceLength_+2)*2),gauss(0,1),uniformRealNumber(0,1)
+{
+    
 }
 
 
 bool moveHead::attemptMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG)
 {
-    int iChainHead= std::floor(distr(randG) * confs.heads().size() );
-    auto headChain = confs.getChain(iChainHead);
-    int l = std::floor(distr(randG) * 2 *confs.nBeads() -confs.nBeads() );
+    Real timeStep = S.getTimeStep();
 
 
-    if (l>=0 )
-    {
-       return  attemptAdvanceMove(confs,S,randG,iChainHead,l);
-    }
-    else
-    {
-        throw attemptRecedeMove(confs,S,randG,iChainHead,std::abs(l) );
-    }
+    int iChain=confs.heads()[std::floor(uniformRealNumber(randG) * confs.heads().size() )];
+    
 
-    return false;
-}
+    int iHead=confs.nBeads();
 
 
-bool moveHead::attemptAdvanceMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG,int iChainHead,int l)
-{
+    
+    int l= std::floor( uniformRealNumber(randG) * (_maxReconstructedLength -2) ) + 1 ; // distance from itime where the head is formed
 
-   auto headChain = confs.getChain(iChainHead);
-
-  
-   std::array<int,2> timeRange = { headChain.head-1, headChain.head + l};
-
-   auto timeRanges = splitPeriodicTimeSlice( timeRange,confs.nBeads());
-
+    int t0= iHead - l;
     Real deltaS=0;
+    std::array timeRange={t0  , iHead -1 };
 
-    auto & sPot= S.getPotentialAction();
-
-    // copy the head bead
     auto & data = confs.dataTensor();
 
-    for(int d=0;d<getDimensions();d++)
+    std::array<Real,3> difference;
+    
+    auto & sPot = S.getPotentialAction();
+
+    deltaS-=sPot.evaluate(confs,timeRange,iChain);
+
+    confs.copyDataToBuffer(buffer,{t0,iHead},iChain,0);
+
+    // generates the head
+    Real distanceSquared=0;
+    const auto & geo = S.getGeometry();
+    std::array<Real,getDimensions()> headPosition;
+    std::array<Real,getDimensions()> startPosition;
+
+    for (int d=0;d<getDimensions();d++)
     {
-        tmpMean[d]=data(iChainHead,d,headChain.head -1);
+        startPosition[d]=data(iChain,d,t0);
     }
 
-    // sample a new head 
-    confSampler.sampleFreeParticlePosition(tmpPosition,tmpMean, S.getTimeStep() * l, randG  );
+    Real mass = confs.getGroupByChain(iChain).mass;
+    Real var=2*D*timeStep/ mass;
 
-    for(int d=0;d<getDimensions();d++)
+    confsSampler.sampleFreeParticlePosition(headPosition,startPosition,timeStep*l,randG,mass);
+
+    for (int d=0;d<getDimensions();d++)
     {
-        data(iChainHead,d,headChain.head + l)=tmpPosition[d];
+        data(iChain,d,iHead)=headPosition[d];
     }
+    
+    // perform levy reconstruction on l beads
+    _levy.apply(confs,{t0,iHead},iChain,timeStep,randG);
 
-    // performs reconstruction
+    // evaluates the action
+    deltaS+=sPot.evaluate(confs,timeRange,iChain);
 
-    _levy.apply(confs,timeRange,iChainHead,sPot.getTimeStep(),randG); 
 
-    int iNewChain=-1;
-    if ( timeRange[1] > confs.nBeads( ) )
+    auto propRatio = -deltaS;
+
+    bool accept = sampler.acceptLog(propRatio,randG);
+
+    if ( accept)
     {
-        std::array<int,2> newTimeRange={0,timeRange[1] - confs.nBeads() };
 
-        int iNewChain=confs.pushChain(confs.getGroupByChain(iChainHead));
-        confs.setHead(iChainHead,newTimeRange[1]);
-        confs.setTail(iNewChain,-1);
-        confs.copyData({confs.nBeads(),timeRange[1]},iChainHead,0,iNewChain);
-        confs.setHead(iChainHead,confs.nBeads()  );
-        deltaS+=sPot.evaluate(confs,newTimeRange,iNewChain);
+        
     }
     else
     {
-        confs.setHead(iChainHead,timeRange[1]);
-        deltaS+=sPot.evaluate(confs,timeRange,iChainHead);
+        confs.copyDataFromBuffer(buffer,{t0,iHead},iChain,0);
     }
-
-    bool accept = sampler.acceptLog(-deltaS,randG);
-
-    if (not accept)
-    {
-        if ( timeRange[1] > confs.nBeads() )
-            {
-                confs.removeChain(iNewChain);
-            }
-        confs.setHead(iChainHead,headChain.head);
-    }
-    else
-    {
-        if ( timeRange[1] > confs.nBeads() )
-        {
-            confs.join(iChainHead,iNewChain);
-        }
-    }
-
-    confs.fillHead( iChainHead);
-    confs.fillHead( iNewChain);
 
     return accept;
+
+}
+
+
+bool moveTail::attemptMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG)
+{
+    Real timeStep = S.getTimeStep();
+
+    int iChain=confs.tails()[std::floor(uniformRealNumber(randG) * confs.tails().size() )];
+
+    if (not confs.getChain(iChain).hasTail() )
+    {
+        throw invalidState("No tail to move.");
+    }
+
+    int iTail=0;
+
+    
+    int l= std::floor( uniformRealNumber(randG) * (_maxReconstructedLength -2) )  + 1; // distance from itime where the head is formed
+    //int l=_maxReconstructedLength - 2;
+
+
+    int t1= iTail + l;
+    Real deltaS=0;
+    std::array timeRange={iTail  , t1 - 1 };
+
+
+    auto & data = confs.dataTensor();
+
+    std::array<Real,3> difference;
+    
+    auto & sPot = S.getPotentialAction();
+
+    deltaS-=sPot.evaluate(confs,timeRange,iChain);
+
+    confs.copyDataToBuffer(buffer,{iTail,t1},iChain,0);
+
+    // generates the tail
+    Real distanceSquared=0;
+    const auto & geo = S.getGeometry();
+    std::array<Real,getDimensions()> tailPosition;
+    std::array<Real,getDimensions()> startPosition;
+
+    for (int d=0;d<getDimensions();d++)
+    {
+        startPosition[d]=data(iChain,d,t1);
+    }
+
+    Real mass = confs.getGroupByChain(iChain).mass;
+    Real var=2*D*timeStep/ mass;
+
+    confsSampler.sampleFreeParticlePosition(tailPosition,startPosition,timeStep*l,randG,mass);
+
+    for (int d=0;d<getDimensions();d++)
+    {
+        data(iChain,d,iTail)=tailPosition[d];
+    }
+
+    
+    // perform levy reconstruction on l beads
+    _levy.apply(confs,{iTail,t1},iChain,timeStep,randG);
+
+    // evaluates the action
+    deltaS+=sPot.evaluate(confs,timeRange,iChain);
+
+    auto propRatio = -deltaS;
+
+    bool accept = sampler.acceptLog(propRatio,randG);
+
+    if ( accept)
+    {
+
+    }
+    else
+    {
+        confs.copyDataFromBuffer(buffer,{iTail,t1},iChain,0);
+    }
+
+    return accept;
+
+}
+
+void tableMoves::push_back( move * move_,Real weight,sector_t sector,const std::string & name)
+{
+    if (sector == sector_t::diagonal)
+    {
+        closedTab.push_back(move_,weight,name);
+    }
+    else if (sector == sector_t::offDiagonal)
+    {
+        openTab.push_back(move_,weight,name);
+    }
+
+}
+
+
+bool tableMoves::attemptMove(configurations_t & confs, firstOrderAction & S,randomGenerator_t & randG)
+{
+    if (  confs.isOpen() )
+    {
+        nOpenSectorMoves++;
+        return openTab.attemptMove(confs,S,randG);
+    }
+    else
+    {
+        nClosedSectorMoves++;
+        return closedTab.attemptMove(confs,S,randG);
+    }
+    
+}
+
+std::ostream & tableMoves::operator>> (std::ostream & os)
+{
+    os << "----------Open Sector" << "-----------" << std::endl;
+    openTab >> os;
+    os << "----------Closed Sector" << "-----------" << std::endl;
+    closedTab >> os;
+    os << "----------------" << std::endl;
+
+    if ((nOpenSectorMoves + nClosedSectorMoves) > 0 )
+    {
+        os << "Open Sector fraction: " << nOpenSectorMoves/(nOpenSectorMoves + nClosedSectorMoves) << std::endl;
+    }
+
+    return os;
 }
 
 
 }
+
+

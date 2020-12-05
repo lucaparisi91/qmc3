@@ -71,7 +71,7 @@ TEST(distances,updateSingleParticleDistances)
     //geo.springDistances(springDistances,timeConfigurations,0,2 , 0, 3  );
 
 }
-
+#if DIMENSIONS == 3
 TEST(configurations, init)
 {
     const int N = 20;
@@ -180,74 +180,10 @@ TEST(configurations, init)
 
 }
 
+#endif
 
-TEST(action , evaluation)
-{
-    const int N = 100;
-    const int M = 30;
+#if DIMENSIONS == 3
 
-    pimc::particleGroup groupA{ 0 , N-1, N,  1.0};
-
-    pimc::pimcConfigurations configurations(M, getDimensions() , {groupA});
-
-    auto & data = configurations.dataTensor();
-
-    data.setRandom();
-
-    configurations.fillHeads();
-
-    pimc::geometryPBC_PIMC geo(10,10,10);
-
-
-    Real timeStep = 1e-2;
-
-    pimc::kineticAction sT(timeStep, configurations.nChains(), configurations.nBeads(), geo);
-
-    
-
-    auto oldKineticAction = sT.evaluate(configurations);
-
-    randomGenerator_t randG;
-
-    std::array< std::array<int,2> ,2 > timeSlices ;
-    timeSlices[0]={25,29};
-    timeSlices[1]={0,9};
-
-    int iChain = 55;
-
-
-
-
-    auto sOld = sT.evaluate(configurations,timeSlices,iChain);
-
-    auto deltaSOld= sT.evaluate(configurations, timeSlices, iChain);
-
-
-
-    std::uniform_real_distribution<Real> unifDis(0,1);
-    Real delta=0.5;
-
-    for (int t=timeSlices[0][0];t<=timeSlices[0][1];t++)
-    {
-        for(int d=0;d<=getDimensions();d++)
-        {
-            data(iChain,d,t) += delta * unifDis(randG); 
-        }
-        
-    }
-
-
-    auto deltaSNew = sT.evaluate(configurations,timeSlices,iChain);
-
-    auto sNew = sT.evaluate(configurations,timeSlices,iChain);
-
-
-    auto deltaS = deltaSNew - deltaSOld;
-    auto deltaSCheck = sNew - sOld;
-
-    ASSERT_NEAR(deltaS,deltaSCheck,1e-4);
-
-}
 
 TEST(moves,levy_reconstructor)
 {
@@ -356,8 +292,9 @@ TEST(moves,levy_reconstructor)
     }
 
 
-
 }
+
+#endif
 
 TEST(moves,levy)
 {
@@ -382,9 +319,14 @@ TEST(moves,levy)
     std::array<int,2> timeSlice= {10,26};
 
     pimc::kineticAction sT(timeStep, N + 1 , M  , geo);
+  
+    #if DIMENSIONS == 1
+    auto V = pimc::makePotentialFunctor(
+         [](Real x) {return 0.5*(x*x ) ;} ,
+         [](Real x) {return 0.5*x ;} 
+         );    
+    #endif
 
-    auto V = [](Real x, Real y , Real z) {return 0.5*(x*x + y*y + z*z );};
-    
 
     pimc::potentialActionOneBody<decltype(V)> sV(timeStep,V ,geo);
 
@@ -509,7 +451,6 @@ TEST(configurations, worms)
     ASSERT_TRUE( configurations.getChain(iChain).hasHead()     );
     ASSERT_TRUE(  configurations.getChain(iChain).hasTail() );
 
-
     // test close
 
     configurations.join(iChain,iChain);
@@ -568,62 +509,96 @@ TEST(configurations, worms)
     
     ASSERT_EQ( configurations.tails()[1] , N );
     ASSERT_EQ( configurations.tails()[0] , N + 1 );
-
+    
     configurations.removeChain(N); 
     configurations.removeChain(N);
 
     ASSERT_EQ( configurations.tails()[0] , iChain );
     ASSERT_EQ( configurations.heads()[0] , iChain );
 
-
 }
-
 
 TEST(run,free_harmonic_oscillator)
 {   
-    int N=100;
-    int M=60;
+    int N=2;
+    int M=10;
+    Real Beta = 1;
+    
 
+    pimc::geometryPBC_PIMC geo(300,300,300);
 
+    Real timeStep = Beta/M;
 
-
-    pimc::geometryPBC_PIMC geo(30,30,30);
-
-    Real timeStep = 1e-1;
     pimc::particleGroup groupA{ 0 , N-1, N - 1 , 1.0};
     pimc::pimcConfigurations configurations(M , getDimensions() , {groupA});
 
     configurations.dataTensor().setRandom();
 
+    //configurations.join(0,1);
+    //configurations.join(1,0);
+    
     configurations.fillHeads();
+
+
 
     pimc::levyReconstructor reconstructor(M);
 
-    pimc::levyMove freeMoves(reconstructor, 30);
+    pimc::levyMove freeMoves(reconstructor, 5);
 
-    Real delta=0.2;
+    Real delta=0.5;
 
     pimc::translateMove translMove(delta,M*N);
 
+    Real C = 1e-1;
+    int l = 1;
+
+    pimc::openMove openMove(C,l);
+    pimc::closeMove closeMove(C,l);
+
+    pimc::moveHead moveHeadMove(8);
+    pimc::moveTail moveTailMove(l);
+
+    pimc::swapMove swapMove(l,M);
+
+
     pimc::tableMoves table;
+  
+    //table.push_back(& freeMoves,0.8,pimc::sector_t::offDiagonal,"levy");
+    table.push_back(& freeMoves,0.8,pimc::sector_t::diagonal,"levy");
 
-    table.push_back(& freeMoves,0.8,"levy");
-    table.push_back(& translMove,0.2,"translate");
+    table.push_back(& translMove,0.5,pimc::sector_t::diagonal,"translate");
+    //table.push_back(& translMove,0.5,pimc::sector_t::offDiagonal,"translate");
 
-    randomGenerator_t randG(100);
+    table.push_back(& openMove,0.2,pimc::sector_t::diagonal,"open");
+    table.push_back(& closeMove,0.2,pimc::sector_t::offDiagonal,"close");
+
+    table.push_back(& moveHeadMove,0.4,pimc::sector_t::offDiagonal,"moveHead");
+    //table.push_back(& moveTailMove,0.4,pimc::sector_t::offDiagonal,"moveTail");
+
+    //table.push_back(& swapMove,1.9,pimc::sector_t::offDiagonal,"swap");
+
+    randomGenerator_t randG(19);
 
     pimc::kineticAction sT(timeStep, configurations.nChains() , M  , geo);
 
+    #if DIMENSIONS == 3
     auto V = [](Real x, Real y , Real z) {return 0.5*(x*x + y*y + z*z) ;};
+    #endif
+
+    #if DIMENSIONS == 1
+    auto V = pimc::makePotentialFunctor(
+         [](Real x) {return 0.5*(x*x ) ;} ,
+         [](Real x) {return 0.5*x ;} 
+         );
+    #endif
 
     pimc::potentialActionOneBody<decltype(V)> sV(timeStep,V ,geo);
 
     pimc::firstOrderAction S(&sT, & sV);
-    int nTimes = 200;
+    int nTimes = 100000;
     int success = 0;
-    int subSteps=100;
-    int correlationSteps=20;
-
+    int subSteps=10000;
+    int correlationSteps=100;
 
     pimc::thermodynamicEnergyEstimator energyEstimator;
     Real e=0;
@@ -631,12 +606,13 @@ TEST(run,free_harmonic_oscillator)
 
     std::ofstream f;
 
+    configurations.save("testRun/sample"+std::to_string(0));
+
     f.open("energy.dat");
-
-
     for (int i=0;i< nTimes ; i++)
     {
         Real eStep=0;
+        int nMeasurements=0;
 
         for (int k=0;k< subSteps;k++)
         {
@@ -647,38 +623,35 @@ TEST(run,free_harmonic_oscillator)
 
                 if (accepted)
                 {success+=1;}
-
             }
             
-            Real tmp=energyEstimator(configurations,S);
-            e+=tmp;
-            e2+=tmp*tmp;
-            eStep+=tmp;
-     
+            if (!configurations.isOpen() )
+            {
+                Real tmp=energyEstimator(configurations,S);
+                nMeasurements++;
+            
+                eStep+=tmp;
+            }
+            else
+            {
+               
+            }
+            
         }
 
        
-        f << i << "\t" << eStep/subSteps << std::endl ;
+        f << i + 1 << "\t" << eStep/nMeasurements << std::endl ;
 
         //std::cout << e << std::endl;
-
-        std::cout << "Energy: " << e/( (i+1)*subSteps) << std::endl;
+        std::cout << "Energy: " << eStep/nMeasurements << std::endl;
         std::cout << "Acceptance ratio: " << success*1./((i+1)*subSteps*correlationSteps) << std::endl;
 
         table >> std::cout;
 
-
-        configurations.save("testRun/sample"+std::to_string(i));
-
-
+        configurations.save("testRun/sample"+std::to_string(i+1));
     }
 
     f.close();
     ASSERT_TRUE( (success*1./nTimes )> 0);
-    e/=nTimes;
-    e2/=nTimes;
-
-
-    //std::cout << e << " " << std::sqrt(e2 - e*e) << std::endl;
-
+    std::cout << "END." << std::endl;
 }

@@ -44,7 +44,6 @@ std::array<std::array<int,2>, 2> splitPeriodicTimeSlice(const std::array<int,2> 
     }
 
 
-
 Real freeParticleLogProbability(std::array<Real,3> & delta,Real tau,Real mass)
     {
         const Real D = 0.5;
@@ -57,7 +56,7 @@ Real freeParticleLogProbability(std::array<Real,3> & delta,Real tau,Real mass)
             p+= delta[d]*delta[d];
         }
         p*=-0.5 /var;
-        p+= -0.5*log(2*M_PI*var);
+        p+= -0.5*getDimensions()*log(2*M_PI*var);
         
         return p;
     }

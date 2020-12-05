@@ -6,6 +6,8 @@
 #include "pimcConfigurations.h"
 #include "tools.h"
 #include "toolsPimc.h"
+#include "qmcExceptions.h"
+
 
 namespace pimc
 {
@@ -24,6 +26,7 @@ namespace pimc
         return sum;
     };
 
+
      template<class functor_t>
     Real reduceOnSpringDistances(const functor_t & V,const Eigen::Tensor<Real,3> & tn, std::array<int ,2 > timeRange, std::array<int, 2>  particleRange, const mask & mask)
     {
@@ -32,7 +35,21 @@ namespace pimc
          for (size_t i=particleRange[0];i<=particleRange[1];i++ )
             for(int t=timeRange[0];t<=timeRange[1] ; t++ )
                 {
-                    sum+= ( mask(t,i)==0 ? 0 : V( tn( t,0, i  ) , tn(t,1,i) , tn(t,2,i)  ) );
+                    sum+= ( mask(t,i)==0 ? 0 :
+
+                    #if DIMENSIONS == 3
+                     V( tn( t,0, i  ) , tn(t,1,i) , tn(t,2,i)  ) 
+                    #endif
+
+                    #if DIMENSIONS == 1
+                     V( tn( t,0, i  )   ) 
+                    #endif
+
+                    #if DIMENSIONS == 2
+                     V( tn( t,0, i  ) , tn(t,1,i)   ) 
+                    #endif
+
+                     );
                 }
         return sum;
     };
@@ -62,7 +79,18 @@ namespace pimc
             for(int t=timeRange[0];t<=timeRange[1] ; t++ )
               for (size_t i=particleRange[0];i<=particleRange[1];i++ )
                 {
-                    sum+= (mask(t,i) == 0 ? 0 :  V( tn( i,0, t  ) , tn(i,1,t) , tn(i,2,t)  ) ) ;
+                    sum+= (mask(t,i) == 0 ? 0 : 
+                    #if DIMENSIONS == 3
+                     V( tn( i,0, t  ) , tn(i,1,t) , tn(i,2,t) )
+                     #endif
+                     #if DIMENSIONS == 1
+                     V( tn( i,0, t  )) 
+                     #endif
+                     #if DIMENSIONS == 2
+                     V( tn( i,0, t  ),tn( i,1, t  )) 
+                     #endif
+
+                      )  ;
                 }
 
         return sum;
@@ -85,21 +113,8 @@ class action
 
     virtual Real evaluate( configurations_t & pimcConfigurations)=0; // evaluates the whole action
 
-    virtual Real evaluate( configurations_t & configurations , std::array< std::array<int,2> ,2> timeRanges, int iParticle)
-    {
-        return evaluate(configurations,timeRanges[0] , iParticle ) + evaluate(configurations,timeRanges[1],iParticle);
-    }
 
-    virtual Real evaluate( configurations_t & configurations , std::array< std::array<int,2> ,2> timeRanges, int iParticle, int jParticle)
-    {
-        return evaluate(configurations,timeRanges[0] , iParticle ) + evaluate(configurations,timeRanges[1],jParticle);
-    }
-
-    
-
-    
-
-
+    virtual void addGradient(const configurations_t & pimcConfigurations,const std::array<int,2> & timeRange,const  std::array<int,2> & particleRange, const Eigen::Tensor<Real,3> & gradientBuffer){throw missingImplementation("Gradient not implemented for this action.");}
 
 
 
@@ -113,7 +128,6 @@ class action
     private:
     geometryPBC_PIMC _geo;
     Real _timeStep;
-
 
 };
 
@@ -134,6 +148,8 @@ class kineticAction : public action
     
     Real evaluate(pimcConfigurations_t & configurations); // evaluates the full action
 
+
+
     
 
 
@@ -145,6 +161,25 @@ class kineticAction : public action
     Real D;
 
 };
+
+template<class V_t,class gradX_t >
+class potentialFunctor{
+public:
+    potentialFunctor(V_t V_,gradX_t gradX_) : V(V_),_gradX(gradX_) {}
+
+    Real operator()(Real x) const {return V(x);}
+    Real gradX(Real x) const  {return _gradX(x);}
+
+private:
+    V_t V;
+    gradX_t _gradX;
+};
+
+template<class V_t,class gradX_t >
+auto makePotentialFunctor(V_t V_,gradX_t X_)
+{
+    return potentialFunctor<V_t,gradX_t>(V_,X_);    
+}
 
 template<class functor_t>
 class potentialActionOneBody : public action
@@ -198,9 +233,38 @@ class potentialActionOneBody : public action
         return sum;
     }
 
+
+     virtual void addGradient(const configurations_t & pimcConfigurations,const std::array<int,2> & timeRange, const std::array<int,2> & particleRange,  Eigen::Tensor<Real,3> & gradientBuffer){
+
+         const auto & data = pimcConfigurations.dataTensor();
+
+         for (int t=timeRange[0];t<=timeRange[1];t++)
+            for (int i=particleRange[0] ; i<=particleRange[1];i++ )
+         {
+             #if DIMENSIONS == 1
+            gradientBuffer(i,0,t)+=V.gradX( data(i,0,t)  );
+             #endif
+
+             #if DIMENSIONS == 2
+            gradientBuffer(i,0,t)+=gradV.X( data(i,0,t) ,  data(i,1,t)  );
+            gradientBuffer(i,1,t)+=gradV.Y( data(i,0,t) ,  data(i,1,t)  );
+            
+             #endif
+
+
+            #if DIMENSIONS == 3
+            gradientBuffer(i,0,t)+=gradV.X( data(i,0,t) ,  data(i,1,t) , data(i,2,t) );
+            gradientBuffer(i,1,t)+=gradV.Y( data(i,0,t) ,  data(i,1,t) , data(i,2,t) );
+            gradientBuffer(i,2,t)+=gradV.Z( data(i,0,t) ,  data(i,1,t) , data(i,2,t) );            
+             #endif
+
+         }
+     }
+
+
+
     private:
     functor_t V;
-
 };
 
 

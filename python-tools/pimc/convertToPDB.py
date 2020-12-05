@@ -14,12 +14,12 @@ def convertToPdb(dirname,filename):
         delim_whitespace=True   
     )
 
-    data=data.query("mask==1");
+    #data=data.query("mask==1");
 
     with open(filename,"w") as f:
         
         for index, row in data.iterrows():
-                f.write("HETATM{:5d} {:4} {:>3} {:1}{:>4d}    {:>8.3f}{:>8.3f}{:>8.3f}{:>6.2f}{:>6.2f}    {:>2}\n".format(index,"C","VAL","A",int(row["particle"]),row["x"],row["y"],row["z"],1.00,1.00,"C") )
+                f.write("HETATM{:5d} {:4} {:>3} {:1}{:>4d}    {:>8.3f}{:>8.3f}{:>8.3f}{:>6.2f}{:>6.2f}    {:>2}\n".format(index,"C","VAL","A",int(row["time"]),row["x"],row["y"],row["z"],1.00,row["particle"],"C") )
 
 
         for iP, particleData in  data.groupby("particle"):

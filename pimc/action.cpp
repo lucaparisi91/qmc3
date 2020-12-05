@@ -1,5 +1,6 @@
 #include "action.h"
 
+
 namespace pimc
 {
     
@@ -10,8 +11,15 @@ Real kineticAction::evaluate( pimcConfigurations_t & configurations , std::array
     auto & geo=getGeometry();
 
     geo.updateSpringDifferences(distancesBuffer,data , timeSlices , chainRange );
-
+    #if DIMENSIONS == 3
     auto sum= reduceOnSpringDistances( [] (Real x,Real y,Real z){ return x*x + y*y + z*z;} ,distancesBuffer,timeSlices, chainRange,configurations.getMask());
+    #endif
+    #if DIMENSIONS == 2
+    auto sum= reduceOnSpringDistances( [] (Real x,Real y){ return x*x + y*y ;} ,distancesBuffer,timeSlices, chainRange,configurations.getMask());
+    #endif
+    #if DIMENSIONS == 1
+    auto sum= reduceOnSpringDistances( [] (Real x){ return x*x;} ,distancesBuffer,timeSlices, chainRange,configurations.getMask());
+    #endif
 
     return sum/(4* D * getTimeStep());
     
