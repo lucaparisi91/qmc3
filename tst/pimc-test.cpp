@@ -520,7 +520,7 @@ TEST(configurations, worms)
 
 TEST(run,free_harmonic_oscillator)
 {   
-    int N=2;
+    int N=10;
     int M=10;
     Real Beta = 1;
     
@@ -545,7 +545,7 @@ TEST(run,free_harmonic_oscillator)
 
     pimc::levyMove freeMoves(reconstructor, 5);
 
-    Real delta=0.5;
+    Real delta=0.1;
 
     pimc::translateMove translMove(delta,M*N);
 
@@ -555,7 +555,7 @@ TEST(run,free_harmonic_oscillator)
     pimc::openMove openMove(C,l);
     pimc::closeMove closeMove(C,l);
 
-    pimc::moveHead moveHeadMove(8);
+    pimc::moveHead moveHeadMove(4);
     pimc::moveTail moveTailMove(l);
 
     pimc::swapMove swapMove(l,M);
@@ -563,7 +563,7 @@ TEST(run,free_harmonic_oscillator)
 
     pimc::tableMoves table;
   
-    //table.push_back(& freeMoves,0.8,pimc::sector_t::offDiagonal,"levy");
+    table.push_back(& freeMoves,0.8,pimc::sector_t::offDiagonal,"levy");
     table.push_back(& freeMoves,0.8,pimc::sector_t::diagonal,"levy");
 
     table.push_back(& translMove,0.5,pimc::sector_t::diagonal,"translate");
@@ -573,9 +573,10 @@ TEST(run,free_harmonic_oscillator)
     table.push_back(& closeMove,0.2,pimc::sector_t::offDiagonal,"close");
 
     table.push_back(& moveHeadMove,0.4,pimc::sector_t::offDiagonal,"moveHead");
-    //table.push_back(& moveTailMove,0.4,pimc::sector_t::offDiagonal,"moveTail");
+    table.push_back(& moveTailMove,0.4,pimc::sector_t::offDiagonal,"moveTail");
 
-    //table.push_back(& swapMove,1.9,pimc::sector_t::offDiagonal,"swap");
+    table.push_back(& swapMove,1.9,pimc::sector_t::offDiagonal,"swap");
+
 
     randomGenerator_t randG(19);
 

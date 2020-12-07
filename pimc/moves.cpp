@@ -444,6 +444,16 @@ bool openMove::attemptMove(configurations_t & confs , firstOrderAction & S,rando
         startPosition[d]=data(iChain,d,t0);
     }
 
+    for (int d=0;d<getDimensions();d++)
+    {
+    
+        difference[d]=
+            geo.difference( 
+                data(iChain,d,iHead)-data(iChain,d,t0),d
+            );
+    }
+
+    
     Real mass = confs.getGroupByChain(iChain).mass;
 
     confsSampler.sampleFreeParticlePosition(headPosition,startPosition,timeStep*l,randG,mass);
@@ -462,14 +472,7 @@ bool openMove::attemptMove(configurations_t & confs , firstOrderAction & S,rando
 
 
     // compute the acceptance ratio
-    for (int d=0;d<getDimensions();d++)
-    {
-    
-        difference[d]=
-            geo.difference( 
-                data(iChain,d,iHead)-data(iChain,d,t0),d
-            );
-    }
+  
     auto propRatio = -deltaS - freeParticleLogProbability(difference,S.getTimeStep()*l,mass) + log(C);
 
 

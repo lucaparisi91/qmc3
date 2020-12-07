@@ -44,7 +44,7 @@ void pimcConfigurations::setHead( int iChain, int newHead )
     int oldHead=_chains[iChain].head;
 
     int delta = newHead - oldHead;
-
+    
     if ( delta > 0)
     {
         createBeads({oldHead,newHead-1},iChain);

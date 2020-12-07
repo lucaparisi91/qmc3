@@ -54,6 +54,9 @@ namespace pimc
         return sum;
     };
 
+
+
+/*
     template<class functor_t>
     Real reduceOnPositions(const functor_t & V,const Eigen::Tensor<Real,3> & tn, std::array<int ,2 > timeRange, std::array<int, 2>  particleRange)
     {
@@ -68,7 +71,7 @@ namespace pimc
 
         return sum;
     };
-
+*/
 
     template<class functor_t>
     Real reduceOnPositions(const functor_t & V,const Eigen::Tensor<Real,3> & tn, std::array<int ,2 > timeRange, std::array<int, 2>  particleRange, const mask & mask)
@@ -76,10 +79,11 @@ namespace pimc
         Real sum=0;
 
          
-            for(int t=timeRange[0];t<=timeRange[1] ; t++ )
+            for(int t=timeRange[0]+1;t<=timeRange[1]-1 ; t++ )
+            {
               for (size_t i=particleRange[0];i<=particleRange[1];i++ )
                 {
-                    sum+= (mask(t,i) == 0 ? 0 : 
+                    sum+= 
                     #if DIMENSIONS == 3
                      V( tn( i,0, t  ) , tn(i,1,t) , tn(i,2,t) )
                      #endif
@@ -90,8 +94,77 @@ namespace pimc
                      V( tn( i,0, t  ),tn( i,1, t  )) 
                      #endif
 
-                      )  ;
+                       ;
                 }
+            }
+
+
+            if (timeRange[1] > timeRange[0] )
+            {
+                int t = timeRange[0];
+                for (size_t i=particleRange[0];i<=particleRange[1];i++ )
+                {
+                    sum+= 
+                    #if DIMENSIONS == 3
+                     0.5*V( tn( i,0, t  ) , tn(i,1,t) , tn(i,2,t) )
+                     #endif
+                     #if DIMENSIONS == 1
+                     0.5*V( tn( i,0, t  )) 
+                     #endif
+                     #if DIMENSIONS == 2
+                     0.5*V( tn( i,0, t  ),tn( i,1, t  )) 
+                     #endif
+
+                      
+                     ;
+                }
+
+            }
+
+
+
+            if (timeRange[1] >= timeRange[0] )
+            {
+            
+
+                int t = timeRange[1];
+                for (size_t i=particleRange[0];i<=particleRange[1];i++ )
+                {
+                    sum+=  
+                    #if DIMENSIONS == 3
+                     0.5*V( tn( i,0, t  ) , tn(i,1,t) , tn(i,2,t) )
+                     #endif
+                     #if DIMENSIONS == 1
+                     0.5*V( tn( i,0, t  )) 
+                     #endif
+                     #if DIMENSIONS == 2
+                     0.5*V( tn( i,0, t  ),tn( i,1, t  )) 
+                     #endif
+
+                      
+                     ;
+                }
+
+                t = timeRange[1]+1;
+                for (size_t i=particleRange[0];i<=particleRange[1];i++ )
+                {
+                    sum+= 
+                    #if DIMENSIONS == 3
+                     0.5*V( tn( i,0, t  ) , tn(i,1,t) , tn(i,2,t) )
+                     #endif
+                     #if DIMENSIONS == 1
+                     0.5*V( tn( i,0, t  )) 
+                     #endif
+                     #if DIMENSIONS == 2
+                     0.5*V( tn( i,0, t  ),tn( i,1, t  )) 
+                     #endif
+
+                      
+                     ;
+                }
+            }               
+                   
+
 
         return sum;
     };
