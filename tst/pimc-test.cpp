@@ -6,6 +6,9 @@
 #include "../pimc/pimcConfigurations.h"
 #include "../pimc/moves.h"
 #include "../pimc/pimcObservables.h"
+#include <filesystem>
+
+namespace fs = std::filesystem;
 
 
 TEST(distances,updateSingleParticleDistances)
@@ -65,7 +68,6 @@ TEST(distances,updateSingleParticleDistances)
         }
     }
 
-
     //auto springDistances = geo.springDistances( timeConfigurations );
 
     //geo.springDistances(springDistances,timeConfigurations,0,2 , 0, 3  );
@@ -121,7 +123,23 @@ TEST(configurations, init)
 
     ASSERT_NEAR(currentKineticAction,kineticActionSimple,1e-5);
 
-     auto harmonicPotential = [](Real x,Real y , Real z) {return x*x + y*y + z*z;};
+      #if DIMENSIONS == 3
+     auto harmonicPotential = pimc::makePotentialFunctor(
+         [](Real x,Real y , Real z) {return 0.5*(x*x + y*y + z*z) ;} ,
+         [](Real x,Real y, Real z) {return x  ;},
+         [](Real x,Real y,Real z) {return y ;},
+         [](Real x,Real y,Real z) {return z ;}
+         );
+    #endif
+
+      #if DIMENSIONS == 1
+     auto harmonicPotential = pimc::makePotentialFunctor(
+         [](Real x) {return 0.5*(x*x ) ;} ,
+         [](Real x) {return x  ;},
+         );
+    #endif
+
+
 
      pimc::potentialActionOneBody<decltype(harmonicPotential)> pot1(timeStep,harmonicPotential,geo);
 
@@ -318,8 +336,8 @@ TEST(moves,levy)
     Real timeStep=1e-2;
     std::array<int,2> timeSlice= {10,26};
 
-    pimc::kineticAction sT(timeStep, N + 1 , M  , geo);
-  
+     std::shared_ptr<pimc::action> sT= std::make_shared<pimc::kineticAction>(timeStep, N + 1 , M  , geo);
+    
     #if DIMENSIONS == 1
     auto V = pimc::makePotentialFunctor(
          [](Real x) {return 0.5*(x*x ) ;} ,
@@ -327,14 +345,24 @@ TEST(moves,levy)
          );    
     #endif
 
+    #if DIMENSIONS == 3
 
-    pimc::potentialActionOneBody<decltype(V)> sV(timeStep,V ,geo);
+    auto V = pimc::makePotentialFunctor(
+         [](Real x,Real y, Real z) {return 0.5*(x*x + y*y + z*z) ;} ,
+         [](Real x,Real y, Real z) {return x ;} ,
+         [](Real x,Real y, Real z) {return y ;},
+         [](Real x,Real y, Real z) {return z ;}
+         );    
+    #endif
 
-    pimc::firstOrderAction S(&sT, & sV);
+
+    std::shared_ptr<pimc::action> sV=std::make_shared<pimc::potentialActionOneBody<decltype(V)> >(timeStep,V ,geo);
+
+    pimc::firstOrderAction S(sT,  sV);
 
     pimc::levyReconstructor levy(M);
 
-    pimc::levyMove mover(levy,20);
+    pimc::levyMove mover(20);
     int success = 0;
 
     auto & data2 = configurations2.dataTensor();
@@ -520,13 +548,13 @@ TEST(configurations, worms)
 
 TEST(run,free_harmonic_oscillator)
 {   
-    int N=10;
+    int N=1;
     int M=10;
     Real Beta = 1;
-    
 
     pimc::geometryPBC_PIMC geo(300,300,300);
 
+    
     Real timeStep = Beta/M;
 
     pimc::particleGroup groupA{ 0 , N-1, N - 1 , 1.0};
@@ -539,26 +567,24 @@ TEST(run,free_harmonic_oscillator)
     
     configurations.fillHeads();
 
-
-
     pimc::levyReconstructor reconstructor(M);
 
-    pimc::levyMove freeMoves(reconstructor, 5);
+    pimc::levyMove freeMoves(5);
 
     Real delta=0.1;
 
-    pimc::translateMove translMove(delta,M*N);
+    pimc::translateMove translMove(delta,(M+1)*N);
 
     Real C = 1e-1;
-    int l = 1;
-
+    int l = 10;
+    
     pimc::openMove openMove(C,l);
     pimc::closeMove closeMove(C,l);
 
-    pimc::moveHead moveHeadMove(4);
+    pimc::moveHead moveHeadMove(l);
     pimc::moveTail moveTailMove(l);
 
-    pimc::swapMove swapMove(l,M);
+    pimc::swapMove swapMove(4,N);
 
 
     pimc::tableMoves table;
@@ -566,10 +592,10 @@ TEST(run,free_harmonic_oscillator)
     table.push_back(& freeMoves,0.8,pimc::sector_t::offDiagonal,"levy");
     table.push_back(& freeMoves,0.8,pimc::sector_t::diagonal,"levy");
 
-    table.push_back(& translMove,0.5,pimc::sector_t::diagonal,"translate");
-    //table.push_back(& translMove,0.5,pimc::sector_t::offDiagonal,"translate");
+    //table.push_back(& translMove,0.2,pimc::sector_t::diagonal,"translate");
+    //table.push_back(& translMove,0.2,pimc::sector_t::offDiagonal,"translate");
 
-    table.push_back(& openMove,0.2,pimc::sector_t::diagonal,"open");
+    //table.push_back(& openMove,0.2,pimc::sector_t::diagonal,"open");
     table.push_back(& closeMove,0.2,pimc::sector_t::offDiagonal,"close");
 
     table.push_back(& moveHeadMove,0.4,pimc::sector_t::offDiagonal,"moveHead");
@@ -578,12 +604,18 @@ TEST(run,free_harmonic_oscillator)
     table.push_back(& swapMove,1.9,pimc::sector_t::offDiagonal,"swap");
 
 
-    randomGenerator_t randG(19);
+    randomGenerator_t randG(41);
 
-    pimc::kineticAction sT(timeStep, configurations.nChains() , M  , geo);
+     std::shared_ptr<pimc::action> sT= std::make_shared<pimc::kineticAction>(timeStep, configurations.nChains() , M  , geo);
 
-    #if DIMENSIONS == 3
-    auto V = [](Real x, Real y , Real z) {return 0.5*(x*x + y*y + z*z) ;};
+
+     #if DIMENSIONS == 3
+     auto V = pimc::makePotentialFunctor(
+         [](Real x,Real y , Real z) {return 0.5*(x*x + y*y + z*z) ;} ,
+         [](Real x,Real y, Real z) {return x  ;},
+         [](Real x,Real y,Real z) {return y ;},
+         [](Real x,Real y,Real z) {return z ;}
+         );
     #endif
 
     #if DIMENSIONS == 1
@@ -593,9 +625,9 @@ TEST(run,free_harmonic_oscillator)
          );
     #endif
 
-    pimc::potentialActionOneBody<decltype(V)> sV(timeStep,V ,geo);
+    std::shared_ptr<pimc::action> sV=std::make_shared<pimc::potentialActionOneBody<decltype(V)> >(timeStep,V ,geo);
 
-    pimc::firstOrderAction S(&sT, & sV);
+    pimc::firstOrderAction S(sT,  sV);
     int nTimes = 100000;
     int success = 0;
     int subSteps=10000;
@@ -607,7 +639,13 @@ TEST(run,free_harmonic_oscillator)
 
     std::ofstream f;
 
-    configurations.save("testRun/sample"+std::to_string(0));
+    if ( ! fs::exists("configurations") ) 
+    { 
+        fs::create_directory("configurations"); // create src folder
+    }
+
+
+    configurations.save("configurations/sample"+std::to_string(0),"pdb");
 
     f.open("energy.dat");
     for (int i=0;i< nTimes ; i++)
@@ -649,9 +687,9 @@ TEST(run,free_harmonic_oscillator)
 
         table >> std::cout;
 
-        configurations.save("testRun/sample"+std::to_string(i+1));
+        configurations.save("configurations/sample"+std::to_string(i+1),"pdb");
     }
-
+    
     f.close();
     ASSERT_TRUE( (success*1./nTimes )> 0);
     std::cout << "END." << std::endl;

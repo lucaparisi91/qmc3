@@ -4,7 +4,6 @@
 
 namespace pimc
 {      
-
     std::array<int,2> timeSliceGenerator::operator()(randomGenerator_t & randG, int nBeads , int maxBeadLength)
     {
         int t0=std::floor( uniformRealNumber(randG)*nBeads );
@@ -71,7 +70,7 @@ namespace pimc
 
     }
 
-levyMove::levyMove(levyReconstructor & levy_, int maxBeadLength_) : _levy(levy_) , uniformRealNumber(0,1),maxBeadLength(maxBeadLength_) , buffer(( maxBeadLength_+1)*2,getDimensions() ) {}
+levyMove::levyMove(int maxBeadLength_) : _levy(maxBeadLength_) , uniformRealNumber(0,1),maxBeadLength(maxBeadLength_) , buffer(( maxBeadLength_+1)*2,getDimensions() ) {}
 
 bool levyMove::attemptMove( configurations_t & confs, firstOrderAction & ST,randomGenerator_t & randG)
 {
@@ -157,7 +156,6 @@ swapMove::swapMove(int maxStepLength_,int maxN) :
  , uniformRealNumber(0,1) ,_levy(maxStepLength_+2),particleSampler(maxN)
 {}
 
-
 bool swapMove::attemptMove(configurations_t & confs, firstOrderAction & S,randomGenerator_t & randG)
 {
     if ( ! confs.isOpen() )
@@ -227,17 +225,14 @@ bool swapMove::attemptMove(configurations_t & confs, firstOrderAction & S,random
     }
 
 
-    bool acceptPartner = metropolisSampler.acceptLog(log(weightForwardMove) - log(weightBackwardMove) ,randG) ;
+    
+
+    Real deltaS=-(log(weightForwardMove) - log(weightBackwardMove)) ;
 
     
     const auto  partnerChain = confs.getChain(iPartner);
 
-    if ( not acceptPartner  ) 
-    {
-        return false;
-    }
-
-    Real deltaS=0;
+    
     deltaS-=Spot.evaluate(confs,{0,l-1},iPartner);
 
     confs.copyDataToBuffer(buffer,{0,l-1},iPartner);
@@ -248,9 +243,9 @@ bool swapMove::attemptMove(configurations_t & confs, firstOrderAction & S,random
         {
             data(iPartner,d,0)=data(iChainHead,d,iHead);
         }
-    _levy.apply(confs,  {0,l },iChainHead, Spot.getTimeStep() ,randG );
+    _levy.apply(confs,  {0,l },  iPartner, Spot.getTimeStep() ,randG );
     deltaS+=Spot.evaluate(confs,{0,l-1},iPartner);
-
+    
     bool accept = metropolisSampler.acceptLog(-deltaS,randG);
     if (accept) 
     {
@@ -263,7 +258,6 @@ bool swapMove::attemptMove(configurations_t & confs, firstOrderAction & S,random
 
     return accept;
 }
-
 
 std::ostream & sectorTableMoves::operator>> (std::ostream & os)
 {
@@ -280,7 +274,6 @@ std::ostream & sectorTableMoves::operator>> (std::ostream & os)
     }
 
     return os;
-
 }
 
 bool sectorTableMoves::attemptMove(configurations_t & confs, firstOrderAction & S,randomGenerator_t & randG)
@@ -320,7 +313,7 @@ int sectorTableMoves::sample(randomGenerator_t & randG)
 openMove::openMove(Real C_ , int maxReconstructedLength_) : C(C_), _levy(maxReconstructedLength_+2) ,  _maxReconstructedLength(maxReconstructedLength_+2) ,buffer(2*(maxReconstructedLength_+2),getDimensions()),
 gauss(0,1),uniformRealNumber(0,1){}
 
-translateMove::translateMove(Real max_delta, int maxBeads) : _max_delta(max_delta),buffer(maxBeads,getDimensions())  , distr(-1.,1.)
+translateMove::translateMove(Real max_delta, int maxBeads) : _max_delta(max_delta),buffer(maxBeads+1,getDimensions())  , distr(-1.,1.)
 {
 
 }
@@ -348,20 +341,20 @@ bool translateMove::attemptMove(configurations_t & confs , firstOrderAction & S,
 
 
 
+    // translate the whole 
+    for (int d=0;d<getDimensions();d++)
+    {
+        delta[d]=(distr(randG))*_max_delta;
+    }
 
     int iSeq=0; // ith chain in the list
     for (auto iCurrentChain : chainsInThePolimer)
     {
 
         // save old data to buffer
-        confs.copyDataToBuffer(buffer,{0,confs.nBeads()},iCurrentChain,iSeq*confs.nBeads());
+        confs.copyDataToBuffer(buffer,{0,confs.nBeads()},iCurrentChain,iSeq*(confs.nBeads()+1));
 
 
-         // translate the whole 
-        for (int d=0;d<getDimensions();d++)
-        {
-            delta[d]=distr(randG)*_max_delta;
-        }
 
         for(int t=0;t<=confs.nBeads();t++)
             {
@@ -393,9 +386,9 @@ bool translateMove::attemptMove(configurations_t & confs , firstOrderAction & S,
         int iSeq=0;
         for (auto iCurrentChain : chainsInThePolimer)
         {
-          confs.copyDataFromBuffer(buffer,{0,confs.nBeads()},iCurrentChain,iSeq*confs.nBeads());
+          confs.copyDataFromBuffer(buffer,{0,confs.nBeads()},iCurrentChain,iSeq*(confs.nBeads()+1));
+          iSeq++;
         }
-        iSeq++;
     }
 
     return accept;

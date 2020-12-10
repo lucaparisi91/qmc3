@@ -28,6 +28,7 @@ class timeSliceGenerator
    class levyReconstructor
     {
         public : 
+
         levyReconstructor( int maxReconstructionLength) :  gauss(0,1),buffer(maxReconstructionLength*2,getDimensions()) {}
 
 
@@ -41,7 +42,6 @@ class timeSliceGenerator
         Eigen::Tensor< Real , 2 > buffer;
         int _maxReconstructionLength;
 
-        
     };
 
 class firstOrderAction;
@@ -106,17 +106,14 @@ class tableMoves
 
 
 
-
-
-
-
-
 class levyMove : public move
 {
     public:
 
-    levyMove( levyReconstructor & lev_, int maxBeadLength);
 
+    levyMove( int maxBeadLength);
+    levyMove(const json_t & j) : levyMove(j["reconstructionMaxLength"].get<int>() )
+    {}
     bool attemptMove(configurations_t & confs , firstOrderAction & S, randomGenerator_t & randG);
     
     private:
@@ -141,7 +138,10 @@ class openMove : public move
 {
     public:
     // splits a chain in two morms with one overlapping bead
-    openMove(Real C_ , int maxReconstructedLength_=0) ;
+    openMove(Real C_ , int maxReconstructedLength_=1) ;
+
+    openMove(const json_t & j) : openMove(j["C"].get<Real>() ,j["reconstructionMaxLength"].get<int>() ) {}
+
 
     bool attemptMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG);
     
@@ -165,8 +165,13 @@ class closeMove : public move
 {
     public:
     // splits a chain in two morms with one overlapping bead
+
+    
     closeMove(Real C_ , int maxReconstructionLength) ;
     bool attemptMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG);
+
+    closeMove(const json_t & j) : closeMove(j["C"].get<Real>() ,j["reconstructionMaxLength"].get<int>() ) {}
+
 
     private:
     Real C;
@@ -187,6 +192,8 @@ class moveHead : public move
 {
     public:
     moveHead(int maxAdvanceLength_);
+
+     moveHead(const json_t & j) : moveHead(j["reconstructionMaxLength"].get<int>() ) {}
 
     bool attemptMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG);
 
@@ -209,6 +216,8 @@ class moveTail : public move
 {
     public:
     moveTail(int maxAdvanceLength_);
+
+    moveTail(const json_t & j) : moveTail(j["reconstructionMaxLength"].get<int>() ) {}
 
     bool attemptMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG);
 
@@ -236,6 +245,9 @@ class translateMove : public move
 {
     public:
     translateMove(Real max_delta, int maxBeads);
+
+    translateMove(const json_t & j) : translateMove(j["delta"].get<Real>() ,(j["nBeads"].get<int>() + 1 ) * j["particles"][0].get<int>() ) {}
+    
     
     bool attemptMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG);
 
@@ -257,6 +269,11 @@ class swapMove : public move
     using geometry_t = geometryPBC_PIMC;
 
     swapMove( int maxStepLength_, int maxN);
+
+    swapMove( const json_t & j ) : swapMove(
+        j["reconstructionMaxLength"].get<int>() ,
+          j["particles"][0].get<int>()       ) {}
+
     bool attemptMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG); // will attempt to perform a new move
 
     private:
@@ -276,10 +293,107 @@ class swapMove : public move
 
 };
 
+template<class T>
+move* __createMove(const json_t & j) {return new T(j);}
 
+
+class moveConstructor
+{
+    public:
+
+    moveConstructor(std::vector<int> nMaxParticles, int nBeadsMax) : _nMaxParticles(nMaxParticles),_nBeadsMax(nBeadsMax) {}
+
+    move* createMove(const json_t & jOuter)
+    {
+        // creates a copy of the json input and supplement with additional essential information
+        json_t j(jOuter);
+        j["particles"]=_nMaxParticles;
+        j["nBeads"]=_nBeadsMax;
+
+
+        std::string key=j["kind"].get<std::string>(); 
+        creatorMap_t::const_iterator i;
+        i=creatorMap.find(key);
+        if (i!= creatorMap.end())
+        {
+	    return (i->second)( j  );
+        }
+         else
+        {
+	    throw factoryIdNotRecorded(key);
+        }
+    }
+
+    template<class T>
+    void registerMove(const std::string & key)
+    {
+        creatorMap[key]= &__createMove<T> ; 
+    }
+
+    auto createTable(const json_t & jTable)
+    {
+        tableMoves tab;
+
+        for (auto & jMove : jTable )
+        {
+            std::vector<std::string > sectors = jMove["sectors"];
+            Real weight = jMove["weight"].get<Real>();
+
+            auto move = createMove(jMove["move"]);
+
+            std::string kind = jMove["move"]["kind"].get<std::string>();
+
+            for (auto sector : sectors)
+            {
+                sector_t currentSector;
+
+                if (sector == "open" )
+                {
+                    currentSector=sector_t::offDiagonal;
+                }
+                else if ( sector == "closed")
+                {
+                    currentSector = sector_t::diagonal;
+                }
+                else
+                {
+                    throw invalidInput("Unkown sector type");
+                } 
+
+                tab.push_back(move,weight,currentSector,kind);
+            }
+
+                 
+
+                
+            }
+            
+
+        
+
+        return tab;
+
+    }
+
+
+    private:
+    std::vector<int> _nMaxParticles;
+    int _nBeadsMax;
+
+
+    typedef move* (*moveCreatorFunc) ( const json_t & j);
+using creatorMap_t = std::map<std::string,moveCreatorFunc>;
+    creatorMap_t creatorMap;
+};
+
+//moveConstructor::creatorMap =  moveConstructor::creatorMap_t{} ;
 
 
 
 }
+
+
+
+
 
 #endif

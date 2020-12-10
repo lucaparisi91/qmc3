@@ -10,6 +10,8 @@
 class geometry
 {
 public:
+
+	geometry(){}
 	using particles_t = ::state_t;
 	using diff_t =  ::difference_t;
 	
@@ -38,6 +40,8 @@ distance_t norm( const difference_t & diffs);
 class geometryPBC : public geometry
 {
 public:
+
+  geometryPBC(){}
   geometryPBC(real_t lBoxx_,real_t lBoxy_,real_t lBoxz_) : lBox{ lBoxx_,lBoxy_,lBoxz_},lBoxInverse{1./lBoxx_,1./lBoxy_,1./lBoxz_} {} ;
 
 

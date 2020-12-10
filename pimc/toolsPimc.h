@@ -8,6 +8,8 @@
 
 namespace pimc{
 
+    using json_t = nlohmann::json;
+    
     using Real = double;
 
     enum periodicity {periodic = 1 , open = 0};

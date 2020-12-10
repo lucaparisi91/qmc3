@@ -7,6 +7,7 @@
 #include "tools.h"
 #include "toolsPimc.h"
 #include "qmcExceptions.h"
+#include <memory>
 
 
 namespace pimc
@@ -79,7 +80,7 @@ namespace pimc
         Real sum=0;
 
          
-            for(int t=timeRange[0]+1;t<=timeRange[1]-1 ; t++ )
+            for(int t=timeRange[0]+1;t<=timeRange[1] ; t++ )
             {
               for (size_t i=particleRange[0];i<=particleRange[1];i++ )
                 {
@@ -99,7 +100,7 @@ namespace pimc
             }
 
 
-            if (timeRange[1] > timeRange[0] )
+            
             {
                 int t = timeRange[0];
                 for (size_t i=particleRange[0];i<=particleRange[1];i++ )
@@ -123,29 +124,10 @@ namespace pimc
 
 
 
-            if (timeRange[1] >= timeRange[0] )
-            {
             
+            {
 
-                int t = timeRange[1];
-                for (size_t i=particleRange[0];i<=particleRange[1];i++ )
-                {
-                    sum+=  
-                    #if DIMENSIONS == 3
-                     0.5*V( tn( i,0, t  ) , tn(i,1,t) , tn(i,2,t) )
-                     #endif
-                     #if DIMENSIONS == 1
-                     0.5*V( tn( i,0, t  )) 
-                     #endif
-                     #if DIMENSIONS == 2
-                     0.5*V( tn( i,0, t  ),tn( i,1, t  )) 
-                     #endif
-
-                      
-                     ;
-                }
-
-                t = timeRange[1]+1;
+                int t = timeRange[1]+1;
                 for (size_t i=particleRange[0];i<=particleRange[1];i++ )
                 {
                     sum+= 
@@ -176,6 +158,7 @@ class action
 {
     public:
 
+    action(){}
 
     action(Real timeStep, const geometryPBC_PIMC & geo_) : _geo(geo_), _timeStep(timeStep) {}
 
@@ -235,6 +218,8 @@ class kineticAction : public action
 
 };
 
+
+#if DIMENSIONS == 1
 template<class V_t,class gradX_t >
 class potentialFunctor{
 public:
@@ -248,11 +233,51 @@ private:
     gradX_t _gradX;
 };
 
+
+
+
 template<class V_t,class gradX_t >
 auto makePotentialFunctor(V_t V_,gradX_t X_)
 {
     return potentialFunctor<V_t,gradX_t>(V_,X_);    
 }
+
+#endif
+
+#if DIMENSIONS == 3
+template<class V_t,class gradX_t , class gradY_t,class gradZ_t>
+class potentialFunctor{
+public:
+    
+    potentialFunctor(V_t V_,gradX_t gradX_,gradY_t gradY_,gradZ_t gradZ_) : V(V_),_gradX(gradX_),_gradY(gradY_),_gradZ(gradZ_) {}
+
+    Real operator()(Real x,Real y , Real z) const {return V(x,x,y);}
+
+    
+    Real gradX(Real x,Real y,Real z) const  {return _gradX(x,y,z);}
+    Real gradY(Real x,Real y,Real z) const  {return _gradY(x,y,z);}
+    Real gradZ(Real x,Real y,Real z) const  {return _gradZ(x,y,z);}
+
+
+
+private:
+    V_t V;
+    gradX_t _gradX;
+    gradY_t _gradY;
+    gradZ_t _gradZ;
+};
+
+
+template<class V_t,class gradX_t ,class gradY_t , class gradZ_t>
+auto makePotentialFunctor(V_t V_,gradX_t X_,gradY_t Y_, gradZ_t Z_)
+{
+    return potentialFunctor<V_t,gradX_t,gradY_t,gradZ_t>(V_,X_,Y_,Z_);
+}
+
+#endif
+
+
+
 
 template<class functor_t>
 class potentialActionOneBody : public action
@@ -326,9 +351,9 @@ class potentialActionOneBody : public action
 
 
             #if DIMENSIONS == 3
-            gradientBuffer(i,0,t)+=gradV.X( data(i,0,t) ,  data(i,1,t) , data(i,2,t) );
-            gradientBuffer(i,1,t)+=gradV.Y( data(i,0,t) ,  data(i,1,t) , data(i,2,t) );
-            gradientBuffer(i,2,t)+=gradV.Z( data(i,0,t) ,  data(i,1,t) , data(i,2,t) );            
+            gradientBuffer(i,0,t)+=V.gradX( data(i,0,t) ,  data(i,1,t) , data(i,2,t) );
+            gradientBuffer(i,1,t)+=V.gradY( data(i,0,t) ,  data(i,1,t) , data(i,2,t) );
+            gradientBuffer(i,2,t)+=V.gradZ( data(i,0,t) ,  data(i,1,t) , data(i,2,t) );            
              #endif
 
          }
@@ -522,8 +547,9 @@ class sumAction : public action
     public:
     using action::evaluate;
 
+    sumAction(){}
 
-    sumAction(  std::vector<action *> actions_) : _actions(actions_),action::action( actions_[0]->getTimeStep() ,    actions_[0]->getGeometry()  ) {}
+    sumAction(  std::vector<std::shared_ptr<action> > actions_) : _actions(actions_),action::action( actions_[0]->getTimeStep() ,    actions_[0]->getGeometry()  ) {}
 
     virtual Real evaluate(pimcConfigurations_t & configurations, std::array<int,2> timeRange, int iChain)
     {
@@ -561,14 +587,17 @@ class sumAction : public action
     auto  & getActions() {return _actions;}
 
     private:
-
-    std::vector<action* > _actions;
+    
+    std::vector<std::shared_ptr<action> > _actions;
 };
 
 class firstOrderAction : public sumAction
 {
 public:
-    firstOrderAction(  action * kineticAction, action * potentialAction) : sumAction::sumAction( {kineticAction,potentialAction}) 
+    firstOrderAction() {}
+
+    
+    firstOrderAction(  std::shared_ptr<action> sKinetic, std::shared_ptr<action> sPot) : sumAction::sumAction( {sKinetic,sPot}) 
     {
 
     }

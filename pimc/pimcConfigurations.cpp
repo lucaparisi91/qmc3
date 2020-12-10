@@ -72,16 +72,26 @@ void pimcConfigurations::setHead( int iChain, int newHead )
 std::list<int> pimcConfigurations::buildPolimerList(int iChain) const
 {
     std::list<int> chains;
-
+    
     int iCurrentChain=iChain;
     do
     {
         chains.emplace_back(iCurrentChain);
         iCurrentChain=getChain(iCurrentChain).next ;
     } while (
-        (iCurrentChain != -1) and 
+        (iCurrentChain != -1) and
         (iCurrentChain != iChain)    
         );
+    if (iCurrentChain == -1 )
+    {
+        iCurrentChain=getChain(iChain).prev;
+        while(iCurrentChain!= - 1)
+        {
+            chains.emplace_front(iCurrentChain);
+            iCurrentChain=getChain(iCurrentChain).prev;
+        }
+
+    }
     return chains;
 }
 
@@ -378,10 +388,51 @@ void pimcConfigurations::save(const std::string & dirname,const std::string & fo
 
         throw missingImplementation("Binary format not yet supported.");
     }
+    else if (format == "pdb")
+    {
+        int k=0;
+        f.open(dirname + "/particles.pdb");
 
-   
+        f << std::fixed << std::setprecision(3) << std::right ;
+        for (int t=0;t<=nBeads() ;t++ )
+        {
+                for (int i=0;i<nChains();i++)
+                {
+
+                    f<< "HETATM"
+                    <<  std::setw(5) << nChains()*t + i << " C    VAL A" << std::setw(4) <<  t << "    "
+                    << std::setw(8) << _data(i,0,t)
+                    << std::setw(8) << _data(i,1,t)
+                    << std::setw(8) << _data(i,2,t) 
+                    << std::setw(6) << std::setprecision(2) << 1.00
+                    << std::setw(6) << std::setprecision(2) << i 
+                    << "     C" << std::endl;
+
+                    k++;    
+                }
+                
+        }
+
+        for (int i=0;i<nChains();i++)
+            for (int t=0;t<nBeads() ;t++ )
+            {
+                {
+                    f<< "CONECT"
+                    <<  std::setw(5) << nChains()*t + i 
+                    <<  std::setw(5) << nChains()*(t+1) + i 
+                    << std::endl;
+                    k++;    
+                }
+                
+            }
+
+
+
+        f.close();
+    }
+
+
     nlohmann::json j;
-
     j["nChains"]= nChains();
     j["dimensions"]=getDimensions();
     j["timeSlices"]=nBeads();

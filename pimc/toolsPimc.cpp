@@ -1,8 +1,6 @@
 #include "toolsPimc.h"
 #include "qmcExceptions.h"
 
-
-
 namespace pimc
 {
 
