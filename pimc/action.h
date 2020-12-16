@@ -9,7 +9,6 @@
 #include "qmcExceptions.h"
 #include <memory>
 
-
 namespace pimc
 {
 
@@ -36,7 +35,7 @@ namespace pimc
          for (size_t i=particleRange[0];i<=particleRange[1];i++ )
             for(int t=timeRange[0];t<=timeRange[1] ; t++ )
                 {
-                    sum+= ( mask(t,i)==0 ? 0 :
+                    sum+=
 
                     #if DIMENSIONS == 3
                      V( tn( t,0, i  ) , tn(t,1,i) , tn(t,2,i)  ) 
@@ -50,7 +49,7 @@ namespace pimc
                      V( tn( t,0, i  ) , tn(t,1,i)   ) 
                     #endif
 
-                     );
+                     ;
                 }
         return sum;
     };
@@ -170,10 +169,7 @@ class action
     virtual Real evaluate( configurations_t & pimcConfigurations)=0; // evaluates the whole action
 
 
-    virtual void addGradient(const configurations_t & pimcConfigurations,const std::array<int,2> & timeRange,const  std::array<int,2> & particleRange, const Eigen::Tensor<Real,3> & gradientBuffer){throw missingImplementation("Gradient not implemented for this action.");}
-
-
-
+    virtual void addGradient(const configurations_t & pimcConfigurations,const std::array<int,2> & timeRange,const  std::array<int,2> & particleRange,  Eigen::Tensor<Real,3> & gradientBuffer){throw missingImplementation("Gradient not implemented for this action.");}
 
 
     const auto & getGeometry() const {return _geo ;}
@@ -251,7 +247,7 @@ public:
     
     potentialFunctor(V_t V_,gradX_t gradX_,gradY_t gradY_,gradZ_t gradZ_) : V(V_),_gradX(gradX_),_gradY(gradY_),_gradZ(gradZ_) {}
 
-    Real operator()(Real x,Real y , Real z) const {return V(x,x,y);}
+    Real operator()(Real x,Real y , Real z) const { return V(x,y,z); }
 
     
     Real gradX(Real x,Real y,Real z) const  {return _gradX(x,y,z);}
@@ -332,7 +328,8 @@ class potentialActionOneBody : public action
     }
 
 
-     virtual void addGradient(const configurations_t & pimcConfigurations,const std::array<int,2> & timeRange, const std::array<int,2> & particleRange,  Eigen::Tensor<Real,3> & gradientBuffer){
+    virtual void addGradient(const configurations_t & pimcConfigurations,const std::array<int,2> & timeRange,const  std::array<int,2> & particleRange,  Eigen::Tensor<Real,3> & gradientBuffer)
+   {
 
          const auto & data = pimcConfigurations.dataTensor();
 
@@ -340,26 +337,68 @@ class potentialActionOneBody : public action
             for (int i=particleRange[0] ; i<=particleRange[1];i++ )
          {
              #if DIMENSIONS == 1
-            gradientBuffer(i,0,t)+=V.gradX( data(i,0,t)  );
+            gradientBuffer(i,0,t)+=V.gradX( data(i,0,t)  )*getTimeStep();
              #endif
 
              #if DIMENSIONS == 2
-            gradientBuffer(i,0,t)+=gradV.X( data(i,0,t) ,  data(i,1,t)  );
-            gradientBuffer(i,1,t)+=gradV.Y( data(i,0,t) ,  data(i,1,t)  );
+            gradientBuffer(i,0,t)+=gradV.X( data(i,0,t) ,  data(i,1,t)  )*getTimeStep();
+            gradientBuffer(i,1,t)+=gradV.Y( data(i,0,t) ,  data(i,1,t)  )*getTimeStep();
             
              #endif
 
 
             #if DIMENSIONS == 3
-            gradientBuffer(i,0,t)+=V.gradX( data(i,0,t) ,  data(i,1,t) , data(i,2,t) );
-            gradientBuffer(i,1,t)+=V.gradY( data(i,0,t) ,  data(i,1,t) , data(i,2,t) );
-            gradientBuffer(i,2,t)+=V.gradZ( data(i,0,t) ,  data(i,1,t) , data(i,2,t) );            
+            gradientBuffer(i,0,t)+=V.gradX( data(i,0,t) ,  data(i,1,t) , data(i,2,t) )*getTimeStep();
+            gradientBuffer(i,1,t)+=V.gradY( data(i,0,t) ,  data(i,1,t) , data(i,2,t) )*getTimeStep();
+            gradientBuffer(i,2,t)+=V.gradZ( data(i,0,t) ,  data(i,1,t) , data(i,2,t) )*getTimeStep();            
              #endif
-
          }
+
+       /*  // t[0] only counts half
+        {
+            int t=timeRange[0];
+            for (int i=particleRange[0] ; i<=particleRange[1];i++ )
+            {
+                #if DIMENSIONS == 1
+                gradientBuffer(i,0,t)+=V.gradX( data(i,0,t)  )*getTimeStep();
+                #endif
+
+                #if DIMENSIONS == 2
+                gradientBuffer(i,0,t)+=0.5*gradV.X( data(i,0,t) ,  data(i,1,t)  )*getTimeStep();
+                gradientBuffer(i,1,t)+=0.5*gradV.Y( data(i,0,t) ,  data(i,1,t)  )*getTimeStep();                
+                #endif
+
+                #if DIMENSIONS == 3
+                gradientBuffer(i,0,t)+=0.5*V.gradX( data(i,0,t) ,  data(i,1,t) , data(i,2,t) )*getTimeStep();
+                gradientBuffer(i,1,t)+=0.5*V.gradY( data(i,0,t) ,  data(i,1,t) , data(i,2,t) )*getTimeStep();
+                gradientBuffer(i,2,t)+=0.5*V.gradZ( data(i,0,t) ,  data(i,1,t) , data(i,2,t) )*getTimeStep();            
+                #endif
+            }
+        }
+ */
+      /*   // t[1] + 1 counts half
+        {
+            int t=timeRange[1] + 1;
+
+            for (int i=particleRange[0] ; i<=particleRange[1];i++ )
+            {
+                #if DIMENSIONS == 1
+                gradientBuffer(i,0,t)+=0.5*V.gradX( data(i,0,t)  )*getTimeStep();
+                #endif
+
+                #if DIMENSIONS == 2
+                gradientBuffer(i,0,t)+=0.5*gradV.X( data(i,0,t) ,  data(i,1,t)  )*getTimeStep();
+                gradientBuffer(i,1,t)+=0.5*gradV.Y( data(i,0,t) ,  data(i,1,t)  )*getTimeStep();                
+                #endif
+
+                #if DIMENSIONS == 3
+                gradientBuffer(i,0,t)+=0.5*V.gradX( data(i,0,t) ,  data(i,1,t) , data(i,2,t) )*getTimeStep();
+                gradientBuffer(i,1,t)+=0.5*V.gradY( data(i,0,t) ,  data(i,1,t) , data(i,2,t) )*getTimeStep();
+                gradientBuffer(i,2,t)+=0.5*V.gradZ( data(i,0,t) ,  data(i,1,t) , data(i,2,t) )*getTimeStep();            
+                #endif
+            }
+        } */
      }
-
-
 
     private:
     functor_t V;
@@ -518,11 +557,11 @@ class potentialActionTwoBody
         {
             for (size_t i=iStartLeft;i<=iEndLeft;i++ )
                 {
-                    sum+= ( mask(t,i) == 0 ? 0 : V( tn(i,0,t ) , tn(i,1,t) , tn(i,2,t)  ) ) ;
+                    sum+= V( tn(i,0,t ) , tn(i,1,t) , tn(i,2,t)   ) ;
                 }
         for (size_t i=iStartRight;i<=iEndRight;i++ )
                 {
-                    sum+=( mask(t,i)==0  ? 0 : V( tn(i,0,t ) , tn(i,1,t) , tn(i,2,t)  ) )  ;
+                    sum+= V( tn(i,0,t ) , tn(i,1,t) , tn(i,2,t)   )  ;
                 }
         }
 

@@ -15,7 +15,7 @@ TEST(distances,updateSingleParticleDistances)
 {
     pimc::geometryPBC_PIMC geo(10,10,10);
     int D = getDimensions();
-    int N= 50;
+    int N= 1;
 
     state_t positions(N,D);
     positions.setRandom();
@@ -35,8 +35,9 @@ TEST(distances,updateSingleParticleDistances)
     int T = 50;
     
 
-    Eigen::Tensor<Real, 3> data(N,getDimensions(),T);
+    Eigen::Tensor<Real, 3> data(N,getDimensions(),T+1);
     data.setRandom();
+
 
     Eigen::Tensor<Real,3> springDifferences(T,getDimensions() , N );
 
@@ -48,11 +49,11 @@ TEST(distances,updateSingleParticleDistances)
         for (int i=0;i<N;i++)
         {
             int d=0;
-            ASSERT_NEAR( springDifferences(t,d,i) , data(i,d,(t+1)%T) - data(i,d,t) , 1e-4 );
+            ASSERT_NEAR( springDifferences(t,d,i) , data(i,d,t+1) - data(i,d,t) , 1e-4 );
         }
     }
 
-    Eigen::Tensor<Real,3> potentialDifferences(N ,getDimensions() , T );
+    Eigen::Tensor<Real,3> potentialDifferences(N ,getDimensions() , T + 1 );
 
     int jChain = N-1;
     geo.updateEqualTimeDifferences(potentialDifferences,data, {0,T-1}, jChain , {0,N-1});
@@ -79,7 +80,7 @@ TEST(configurations, init)
     const int N = 20;
     const int M = 30;
 
-    pimc::particleGroup groupA{ 0 , N-1, N , 1.0};
+    pimc::particleGroup groupA{ 0 , N-1, N-1 , 1.0};
     pimc::pimcConfigurations configurations(M , getDimensions() , {groupA});
 
     auto & data = configurations.dataTensor();
@@ -87,6 +88,8 @@ TEST(configurations, init)
     data.setRandom();
 
     configurations.fillHeads();
+
+    
 
 
 
@@ -123,6 +126,8 @@ TEST(configurations, init)
 
     ASSERT_NEAR(currentKineticAction,kineticActionSimple,1e-5);
 
+
+
       #if DIMENSIONS == 3
      auto harmonicPotential = pimc::makePotentialFunctor(
          [](Real x,Real y , Real z) {return 0.5*(x*x + y*y + z*z) ;} ,
@@ -139,62 +144,42 @@ TEST(configurations, init)
          );
     #endif
 
+    {
+    Real x=0.1;
+    Real y=0.23;
+    Real z=0.56;
+    
+    ASSERT_NEAR(0.5*(x*x + y*y + z*z), harmonicPotential(x,y,z),1e-4);
 
+    }
 
      pimc::potentialActionOneBody<decltype(harmonicPotential)> pot1(timeStep,harmonicPotential,geo);
 
      auto v = pot1.evaluate(configurations);
      Real vCheck=0;
 
-     for (int t=0;t<M;t++)
+     for (int t=1;t<=M-1;t++)
         for(int n=0;n<N;n++)
         {
             for(int d=0;d<getDimensions();d++)
             {
-                vCheck+=data(n,d,t) * data(n,d,t) ;
+                vCheck+=0.5*data(n,d,t) * data(n,d,t) ;
+            }
+        }
+    
+      for(int n=0;n<N;n++)
+        {
+            for(int d=0;d<getDimensions();d++)
+            {
+                vCheck+=0.25*data(n,d,0) * data(n,d,0) ;
+                vCheck+=0.25*data(n,d,M) * data(n,d,M) ;
             }
         }
 
         vCheck*=timeStep;
     ASSERT_NEAR(v,vCheck,1e-4);
 
-    pimc::potentialActionTwoBody<decltype(harmonicPotential)> pot2(timeStep, N , M , harmonicPotential,geo) ;
 
-    int jChain = 3;
-
-    v=pot2.evaluate(configurations, {0,M-1} , jChain ,  {0,N-1} );
-    vCheck=0;
-
-    for ( int t=0;t<M;t++)
-        for ( int i=0; i<N;i++ )
-        {
-            if (jChain != i)
-            {
-            for (int d=0;d<getDimensions();d++)
-            {
-                vCheck+= std::pow( data(i,d,t) - data(jChain,d,t) ,2);
-            }
-            }
-        }
-
-    ASSERT_NEAR(v,vCheck,1e-3);
-
-    v=pot2.evaluate(configurations);
-
-    vCheck=0;
-    for ( int t=0;t<M;t++)
-        for ( int i=0; i<N;i++ )
-            for(int j=0;j<i;j++)
-            {
-                for(int d=0;d<getDimensions();d++)
-                {
-                    vCheck+= std::pow( data(i,d,t) - data(j,d,t) ,2);
-                }
-
-            }
-
-
-    ASSERT_NEAR(v,vCheck,1e-3);
 
 }
 
@@ -548,13 +533,13 @@ TEST(configurations, worms)
 
 TEST(run,free_harmonic_oscillator)
 {   
-    int N=1;
+    int N=10;
     int M=10;
     Real Beta = 1;
 
     pimc::geometryPBC_PIMC geo(300,300,300);
 
-    
+
     Real timeStep = Beta/M;
 
     pimc::particleGroup groupA{ 0 , N-1, N - 1 , 1.0};
@@ -576,7 +561,7 @@ TEST(run,free_harmonic_oscillator)
     pimc::translateMove translMove(delta,(M+1)*N);
 
     Real C = 1e-1;
-    int l = 10;
+    int l = 5;
     
     pimc::openMove openMove(C,l);
     pimc::closeMove closeMove(C,l);
@@ -586,7 +571,6 @@ TEST(run,free_harmonic_oscillator)
 
     pimc::swapMove swapMove(4,N);
 
-
     pimc::tableMoves table;
   
     table.push_back(& freeMoves,0.8,pimc::sector_t::offDiagonal,"levy");
@@ -595,7 +579,7 @@ TEST(run,free_harmonic_oscillator)
     //table.push_back(& translMove,0.2,pimc::sector_t::diagonal,"translate");
     //table.push_back(& translMove,0.2,pimc::sector_t::offDiagonal,"translate");
 
-    //table.push_back(& openMove,0.2,pimc::sector_t::diagonal,"open");
+    table.push_back(& openMove,0.2,pimc::sector_t::diagonal,"open");
     table.push_back(& closeMove,0.2,pimc::sector_t::offDiagonal,"close");
 
     table.push_back(& moveHeadMove,0.4,pimc::sector_t::offDiagonal,"moveHead");
@@ -603,8 +587,9 @@ TEST(run,free_harmonic_oscillator)
 
     table.push_back(& swapMove,1.9,pimc::sector_t::offDiagonal,"swap");
 
+    
 
-    randomGenerator_t randG(41);
+    randomGenerator_t randG(368);
 
      std::shared_ptr<pimc::action> sT= std::make_shared<pimc::kineticAction>(timeStep, configurations.nChains() , M  , geo);
 
@@ -621,7 +606,7 @@ TEST(run,free_harmonic_oscillator)
     #if DIMENSIONS == 1
     auto V = pimc::makePotentialFunctor(
          [](Real x) {return 0.5*(x*x ) ;} ,
-         [](Real x) {return 0.5*x ;} 
+         [](Real x) {return x ;} 
          );
     #endif
 
@@ -634,10 +619,16 @@ TEST(run,free_harmonic_oscillator)
     int correlationSteps=100;
 
     pimc::thermodynamicEnergyEstimator energyEstimator;
+
+    pimc::virialEnergyEstimator viriralEnergy(N, M);
+
+
     Real e=0;
     Real e2=0;
 
     std::ofstream f;
+    std::ofstream fV;
+
 
     if ( ! fs::exists("configurations") ) 
     { 
@@ -648,9 +639,11 @@ TEST(run,free_harmonic_oscillator)
     configurations.save("configurations/sample"+std::to_string(0),"pdb");
 
     f.open("energy.dat");
+    fV.open("energyVirial.dat");
+
     for (int i=0;i< nTimes ; i++)
     {
-        Real eStep=0;
+        Real eStep=0,eVirialStep=0;
         int nMeasurements=0;
 
         for (int k=0;k< subSteps;k++)
@@ -667,9 +660,12 @@ TEST(run,free_harmonic_oscillator)
             if (!configurations.isOpen() )
             {
                 Real tmp=energyEstimator(configurations,S);
+                Real tmp1=viriralEnergy(configurations,S);
+            
                 nMeasurements++;
             
                 eStep+=tmp;
+                eVirialStep+=tmp1;
             }
             else
             {
@@ -678,8 +674,8 @@ TEST(run,free_harmonic_oscillator)
             
         }
 
-       
         f << i + 1 << "\t" << eStep/nMeasurements << std::endl ;
+        fV << i + 1 << "\t" << eVirialStep/nMeasurements << std::endl ;
 
         //std::cout << e << std::endl;
         std::cout << "Energy: " << eStep/nMeasurements << std::endl;

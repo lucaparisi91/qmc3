@@ -401,9 +401,22 @@ void pimcConfigurations::save(const std::string & dirname,const std::string & fo
 
                     f<< "HETATM"
                     <<  std::setw(5) << nChains()*t + i << " C    VAL A" << std::setw(4) <<  t << "    "
+                    # if DIMENSIONS == 3
                     << std::setw(8) << _data(i,0,t)
                     << std::setw(8) << _data(i,1,t)
-                    << std::setw(8) << _data(i,2,t) 
+                    << std::setw(8) << _data(i,2,t)
+                    #endif 
+                    # if DIMENSIONS == 2
+                    << std::setw(8) << _data(i,0,t)
+                    << std::setw(8) << _data(i,1,t)
+                    #endif 
+                    # if DIMENSIONS == 1
+                    << std::setw(8) << _data(i,0,t)
+                    << std::setw(8) << 0
+                    << std::setw(8) << 0
+                    #endif 
+                    
+                    
                     << std::setw(6) << std::setprecision(2) << 1.00
                     << std::setw(6) << std::setprecision(2) << i 
                     << "     C" << std::endl;

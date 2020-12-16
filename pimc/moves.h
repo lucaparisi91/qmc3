@@ -10,7 +10,6 @@
 #include "towerSampler.h"
 #include "toolsPimc.h"
 
-
 namespace pimc
 {
 

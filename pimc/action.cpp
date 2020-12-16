@@ -1,12 +1,10 @@
 #include "action.h"
 
-
 namespace pimc
 {
-    
+
 Real kineticAction::evaluate( pimcConfigurations_t & configurations , std::array<int,2> timeSlices , std::array<int,2> chainRange  )
 {
-
     const auto & data = configurations.dataTensor();
     auto & geo=getGeometry();
 
@@ -22,7 +20,6 @@ Real kineticAction::evaluate( pimcConfigurations_t & configurations , std::array
     #endif
 
     return sum/(4* D * getTimeStep());
-    
 }
 
 Real kineticAction::evaluate( pimcConfigurations_t & configurations , std::array<int,2> timeSlices , int iChange )
@@ -40,6 +37,7 @@ Real kineticAction::evaluate( pimcConfigurations_t & configurations , std::array
     }
     return sum;
 }
+
 
 Real kineticAction::evaluate( pimcConfigurations_t & configurations , std::array<int,2> timeSlices , int iChain1 , int iChain2 )
 {   
