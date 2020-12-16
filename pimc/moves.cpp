@@ -42,8 +42,7 @@ namespace pimc
                 data(iChain,d,timeRange[1])=data(lastBeadChain,d,lastBeadTime);
             }
   */
-
-        
+         
         // performs the actual copy
         for (int t=0;t<l-1;t++)
         {
