@@ -533,7 +533,7 @@ TEST(configurations, worms)
 
 TEST(run,free_harmonic_oscillator)
 {   
-    int N=10;
+    int N=1;
     int M=10;
     Real Beta = 1;
 
@@ -582,10 +582,10 @@ TEST(run,free_harmonic_oscillator)
     table.push_back(& openMove,0.2,pimc::sector_t::diagonal,"open");
     table.push_back(& closeMove,0.2,pimc::sector_t::offDiagonal,"close");
 
-    table.push_back(& moveHeadMove,0.4,pimc::sector_t::offDiagonal,"moveHead");
-    table.push_back(& moveTailMove,0.4,pimc::sector_t::offDiagonal,"moveTail");
+    //table.push_back(& moveHeadMove,0.4,pimc::sector_t::offDiagonal,"moveHead");
+    //table.push_back(& moveTailMove,0.4,pimc::sector_t::offDiagonal,"moveTail");
 
-    table.push_back(& swapMove,1.9,pimc::sector_t::offDiagonal,"swap");
+    //table.push_back(& swapMove,1.9,pimc::sector_t::offDiagonal,"swap");
 
     
 
@@ -696,6 +696,7 @@ TEST(run,free)
     Real Beta = 1;
     Real lBox = 1;
 
+
     pimc::geometryPBC_PIMC geo(lBox,lBox,lBox);
 
 
@@ -706,10 +707,18 @@ TEST(run,free)
 
     configurations.dataTensor().setRandom();
 
+
+    
+
+
     //configurations.join(0,1);
     //configurations.join(1,0);
     
     configurations.fillHeads();
+
+    configurations.dataTensor()(0,0,M)=configurations.dataTensor()(0,0,0) + 5*lBox;
+    
+
 
     pimc::levyReconstructor reconstructor(M);
 
@@ -720,7 +729,8 @@ TEST(run,free)
     pimc::translateMove translMove(delta,(M+1)*N);
 
     Real C = 1e-1;
-    int l = 5;
+    int l = 1;
+
     
     pimc::openMove openMove(C,l);
     pimc::closeMove closeMove(C,l);
@@ -731,21 +741,21 @@ TEST(run,free)
     pimc::swapMove swapMove(4,N);
 
     pimc::tableMoves table;
-  
-    table.push_back(& freeMoves,0.8,pimc::sector_t::offDiagonal,"levy");
+
+
+    //table.push_back(& freeMoves,0.8,pimc::sector_t::offDiagonal,"levy");
     table.push_back(& freeMoves,0.8,pimc::sector_t::diagonal,"levy");
 
     //table.push_back(& translMove,0.2,pimc::sector_t::diagonal,"translate");
     //table.push_back(& translMove,0.2,pimc::sector_t::offDiagonal,"translate");
 
+    table.push_back(& openMove,0.2,pimc::sector_t::diagonal,"open");
+    table.push_back(& closeMove,0.2,pimc::sector_t::offDiagonal,"close");
 
-    //table.push_back(& openMove,0.2,pimc::sector_t::diagonal,"open");
-    //table.push_back(& closeMove,0.2,pimc::sector_t::offDiagonal,"close");
+    //table.push_back(& moveHeadMove,0.4,pimc::sector_t::offDiagonal,"moveHead");
+    //table.push_back(& moveTailMove,0.4,pimc::sector_t::offDiagonal,"moveTail");
 
-    table.push_back(& moveHeadMove,0.4,pimc::sector_t::offDiagonal,"moveHead");
-    table.push_back(& moveTailMove,0.4,pimc::sector_t::offDiagonal,"moveTail");
-
-    table.push_back(& swapMove,1.9,pimc::sector_t::offDiagonal,"swap");
+    //table.push_back(& swapMove,1.9,pimc::sector_t::offDiagonal,"swap");
 
     
 

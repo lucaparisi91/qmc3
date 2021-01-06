@@ -3,21 +3,26 @@
 namespace pimc
 {
 
-Real kineticAction::evaluate( pimcConfigurations_t & configurations , std::array<int,2> timeSlices , std::array<int,2> chainRange  )
+Real kineticAction::evaluate( pimcConfigurations_t & configurations , std::array<int,2> timeRange , std::array<int,2> particleRange  )
 {
     const auto & data = configurations.dataTensor();
     auto & geo=getGeometry();
 
-    geo.updateSpringDifferences(distancesBuffer,data , timeSlices , chainRange );
-    #if DIMENSIONS == 3
-    auto sum= reduceOnSpringDistances( [] (Real x,Real y,Real z){ return x*x + y*y + z*z;} ,distancesBuffer,timeSlices, chainRange,configurations.getMask());
-    #endif
-    #if DIMENSIONS == 2
-    auto sum= reduceOnSpringDistances( [] (Real x,Real y){ return x*x + y*y ;} ,distancesBuffer,timeSlices, chainRange,configurations.getMask());
-    #endif
-    #if DIMENSIONS == 1
-    auto sum= reduceOnSpringDistances( [] (Real x){ return x*x;} ,distancesBuffer,timeSlices, chainRange,configurations.getMask());
-    #endif
+    Real sum=0;
+
+    for (size_t i=particleRange[0];i<=particleRange[1];i++ )
+        for(int t=timeRange[0];t<=timeRange[1] ; t++ )
+            {
+                for(int d=0;d<getDimensions();d++)
+                {
+                    sum+=
+                    (data(i,d,t+1 ) - data(i,d,t))*(data(i,d,t+1 ) - data(i,d,t));
+                    
+                    //geo.difference(data(i,d,t+1 ) - data(i,d,t),d) *
+                    //geo.difference(data(i,d,t+1 ) - data(i,d,t),d);
+                }
+                
+            }
 
     return sum/(4* D * getTimeStep());
 }

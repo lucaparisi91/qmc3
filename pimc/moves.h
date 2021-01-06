@@ -1,7 +1,6 @@
 #ifndef MOVESPIMC_H
 #define MOVESPIMC_H
 
-
 #include "../src/traits.h"
 #include "pimcConfigurations.h"
 #include "tools.h"
@@ -12,6 +11,10 @@
 
 namespace pimc
 {
+
+
+    class firstOrderAction;
+    class action;
 
 class timeSliceGenerator
 {
@@ -29,11 +32,11 @@ class timeSliceGenerator
         public : 
 
         levyReconstructor( int maxReconstructionLength) :  gauss(0,1),buffer(maxReconstructionLength*2,getDimensions()) {}
-
-
-        void apply (configurations_t & configurations, std::array<int,2> timeRange,int iChain ,
-        Real timeStep,randomGenerator_t & randG);
         
+        void apply (configurations_t & configurations, std::array<int,2> timeRange,int iChain ,
+        const action & S,randomGenerator_t & randG);
+
+
         private:
 
         std::array<Real,getDimensions()> mean;
@@ -43,7 +46,6 @@ class timeSliceGenerator
 
     };
 
-class firstOrderAction;
 
 class move 
 {
@@ -131,7 +133,6 @@ class levyMove : public move
     timeSliceGenerator tGen;
 
 };
-
 
 class openMove : public move
 {
@@ -341,7 +342,7 @@ class moveConstructor
             auto move = createMove(jMove["move"]);
 
             std::string kind = jMove["move"]["kind"].get<std::string>();
-
+            
             for (auto sector : sectors)
             {
                 sector_t currentSector;

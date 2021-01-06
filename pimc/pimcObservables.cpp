@@ -119,7 +119,8 @@ Real virialEnergyEstimator::operator()(configurations_t & confs, firstOrderActio
 
         // second term in the virial estimator
         // Does not give any contribution for a classical system
-        
+
+
         for (int t=1;t<confs.nBeads();t++)
             {
                 for (int i = group.iStart ; i<=group.iEnd ; i++)
@@ -128,27 +129,40 @@ Real virialEnergyEstimator::operator()(configurations_t & confs, firstOrderActio
 
                     for(int d=0;d<getDimensions();d++)
                     {
-                        e2+= (-data(i,d,t) + data(inext,d,t) ) *
-                            (  data(inext,d,t-1) -data(inext,d,t)   ) ;
-                    }
+                        e2+= 
+                        /*
+                        ( geo.difference( data(inext,d,t ) - data(i,d,t) ,d )  ) *
+                        ( geo.difference( data(inext,d,t ) - data(i,d,t) ,d )  );
+                        
+                        geo.difference( -data(i,d,t) + data(inext,d,t ) ,d )*
+                        geo.difference( -data(i,d,t+1) + data(i,d,t ) ,d );
+                        */
+                        (-data(i,d,t) + data(inext,d,t ) + data(i,d,confs.nBeads())  - data(inext,d,0)   )*
+                        (  data(inext,d,t-1)   - data(inext,d,t)   );
 
+
+                    }
+                    
+                    
                 }
             }
-        
+        //std::cout << e2 << std::endl;
+
         {
             int t=0;
-            for (int i = group.iStart ; i<=group.iEnd ; i++)
+                for (int i = group.iStart ; i<=group.iEnd ; i++)
                 {
                     int inext = confs.getChain(i).next;
 
                     for(int d=0;d<getDimensions();d++)
-                        {
-                            e2+= (-data(i,d,t) + data(inext,d,t) ) *
-                            (  data(i,d, confs.nBeads() -1 ) -data(inext,d,t)   ) ;
-                        }
-
+                    {
+                        e2+= (-data(i,d,t) + data(i,d,confs.nBeads() )   )*( data(i,d,confs.nBeads()-1) - data(i,d,confs.nBeads()  ) );
+                        
+                    }
+                    
+                    
                 }
-        }
+            } 
 
 
         // third term in the virial estimator
@@ -173,7 +187,6 @@ Real virialEnergyEstimator::operator()(configurations_t & confs, firstOrderActio
     e3/=(2*N*beta);
 
     e2/=(2*N*beta*beta);
-
     
     // classical gas free contribution
     Real e1 = getDimensions()/(2*beta);

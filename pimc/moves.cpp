@@ -2,6 +2,7 @@
 #include "action.h"
 #include "qmcExceptions.h"
 
+
 namespace pimc
 {      
     std::array<int,2> timeSliceGenerator::operator()(randomGenerator_t & randG, int nBeads , int maxBeadLength)
@@ -14,12 +15,16 @@ namespace pimc
         return {t0,t1};
     }
 
-    void levyReconstructor::apply (configurations_t & configurations, std::array<int,2> timeRange,int iChain ,Real timeStep,randomGenerator_t & randG)
+    void levyReconstructor::apply (configurations_t & configurations, std::array<int,2> timeRange,int iChain ,const action & S,randomGenerator_t & randG)
     {
         /* Does not take into account time periodic boundary conditions
         Reconstruct between timeRange[1] -1 and timeRange[0] + 1
         timeRange[0] and timeRange[1] are used as boundary conditions
         */
+
+        Real timeStep=S.getTimeStep();
+        const auto & geo = S.getGeometry();
+
         int l = timeRange[1] - timeRange[0];
 
         auto & data = configurations.dataTensor() ;
@@ -27,6 +32,7 @@ namespace pimc
 
         const auto & currentChain = configurations.getChain(iChain);
         int iChainNext=currentChain.next;
+
 
         //int lastBeadChain= timeRange[1] > configurations.nBeads() ? iChainNext : iChain ;
         //int lastBeadTime= timeRange[1] > configurations.nBeads() ? timeRanges[1][1] : timeRange[1] ;
@@ -42,18 +48,36 @@ namespace pimc
                 data(iChain,d,timeRange[1])=data(lastBeadChain,d,lastBeadTime);
             }
   */
-         
+
+        std::array<Real,getDimensions()> xBottom;
+        std::array<Real,getDimensions()> xTop;
+        
         // performs the actual copy
         for (int t=0;t<l-1;t++)
         {
 
             for (int d=0;d<getDimensions();d++)
                 {
+
                 Real eta = gauss(randG);
+
+
+                //xBottom[d]=geo.difference( data(iChain,d,t+timeRange[0]) - data(iChain,d,t+1+timeRange[0]),d) + data(iChain,d,t+1+timeRange[0]) ; 
+                
+                //xTop[d]=geo.difference( data(iChain,d,l+timeRange[0]) - data(iChain,d,t+1+timeRange[0]),d) + data(iChain,d,t+1+timeRange[0]) ; 
+
+                xBottom[d]=data(iChain,d,t+timeRange[0]);
+                xTop[d]=data(iChain,d,l+timeRange[0]);
+
+
+
+
+
+
                 mean[d] = 
                 (
-                data(iChain,d,t+timeRange[0])*(l-t-1) 
-                + data(iChain,d , l + timeRange[0]  ) )
+                xBottom[d]*(l-t-1) 
+                + xTop[d] )
                 /( l - t) 
                 ;
 
@@ -78,6 +102,9 @@ bool levyMove::attemptMove( configurations_t & confs, firstOrderAction & ST,rand
     int nBeads = confs.nBeads();
     auto & S = ST.getPotentialAction();
 
+    auto & geo = S.getGeometry();
+
+
     int iChain=confsSampler.sampleChain(confs,randG);
 
     auto timeRange = tGen(randG,nBeads,maxBeadLength);
@@ -93,13 +120,9 @@ bool levyMove::attemptMove( configurations_t & confs, firstOrderAction & ST,rand
             ( confs.getChain(iChainNext).head <= timeRanges[1][1]   )
     )
         )
-
-    
     {
         return false; // do not accept if the time range is not included inside a chain (including time PBC)
     }
-
-
     
     auto & data = confs.dataTensor();
 
@@ -116,15 +139,32 @@ bool levyMove::attemptMove( configurations_t & confs, firstOrderAction & ST,rand
 
       if (timeRange[1] > confs.nBeads() )//copy the end bead in second chain to the first chain
     {
-
         confs.copyData( { timeRanges[1][1] , timeRanges[1][1] } , iChainNext, timeRange[1],iChain );
+
+        for(int d=0;d<getDimensions();d++)
+        {
+            data(iChain,d,timeRange[1])-= data(iChainNext,d,0) - data(iChain,d,confs.nBeads() );
+        }// ensures to reconstruct along a continuos path
+
+        
     }
-    _levy.apply(confs,timeRange,iChain,S.getTimeStep(),randG);
+    _levy.apply(confs,timeRange,iChain,S,randG);
     if (iChainNext!=-1)
      {
-         confs.copyData( { timeRanges[0][1]+1 , timeRange[1] } , iChain, 0,iChainNext ); // time periodic boundary conditions
+         confs.copyData( { timeRanges[0][1]+1 , timeRange[1]-1 } , iChain, 0,iChainNext ); // time periodic boundary conditions
+
+        for(int t=0;t<timeRanges[1][1];t++)
+            for(int d=0;d<getDimensions();d++)
+            {
+                data(iChainNext,d,t)+=
+                data(iChainNext,d,timeRanges[1][1]) - data(iChain,d,timeRange[1] );
+
+
+                //std::cout << data(iChainNext,d,timeRanges[1][1]) - data(iChain,d,timeRange[1] )<<std::endl;
+            }// ensures to reconstruct along a continuos path
      }
-    
+
+
 
 
     auto  sNew= S.evaluate(confs,timeRanges[0], iChain) ;
@@ -142,8 +182,7 @@ bool levyMove::attemptMove( configurations_t & confs, firstOrderAction & ST,rand
          {
         confs.copyDataFromBuffer(buffer,timeRanges[1],iChainNext, timeRanges[0][1]  - timeRanges[0][0] + 1);
          }
-         confs.fillHead(iChain);
-   
+         
     }
 
     
@@ -242,7 +281,7 @@ bool swapMove::attemptMove(configurations_t & confs, firstOrderAction & S,random
         {
             data(iPartner,d,0)=data(iChainHead,d,iHead);
         }
-    _levy.apply(confs,  {0,l },  iPartner, Spot.getTimeStep() ,randG );
+    _levy.apply(confs,  {0,l },  iPartner, S ,randG );
     deltaS+=Spot.evaluate(confs,{0,l-1},iPartner);
     
     bool accept = metropolisSampler.acceptLog(-deltaS,randG);
@@ -436,13 +475,16 @@ bool openMove::attemptMove(configurations_t & confs , firstOrderAction & S,rando
         startPosition[d]=data(iChain,d,t0);
     }
 
+
     for (int d=0;d<getDimensions();d++)
     {
-    
         difference[d]=
-            geo.difference( 
-                data(iChain,d,iHead)-data(iChain,d,t0),d
+            /*   geo.difference( 
+                data(iChainTail,d,0)-data(iChain,d,t0),d
             );
+ */
+              data(iChain,d,iHead)-data(iChain,d,t0);
+
     }
 
     
@@ -457,10 +499,11 @@ bool openMove::attemptMove(configurations_t & confs , firstOrderAction & S,rando
 
 
     // perform levy reconstruction on l beads
-    _levy.apply(confs,{t0,iHead},iChain,timeStep,randG);
+    _levy.apply(confs,{t0,iHead},iChain,S,randG);
 
     // evaluates the action
     deltaS+=sPot.evaluate(confs,timeRange,iChain);
+
 
 
     // compute the acceptance ratio
@@ -493,11 +536,15 @@ bool closeMove::attemptMove(configurations_t & confs , firstOrderAction & S,rand
     int iChainHead=confs.heads()[std::floor(uniformRealNumber(randG) * confs.heads().size() )];
     int iChainTail=confs.tails()[std::floor(uniformRealNumber(randG) * confs.tails().size() )];
 
-    Real timeStep = S.getTimeStep();
+   
+    auto timeStep = S.getTimeStep();
 
+    auto & geo = S.getGeometry();
 
     int iHead=confs.nBeads();
     int iTail = 0;
+
+    
     
     //int l= std::floor( uniformRealNumber(randG) * (_maxLength -2) ) + 1 ; // distance from itime where the head is formed
     int l = _maxLength - 2;
@@ -512,6 +559,9 @@ bool closeMove::attemptMove(configurations_t & confs , firstOrderAction & S,rand
 
     auto & data = confs.dataTensor();
 
+    //std::cout << data(iChainHead,0,iHead)-data(iChainTail,0,iTail) << std::endl;
+
+
     std::array<Real,3> difference;
 
     deltaS-=sPot.evaluate(confs,{t0,iHead-1},iChainHead);
@@ -520,19 +570,25 @@ bool closeMove::attemptMove(configurations_t & confs , firstOrderAction & S,rand
 
     // copy first valid bead of tail of the head
     Real distanceSquared=0;
-    const auto & geo = S.getGeometry();
     std::array<Real,3> headPosition;
     std::array<Real,3> startPosition;
+    std::array<Real,3> distance;
+
 
     for (int d=0;d<getDimensions();d++)
     {
-        data(iChainHead,d, iHead )=data(iChainTail,d,iTail);
+        data(iChainHead,d, iHead )=geo.difference( - data(iChainHead,d,t0) + data(iChainTail,d,iTail),d);
+        //data(iChainHead,d, iHead )= - data(iChainHead,d,t0) + data(iChainTail,d,iTail);
+
+        data(iChainHead,d, iHead )+=data(iChainHead,d,t0);
+
     }
 
     Real mass = confs.getGroupByChain(iChainHead).mass;
     
+
     // perform levy reconstruction on l beads
-    _levy.apply(confs,{t0,iHead},iChainHead,timeStep,randG);
+    _levy.apply(confs,{t0,iHead},iChainHead,S,randG);
 
     // evaluates the action
     deltaS+=sPot.evaluate(confs,{t0,iHead-1},iChainHead);
@@ -541,12 +597,23 @@ bool closeMove::attemptMove(configurations_t & confs , firstOrderAction & S,rand
     for (int d=0;d<getDimensions();d++)
     {
         difference[d]=
-            geo.difference( 
-                data(iChainHead,d,t0)-data(iChainHead,d,iHead),d
-            );
+            //geo.difference( 
+            //    data(iChainHead,d,t0)-data(iChainHead,d,iHead),d
+            //);
+         data(iChainHead,d,t0)-data(iChainHead,d,iHead);
     }
 
+
+     //std::cout << data(iChainHead,0,iHead)-data(iChainTail,0,iTail) << std::endl;
+
+
+
+
+
     auto propRatio = -deltaS + freeParticleLogProbability(difference,S.getTimeStep()*l,mass) -log(C);
+
+
+    //std::cout << propRatio << std::endl;
 
 
     bool accept = sampler.acceptLog(propRatio,randG);
@@ -554,7 +621,13 @@ bool closeMove::attemptMove(configurations_t & confs , firstOrderAction & S,rand
     if ( accept)
     {
         confs.join(iChainHead,iChainTail);
-        confs.fillHead(iChainHead);
+        //confs.fillHead(iChainHead);
+
+        /* for(int d=0;d<getDimensions();d++)
+        {
+            std::cout<< - data(iChainHead,d,iHead) + data(iChainTail,d,iTail) << " ";
+        }
+        std::cout << std::endl; */
         
     }
     else
@@ -634,7 +707,7 @@ bool moveHead::attemptMove(configurations_t & confs , firstOrderAction & S,rando
     }
     
     // perform levy reconstruction on l beads
-    _levy.apply(confs,{t0,iHead},iChain,timeStep,randG);
+    _levy.apply(confs,{t0,iHead},iChain,S,randG);
 
     // evaluates the action
     deltaS+=sPot.evaluate(confs,timeRange,iChain);
@@ -657,7 +730,6 @@ bool moveHead::attemptMove(configurations_t & confs , firstOrderAction & S,rando
     return accept;
 
 }
-
 
 bool moveTail::attemptMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG)
 {
@@ -715,7 +787,7 @@ bool moveTail::attemptMove(configurations_t & confs , firstOrderAction & S,rando
 
     
     // perform levy reconstruction on l beads
-    _levy.apply(confs,{iTail,t1},iChain,timeStep,randG);
+    _levy.apply(confs,{iTail,t1},iChain,S,randG);
 
     // evaluates the action
     deltaS+=sPot.evaluate(confs,timeRange,iChain);

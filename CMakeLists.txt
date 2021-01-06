@@ -6,8 +6,17 @@ endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
-set(CMAKE_CXX_FLAGS_DEBUG "-g -pg -Wfatal-errors")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wfatal-errors")
+
+
+if ( ${CMAKE_BUILD_TYPE} MATCHES Debug)
+  set(CMAKE_CXX_FLAGS_ADDITIONAL "-g -pg -Wfatal-errors")
+  elseif (${CMAKE_BUILD_TYPE} MATCHES Release) 
+  set(CMAKE_CXX_FLAGS_ADDITIONAL "-O3 -Wfatal-errors")
+  else()
+  message(FATAL_ERROR "Unrecognized build type: " ${CMAKE_BUILD_TYPE}  )
+
+endif()
+
 
 # set the project name
 project(qmc VERSION 3.0)
@@ -19,7 +28,8 @@ endif()
 find_package(MPI REQUIRED)
 find_package(Boost REQUIRED)
 
-set(CMAKE_CXX_COMPILE_FLAGS ${CMAKE_CXX_COMPILE_FLAGS} ${MPI_COMPILE_FLAGS} ${CMAKE_CXX_FLAGS_RELEASE} )
+
+set(CMAKE_CXX_COMPILE_FLAGS ${CMAKE_CXX_COMPILE_FLAGS} ${MPI_COMPILE_FLAGS} ${CMAKE_CXX_FLAGS_ADDITIONAL} )
 set(CMAKE_CXX_LINK_FLAGS ${CMAKE_CXX_LINK_FLAGS} ${MPI_LINK_FLAGS})
 
 include_directories(SYSTEM ${MPI_INCLUDE_PATH})
@@ -39,7 +49,6 @@ set_target_properties(main_lib PROPERTIES RULE_MESSAGES OFF)
 target_include_directories(main_lib PUBLIC
                            "${PROJECT_BINARY_DIR}/../src"
 			   )
-
 
 target_include_directories(main_lib SYSTEM PUBLIC ${PROJECT_BINARY_DIR}/../external/eigen ${PROJECT_BINARY_DIR}/../external/json/single_include		           )
 			 
