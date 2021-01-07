@@ -194,6 +194,10 @@ TEST(moves,levy_reconstructor)
     const int N = 50;
     const int M = 30;
 
+    
+    pimc::geometryPBC_PIMC geo(10,10,10);
+
+
     pimc::particleGroup groupA{ 0 , N-1, N ,  1.0};
     randomGenerator_t randG(seed+5);
 
@@ -205,6 +209,8 @@ TEST(moves,levy_reconstructor)
 
     std::array<int,2> timeSlice= {10,26};
 
+    pimc::kineticAction sT(timeStep, configurations.nChains(), configurations.nBeads()  , geo);
+     
 
     pimc::levyReconstructor levy(M);
     int iChain = 30;
@@ -215,7 +221,7 @@ TEST(moves,levy_reconstructor)
     configurations2=configurations;
 
 
-    levy.apply(configurations,timeSlice,iChain,timeStep,randG);
+    levy.apply(configurations,timeSlice,iChain,sT,randG);
 
     auto &  data = configurations.dataTensor();
     auto &  data2 = configurations2.dataTensor();
@@ -267,7 +273,7 @@ TEST(moves,levy_reconstructor)
 
     for (int i=0;i< nSteps ; i++)
     {
-        levy.apply(configurations,timeSlice,iChain,timeStep,randG);
+        levy.apply(configurations,timeSlice,iChain,sT,randG);
 
 
         for(int d=0;d<getDimensions();d++)
@@ -683,20 +689,24 @@ TEST(run,free_harmonic_oscillator)
 
         configurations.save("configurations/sample"+std::to_string(i+1),"pdb");
     }
-    
+
     f.close();
     ASSERT_TRUE( (success*1./nTimes )> 0);
     std::cout << "END." << std::endl;
 }
 
+
 TEST(run,free)
 {   
-    int N=1;
+
+    Real density=0.15884256651199277;
+    int N=500;
+
     int M=10;
     Real Beta = 1;
-    Real lBox = 1;
+    Real lBox = std::pow(N/density,1./3) ;
 
-
+    
     pimc::geometryPBC_PIMC geo(lBox,lBox,lBox);
 
 
@@ -705,7 +715,17 @@ TEST(run,free)
     pimc::particleGroup groupA{ 0 , N-1, N - 1 , 1.0};
     pimc::pimcConfigurations configurations(M , getDimensions() , {groupA});
 
-    configurations.dataTensor().setRandom();
+    auto & data = configurations.dataTensor(); 
+    data.setRandom();
+
+    for(int i=0;i<N;i++)
+    {
+        for(int j=0;j<M;j++)
+        for(int d=0;d<getDimensions();d++)
+        {
+            data(i,d,j)=(data(i,d,j)-0.5 )*lBox;
+        }
+    }
 
 
     
@@ -716,22 +736,22 @@ TEST(run,free)
     
     configurations.fillHeads();
 
-    configurations.dataTensor()(0,0,M)=configurations.dataTensor()(0,0,0) + 5*lBox;
+    //configurations.dataTensor()(0,0,M)=configurations.dataTensor()(0,0,0) + 5*lBox;
     
 
 
     pimc::levyReconstructor reconstructor(M);
 
-    pimc::levyMove freeMoves(5);
+    pimc::levyMove freeMoves(M/3);
 
     Real delta=0.1;
 
     pimc::translateMove translMove(delta,(M+1)*N);
 
-    Real C = 1e-1;
+    Real C = 1e-4;
     int l = 1;
 
-    
+
     pimc::openMove openMove(C,l);
     pimc::closeMove closeMove(C,l);
 
@@ -743,21 +763,21 @@ TEST(run,free)
     pimc::tableMoves table;
 
 
-    //table.push_back(& freeMoves,0.8,pimc::sector_t::offDiagonal,"levy");
+    table.push_back(& freeMoves,0.8,pimc::sector_t::offDiagonal,"levy");
     table.push_back(& freeMoves,0.8,pimc::sector_t::diagonal,"levy");
+
 
     //table.push_back(& translMove,0.2,pimc::sector_t::diagonal,"translate");
     //table.push_back(& translMove,0.2,pimc::sector_t::offDiagonal,"translate");
 
-    table.push_back(& openMove,0.2,pimc::sector_t::diagonal,"open");
-    table.push_back(& closeMove,0.2,pimc::sector_t::offDiagonal,"close");
+    table.push_back(& openMove,0.1,pimc::sector_t::diagonal,"open");
+    table.push_back(& closeMove,0.1,pimc::sector_t::offDiagonal,"close");
 
-    //table.push_back(& moveHeadMove,0.4,pimc::sector_t::offDiagonal,"moveHead");
-    //table.push_back(& moveTailMove,0.4,pimc::sector_t::offDiagonal,"moveTail");
+    table.push_back(& moveHeadMove,0.4,pimc::sector_t::offDiagonal,"moveHead");
+    table.push_back(& moveTailMove,0.4,pimc::sector_t::offDiagonal,"moveTail");
 
-    //table.push_back(& swapMove,1.9,pimc::sector_t::offDiagonal,"swap");
+    table.push_back(& swapMove,1.9,pimc::sector_t::offDiagonal,"swap");
 
-    
 
     randomGenerator_t randG(368);
 
@@ -787,7 +807,7 @@ TEST(run,free)
     pimc::firstOrderAction S(sT,  sV);
     int nTimes = 100000;
     int success = 0;
-    int subSteps=10000;
+    int subSteps=1000;
     int correlationSteps=100;
 
     pimc::thermodynamicEnergyEstimator energyEstimator;

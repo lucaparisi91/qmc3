@@ -61,7 +61,6 @@ namespace pimc
 
                 Real eta = gauss(randG);
 
-
                 //xBottom[d]=geo.difference( data(iChain,d,t+timeRange[0]) - data(iChain,d,t+1+timeRange[0]),d) + data(iChain,d,t+1+timeRange[0]) ; 
                 
                 //xTop[d]=geo.difference( data(iChain,d,l+timeRange[0]) - data(iChain,d,t+1+timeRange[0]),d) + data(iChain,d,t+1+timeRange[0]) ; 
@@ -279,8 +278,11 @@ bool swapMove::attemptMove(configurations_t & confs, firstOrderAction & S,random
     // performs levy reconstruction between the head and the bead
     for(int d=0;d<getDimensions();d++)
         {
-            data(iPartner,d,0)=data(iChainHead,d,iHead);
+            data(iPartner,d,0)=//data(iChainHead,d,iHead);
+            geo.difference (- data (iPartner,d,l) + data(iChainHead,d,iHead) , d);
+            data(iPartner,d,0)+=data (iPartner,d,l);
         }
+
     _levy.apply(confs,  {0,l },  iPartner, S ,randG );
     deltaS+=Spot.evaluate(confs,{0,l-1},iPartner);
     
@@ -479,13 +481,23 @@ bool openMove::attemptMove(configurations_t & confs , firstOrderAction & S,rando
     for (int d=0;d<getDimensions();d++)
     {
         difference[d]=
-            /*   geo.difference( 
+               geo.difference( 
                 data(iChainTail,d,0)-data(iChain,d,t0),d
             );
- */
-              data(iChain,d,iHead)-data(iChain,d,t0);
 
+              //data(iChain,d,iHead)-data(iChain,d,t0);
+
+        if (
+            std::abs(data(iChain,d,iHead)-data(iChain,d,t0) ) > geo.getLBox(d)*0.5 )
+            {
+                std::cout <<    data(iChain,d,iHead)-data(iChain,d,t0) << std::endl;
+                return false;
+            }
+        
+        
+   
     }
+
 
     
     Real mass = confs.getGroupByChain(iChain).mass;
@@ -494,8 +506,23 @@ bool openMove::attemptMove(configurations_t & confs , firstOrderAction & S,rando
 
     for (int d=0;d<getDimensions();d++)
     {
-        data(iChain,d,iHead)=headPosition[d];
+         if (
+            std::abs(headPosition[d]-startPosition[d] ) > geo.getLBox(d)*0.5 )
+            {
+                std::cout <<    data(iChain,d,iHead)-data(iChain,d,t0) << std::endl;
+                return false;
+            }
+
     }
+
+    for (int d=0;d<getDimensions();d++)
+    {
+        data(iChain,d,iHead)=headPosition[d];
+    
+    }
+
+
+    
 
 
     // perform levy reconstruction on l beads
@@ -535,7 +562,6 @@ bool closeMove::attemptMove(configurations_t & confs , firstOrderAction & S,rand
 
     int iChainHead=confs.heads()[std::floor(uniformRealNumber(randG) * confs.heads().size() )];
     int iChainTail=confs.tails()[std::floor(uniformRealNumber(randG) * confs.tails().size() )];
-
    
     auto timeStep = S.getTimeStep();
 
@@ -577,12 +603,26 @@ bool closeMove::attemptMove(configurations_t & confs , firstOrderAction & S,rand
 
     for (int d=0;d<getDimensions();d++)
     {
+        //std::cout << "close: " <<geo.difference( - data(iChainHead,d,t0) + data(iChainTail,d,iTail),d) << std::endl;
+
+
         data(iChainHead,d, iHead )=geo.difference( - data(iChainHead,d,t0) + data(iChainTail,d,iTail),d);
         //data(iChainHead,d, iHead )= - data(iChainHead,d,t0) + data(iChainTail,d,iTail);
 
         data(iChainHead,d, iHead )+=data(iChainHead,d,t0);
 
+        
+        //std::cout<<  ( - data(iChainHead,d,t0) + data(iChainHead,d,iHead),d) << std::endl;
+
+        //std::cout <<   - data(iChainHead,d,0) + data(iChainHead,d,iHead) << std::endl;
+
+
+
+
+
+
     }
+
 
     Real mass = confs.getGroupByChain(iChainHead).mass;
     
@@ -603,10 +643,12 @@ bool closeMove::attemptMove(configurations_t & confs , firstOrderAction & S,rand
          data(iChainHead,d,t0)-data(iChainHead,d,iHead);
     }
 
-
-     //std::cout << data(iChainHead,0,iHead)-data(iChainTail,0,iTail) << std::endl;
-
-
+/* 
+     int winding =  (data(iChainHead,0,iHead)-data(iChainTail,0,iTail))/2;
+     
+     {
+        std::cout << winding << std::endl;
+     } */
 
 
 
@@ -835,7 +877,7 @@ bool tableMoves::attemptMove(configurations_t & confs, firstOrderAction & S,rand
         nClosedSectorMoves++;
         return closedTab.attemptMove(confs,S,randG);
     }
-    
+        
 }
 
 std::ostream & tableMoves::operator>> (std::ostream & os)
