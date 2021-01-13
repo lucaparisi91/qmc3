@@ -8,9 +8,9 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 if ( ${CMAKE_BUILD_TYPE} MATCHES Debug)
-  set(CMAKE_CXX_FLAGS_ADDITIONAL "-g -pg -Wfatal-errors")
+  set(CMAKE_CXX_FLAGS_ADDITIONAL "-Og -g -pg -Wfatal-errors")
   elseif (${CMAKE_BUILD_TYPE} MATCHES Release) 
-  set(CMAKE_CXX_FLAGS_ADDITIONAL "-O3 -Wfatal-errors")
+  set(CMAKE_CXX_FLAGS_ADDITIONAL "-O3 -pg -Wfatal-errors")
   else()
   message(FATAL_ERROR "Unrecognized build type: " ${CMAKE_BUILD_TYPE}  )
 
@@ -44,6 +44,8 @@ set(SOURCES  src/input.cpp src/geometry.cpp src/wavefunction/jastrows/jastrowSqu
 
 add_library(main_lib STATIC ${SOURCES})
 set_target_properties(main_lib PROPERTIES RULE_MESSAGES OFF)
+set_target_properties( main_lib PROPERTIES COMPILE_FLAGS ${CMAKE_CXX_FLAGS_ADDITIONAL} )
+
 
 target_include_directories(main_lib PUBLIC
                            "${PROJECT_BINARY_DIR}/../src"
@@ -64,7 +66,6 @@ target_include_directories(pimc PUBLIC
                            )
 target_link_libraries(pimc PUBLIC  main_lib ${MPI_LIBRARIES})			 
 
-
 add_executable(current_test src/current_test.cpp)
 target_link_libraries(current_test main_lib ${MPI_LIBRARIES} )
 
@@ -74,3 +75,9 @@ target_include_directories(tst PUBLIC
                            "${PROJECT_BINARY_DIR}/../src"
                            )
 target_link_libraries(tst PUBLIC ${PROJECT_BINARY_DIR}/../external gtest eigen main_lib ${MPI_LIBRARIES})			 
+set_target_properties( tst PROPERTIES COMPILE_FLAGS ${CMAKE_CXX_FLAGS_ADDITIONAL} )
+set_target_properties( tst PROPERTIES LINK_FLAGS "-pg" )
+
+
+
+message("Compile Flags: " ${CMAKE_CXX_COMPILE_FLAGS} )

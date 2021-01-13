@@ -1,7 +1,6 @@
 #ifndef POTENTIAL_H
 #define POTENTIAL_H
 
-
 #include "traits.h"
 #include "qmcExceptions.h"
 #include "walkers.h"

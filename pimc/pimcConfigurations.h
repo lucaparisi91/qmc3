@@ -10,10 +10,9 @@
 #include "toolsPimc.h"
 #include <list>
 
+
 namespace pimc
 {
-
-
 
 class mask
 {
@@ -30,9 +29,6 @@ private:
 };
 
 enum sector_t{ diagonal = 0 , offDiagonal = 1 , any = 2} ;
-
-
-
 
 
 struct particleGroup

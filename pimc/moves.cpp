@@ -130,11 +130,12 @@ bool levyMove::attemptMove( configurations_t & confs, firstOrderAction & ST,rand
 
 
     // copy to internal buffer beads to move
-     confs.copyDataToBuffer(buffer,timeRanges[0],iChain);
+     confs.copyDataToBuffer(buffer,{timeRanges[0][0] , timeRanges[0][1]+ 1},iChain);
      if (iChainNext!=-1)
      {
-        confs.copyDataToBuffer(buffer,timeRanges[1],iChainNext, timeRanges[0][1]  - timeRanges[0][0] + 1);
+        confs.copyDataToBuffer(buffer,timeRanges[1],iChainNext, timeRanges[0][1]  - timeRanges[0][0] + 2);
      }
+
 
       if (timeRange[1] > confs.nBeads() )//copy the end bead in second chain to the first chain
     {
@@ -176,14 +177,13 @@ bool levyMove::attemptMove( configurations_t & confs, firstOrderAction & ST,rand
     if (! accepted)
     {
         // copy back old beads
-        confs.copyDataFromBuffer(buffer,timeRanges[0],iChain);
+        confs.copyDataFromBuffer(buffer,{timeRanges[0][0],timeRanges[0][1]+1},iChain);
         if (iChainNext!=-1)
          {
-        confs.copyDataFromBuffer(buffer,timeRanges[1],iChainNext, timeRanges[0][1]  - timeRanges[0][0] + 1);
+        confs.copyDataFromBuffer(buffer,timeRanges[1],iChainNext, timeRanges[0][1]  - timeRanges[0][0] + 2);
          }
-         
-    }
 
+    }
     
     return accepted;
 }

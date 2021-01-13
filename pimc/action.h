@@ -9,6 +9,7 @@
 #include "qmcExceptions.h"
 #include <memory>
 
+
 namespace pimc
 {
 
@@ -78,8 +79,7 @@ namespace pimc
     {
         Real sum=0;
 
-         
-            for(int t=timeRange[0]+1;t<=timeRange[1] ; t++ )
+        for(int t=timeRange[0]+1;t<=timeRange[1] ; t++ )
             {
               for (size_t i=particleRange[0];i<=particleRange[1];i++ )
                 {
@@ -164,12 +164,11 @@ class action
 
     virtual Real evaluate(configurations_t & configurations, std::array<int,2> timeRange, int iParticle)=0;
 
-    virtual Real evaluate(pimcConfigurations_t & configurations, std::array<int,2> timeRange, int iChain1 , int iChain2  )=0; 
-
     virtual Real evaluate( configurations_t & pimcConfigurations)=0; // evaluates the whole action
 
 
     virtual void addGradient(const configurations_t & pimcConfigurations,const std::array<int,2> & timeRange,const  std::array<int,2> & particleRange,  Eigen::Tensor<Real,3> & gradientBuffer){throw missingImplementation("Gradient not implemented for this action.");}
+
 
 
     const auto & getGeometry() const {return _geo ;}
@@ -327,7 +326,6 @@ class potentialActionOneBody : public action
         return sum;
     }
 
-
     virtual void addGradient(const configurations_t & pimcConfigurations,const std::array<int,2> & timeRange,const  std::array<int,2> & particleRange,  Eigen::Tensor<Real,3> & gradientBuffer)
    {
 
@@ -404,21 +402,24 @@ class potentialActionOneBody : public action
     functor_t V;
 };
 
-
 template<class functor_t>
-class potentialActionTwoBody
+class potentialActionTwoBody : public action
 {
     public:
 
-    potentialActionTwoBody(Real tau_, int nChains_  , int nBeads_, functor_t V_, geometryPBC_PIMC geo_) : tau(tau_),V(V_),geo(geo_),nChains(nChains_),nBeads(nBeads_) ,
-    bufferDistances(nChains_,getDimensions(),nBeads_) 
+    potentialActionTwoBody(Real tau_, int nChains_  , int nBeads_, functor_t V_, geometryPBC_PIMC geo_, int  iParticleGroupA_, int iParticleGroupB_) : V(V_),nChains(nChains_),nBeads(nBeads_) ,
+    bufferDistances(nChains_,getDimensions(),nBeads_+1),
+    iParticleGroupA(iParticleGroupA_),iParticleGroupB(iParticleGroupB_),
+    action::action(tau_,geo_)
      {}
 
-     Real evaluate( pimcConfigurations_t & configurations, std::array<int,2> timeRange, int iChain)
+    virtual Real evaluate(configurations_t & configurations, std::array<int,2> timeRange, int iChain)
      {
          Real sum=0;
 
-         auto & [groupA, groupB] = _groups[0];
+
+        const auto & groupA = configurations.getGroups()[iParticleGroupA];
+        const auto & groupB = configurations.getGroups()[iParticleGroupB];
 
          
         bool isInA = groupA.contains(iChain);
@@ -432,87 +433,290 @@ class potentialActionTwoBody
         }         
 
          return sum;
-
      };
-
 
      Real evaluate(pimcConfigurations_t & configurations, std::array<int,2> timeRange, int iChain1, int iChain2)
      {
-        auto & [groupA, groupB] = _groups[0];
-
-         // evaluates were all particles are
-        bool is1inA = groupA.contains(iChain1);
-        bool is1inB = groupB.contains(iChain1);
-        bool is2inA = groupA.contains(iChain2);
-        bool is2inB = groupB.contains(iChain2);
-
-        bool is1inAorB =  is1inA or is1inB;
-        bool is2inAorB = is2inA or is2inB;
-        
-
-         Real sum=0;
-
-        // both particles are contained in setA or setB
-         if ( is1inAorB and is2inAorB   )
-         {
-            const auto & groupLeft =  is1inA ? groupB : groupA;
-            const auto & groupRight = is2inA ? groupB : groupA;
-
-            return evaluate(configurations,timeRange,iChain1,iChain2, {groupLeft.iStart,groupLeft.iEnd},{groupRight.iStart,groupRight.iEnd}     );
-        }
-        else
-        {
-            auto iChain = is1inAorB ? iChain1 : iChain2; 
-            return evaluate(configurations,timeRange,iChain);
-        }
-
-        return sum;
+        throw missingImplementation("Two particles updates are not supported");
      };
 
     Real evaluate(const pimcConfigurations_t & configurations, std::array<int,2> timeRange, int iChain, std::array<int,2>  particleRange  ) 
     {
+        const auto & geo = getGeometry();
+        Real sum=0;
+
         const auto & data = configurations.dataTensor();
 
-        geo.updateEqualTimeDifferences(bufferDistances, data, timeRange , iChain, particleRange) ;
 
-        auto sum=reduceOnDifferences(bufferDistances,timeRange,iChain,particleRange,configurations.getMask());
-        return sum;
-    }
-
-    Real evaluate(const pimcConfigurations_t & configurations, std::array<int,2> timeRange, int iChain1, int iChain2, std::array<int,2>  particleRange1, std::array<int,2> particleRange2  ) 
-    {
-        auto sum1=evaluate(configurations,timeRange,iChain1,particleRange1);
-        // sum distances changed with particle j . Avoid multiple-counting of particle (iChain1,iChain2)
-
-        std::array<int,2> firstInterval = {particleRange2[0],std::min(particleRange2[1],iChain1)};
-
-        std::array<int,2> secondInterval = {firstInterval[1]+1,particleRange2[1]};
-
-        auto sum2Left=evaluate(configurations,timeRange,iChain2,firstInterval);
-        auto sum2Right=evaluate(configurations,timeRange,iChain2,secondInterval);
-
-
-        return sum1 + sum2Left + sum2Right;
-    }
-
-
-
-
-
-
-    Real evaluate(const pimcConfigurations_t & configurations)
-    {
-        Real sum=0;
-        for(int iChain=0 ; iChain < nChains; iChain++ )
+        for(int t=timeRange[0]+1;t<=timeRange[1];t++)
         {
-            sum+=evaluate(configurations, {0,nBeads-1} , iChain, {0, nChains-1});
+            for(int j=particleRange[0];j<=particleRange[1];j++)
+            {
+                for(int d=0;d<getDimensions();d++)
+                {
+                    bufferDistances(j,d,t)=geo.difference( 
+                        data(iChain,d,t) - data(j,d,t) ,d
+                    );
+                }
+
+                #if DIMENSIONS == 3
+                sum+=V(bufferDistances(j,0,t) , bufferDistances(j,1,t) , bufferDistances(j,2   ,t)  );
+                #endif 
+
+                 #if DIMENSIONS == 2
+                sum+=V(bufferDistances(j,0,t) , bufferDistances(j,1,t)   );
+                #endif 
+
+                 #if DIMENSIONS == 1
+                sum+=V(bufferDistances(j,0,t)  );
+                #endif 
+
+            }
         }
-        return sum/2.;
+
+        {
+            int t=timeRange[0];
+            for(int j=particleRange[0];j<=particleRange[1];j++)
+            {
+                for(int d=0;d<getDimensions();d++)
+                {
+                    bufferDistances(j,d,t)=geo.difference( 
+                        data(iChain,d,t) - data(j,d,t) ,d
+                    );
+                }
+
+                #if DIMENSIONS == 3
+                sum+=0.5*V(bufferDistances(j,0,t) , bufferDistances(j,1,t) , bufferDistances(j,2   ,t)  );
+                #endif 
+
+                 #if DIMENSIONS == 2
+                sum+=0.5*V(bufferDistances(j,0,t) , bufferDistances(j,1,t)   );
+                #endif 
+
+                 #if DIMENSIONS == 1
+                sum+=0.5*V(bufferDistances(j,0,t)  );
+                #endif 
+
+            }
+        }
+
+
+        {
+            int t=timeRange[1]+1;
+            for(int j=particleRange[0];j<=particleRange[1];j++)
+            {
+                for(int d=0;d<getDimensions();d++)
+                {
+                    bufferDistances(j,d,t)=geo.difference( 
+                        data(iChain,d,t) - data(j,d,t) ,d
+                    );
+                }
+
+                #if DIMENSIONS == 3
+                sum+=0.5*V(bufferDistances(j,0,t) , bufferDistances(j,1,t) , bufferDistances(j,2   ,t)  );
+                #endif 
+
+                 #if DIMENSIONS == 2
+                sum+=0.5*V(bufferDistances(j,0,t) , bufferDistances(j,1,t)   );
+                #endif 
+
+                 #if DIMENSIONS == 1
+                sum+=0.5*V(bufferDistances(j,0,t)  );
+                #endif 
+
+            }
+        }
+
+
+
+
+
+
+        return sum*getTimeStep();
+    }
+
+
+    Real evaluate(pimcConfigurations_t & configurations)
+    {
+        if (iParticleGroupA == iParticleGroupB)
+        {
+            return evaluateOnSameGroup(configurations);
+        }
+        else
+        {
+            return  evaluateOnDifferentGroup(configurations);
+        }
+
     };
 
 
+    virtual void addGradient(const configurations_t & pimcConfigurations,const std::array<int,2> & timeRange,const  std::array<int,2> & particleRange,  Eigen::Tensor<Real,3> & gradientBuffer)
+    {
+        const auto & geo = getGeometry();
+
+        // should only used in the diagonal sector with time periodic boundary conditions
+
+         const auto & data = pimcConfigurations.dataTensor();
+         for (int t=timeRange[0];t<=timeRange[1];t++)
+            for (int i=particleRange[0] ; i<=particleRange[1];i++ )
+                for (int j=particleRange[0] ; j<i;j++ )
+                {
+
+                    for(int d=0;d<getDimensions();d++)
+                    {
+                        bufferDistances(j,d,t)=geo.difference( 
+                            data(i,d,t) - data(j,d,t) ,d
+                        );
+                    }
+
+                    #if DIMENSIONS == 1
+                    Real tmp=V.gradX( bufferDistances(j,0,t)  )*getTimeStep();
+
+                    gradientBuffer(i,0,t)+=tmp;
+                    gradientBuffer(j,0,t)-=tmp;
+                    #endif
+
+                    #if DIMENSIONS == 3
+                    Real tmp0=V.gradX( bufferDistances(j,0,t), bufferDistances(j,1,t), bufferDistances(j,2,t)  )*getTimeStep();
+                    Real tmp1=V.gradY( bufferDistances(j,0,t), bufferDistances(j,1,t), bufferDistances(j,2,t)  )*getTimeStep();
+                    Real tmp2=V.gradZ( bufferDistances(j,0,t), bufferDistances(j,1,t), bufferDistances(j,2,t)  )*getTimeStep();
+
+
+                    gradientBuffer(i,0,t)+=tmp0;
+                    gradientBuffer(j,0,t)-=tmp0;
+                    gradientBuffer(i,1,t)+=tmp1;
+                    gradientBuffer(j,1,t)-=tmp1;
+                    gradientBuffer(i,2,t)+=tmp2;
+                    gradientBuffer(j,2,t)-=tmp2;
+
+                    #endif
+                }
+    
+
+
+  
+
+   
+
+    }
+
 
     private:
+
+
+     Real evaluateOnDifferentGroup(const pimcConfigurations_t & configurations)
+     {
+         throw missingImplementation("evaluateOnDifferentGroup");
+
+     }
+
+    Real evaluateOnSameGroup(const pimcConfigurations_t & configurations)
+    {
+        Real sum=0;
+
+        const auto & geo = getGeometry();
+
+        const auto & data = configurations.dataTensor();
+
+
+        const auto & group = configurations.getGroups()[iParticleGroupA];
+
+            for(int t=1;t<configurations.nBeads();t++)
+            {
+
+            for(int i=group.iStart; i<=group.iEnd;i++)
+            {
+                for(int j=group.iStart;j< i ;j++)
+                {
+                    for(int d=0;d<getDimensions();d++)
+                    {
+                        bufferDistances(j,d,t)=geo.difference( 
+                            data(i,d,t) - data(j,d,t) ,d
+                        );
+                    }
+
+                    #if DIMENSIONS == 3
+                    sum+=V(bufferDistances(j,0,t) , bufferDistances(j,1,t) , bufferDistances(j,2   ,t)  );
+                    #endif 
+
+                    #if DIMENSIONS == 2
+                    sum+=V(bufferDistances(j,0,t) , bufferDistances(j,1,t)   );
+                    #endif 
+
+                    #if DIMENSIONS == 1
+                    sum+=V(bufferDistances(j,0,t)  );
+                    #endif 
+
+                }
+
+            }
+         }
+
+
+            {
+                int t=0;
+            for(int i=group.iStart; i<=group.iEnd;i++)
+            {
+                for(int j=group.iStart;j< i ;j++)
+                {
+                    for(int d=0;d<getDimensions();d++)
+                    {
+                        bufferDistances(j,d,t)=geo.difference( 
+                            data(i,d,t) - data(j,d,t) ,d
+                        );
+                    }
+
+                    #if DIMENSIONS == 3
+                    sum+=0.5*V(bufferDistances(j,0,t) , bufferDistances(j,1,t) , bufferDistances(j,2   ,t)  );
+                    #endif 
+
+                    #if DIMENSIONS == 2
+                    sum+=V(bufferDistances(j,0,t) , bufferDistances(j,1,t)   );
+                    #endif 
+
+                    #if DIMENSIONS == 1
+                    sum+=0.5*V(bufferDistances(j,0,t)  );
+                    #endif 
+
+                }
+
+            }
+         }
+
+        {
+            int t=configurations.nBeads();
+            for(int i=group.iStart; i<=group.iEnd;i++)
+            {
+                for(int j=group.iStart;j< i ;j++)
+                {
+                    for(int d=0;d<getDimensions();d++)
+                    {
+                        bufferDistances(j,d,t)=geo.difference( 
+                            data(i,d,t) - data(j,d,t) ,d
+                        );
+                    }
+
+                    #if DIMENSIONS == 3
+                    sum+=0.5*V(bufferDistances(j,0,t) , bufferDistances(j,1,t) , bufferDistances(j,2   ,t)  );
+                    #endif 
+
+                    #if DIMENSIONS == 2
+                    sum+=V(bufferDistances(j,0,t) , bufferDistances(j,1,t)   );
+                    #endif 
+
+                    #if DIMENSIONS == 1
+                    sum+=0.5*V(bufferDistances(j,0,t)  );
+                    #endif 
+
+                }
+
+            }
+        } 
+
+
+
+        return sum*getTimeStep();
+    };
 
 
     Real reduceOnDifferences(const Eigen::Tensor<Real,3> & tn, std::array<int,2> timeRange, int j,  std::array<int,2> particleRange  ) const 
@@ -570,13 +774,17 @@ class potentialActionTwoBody
 
     }
 
-    functor_t V;
-    Real tau;
-    Eigen::Tensor<Real,3> bufferDistances;
 
-    geometryPBC_PIMC geo;
+    
+
+    functor_t V;
+   
+    Eigen::Tensor<Real,3> bufferDistances;
     int nChains,nBeads;
-    std::vector< std::array<particleGroup,2 >  > _groups;
+
+
+    int iParticleGroupA;
+    int iParticleGroupB;
 
 };
 
@@ -600,17 +808,6 @@ class sumAction : public action
         return sum;
     }
 
-    virtual Real evaluate(pimcConfigurations_t & configurations, std::array<int,2> timeRange, int iChain1 , int iChain2)
-    {
-        Real sum=0;
-        for ( auto S : _actions)
-        {
-            sum+=S->evaluate(configurations,timeRange , iChain1, iChain2);
-        }
-        return sum;
-    }
-
-
     virtual Real evaluate( pimcConfigurations_t & pimcConfigurations)
     {
         Real sum=0;
@@ -619,6 +816,17 @@ class sumAction : public action
             sum+=S->evaluate(pimcConfigurations);
         }
         return sum;
+    }
+
+    virtual void addGradient(const configurations_t & pimcConfigurations,const std::array<int,2> & timeRange,const  std::array<int,2> & particleRange,  Eigen::Tensor<Real,3> & gradientBuffer)
+    {
+        for(auto S : _actions)
+        {
+            S->addGradient(pimcConfigurations,timeRange,particleRange,gradientBuffer);
+
+        }
+        
+
     }
 
     auto & operator[](int i) {return *(_actions[i]);}

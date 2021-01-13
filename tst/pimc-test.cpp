@@ -537,19 +537,214 @@ TEST(configurations, worms)
 
 }
 
-TEST(run,free_harmonic_oscillator)
-{   
-    int N=1;
+TEST(action,twoBody)
+{
+    int N=100;
     int M=10;
     Real Beta = 1;
 
+    Real timeStep=Beta/M;
+
     pimc::geometryPBC_PIMC geo(300,300,300);
 
+    pimc::particleGroup groupA{ 0 , N-1, N - 1 , 1.0};
+    pimc::pimcConfigurations configurations(M , getDimensions() , {groupA});
+
+    configurations.dataTensor().setRandom();
+    configurations.fillHeads();
+
+
+    auto & data = configurations.dataTensor();
+
+
+    // Test on a rectangular interaction potential
+
+
+    Real Rc=0.1;
+    Real V0=2.;
+
+    #if DIMENSIONS == 3
+     auto V = pimc::makePotentialFunctor(
+         [=](Real x,Real y , Real z) {return (x*x + y*y + z*z)<= Rc*Rc ? V0 :  0 ;} ,
+         [](Real x,Real y, Real z) {return 0  ;},
+         [](Real x,Real y,Real z) {return 0 ;},
+         [](Real x,Real y,Real z) {return 0 ;}
+         );
+    #endif
+
+    #if DIMENSIONS == 1
+     auto V = pimc::makePotentialFunctor(
+         [=](Real x) {return (x*x )<= Rc*Rc ? V0 :  0 ;} ,
+         [](Real x) {return 0  ;}
+         );
+    #endif
+
+
+
+    auto sV=pimc::potentialActionTwoBody<decltype(V)>(timeStep,N,M,V ,geo,0,0);
+
+    int t0=0;
+    int t1=M-1;
+    int iChain=0;
+
+
+    int count=0;
+    for(int t=t0;t<=t1;t++)
+    {
+            for(int j=0;j<N;j++)
+            {
+                Real dis=0;
+                for(int d=0;d<getDimensions();d++)
+                {
+                    Real tmp=geo.difference(data(iChain,d,t)-data(j,d,t) ,d);
+                    dis+=tmp*tmp;
+                }
+
+                if (dis<=Rc*Rc)
+                {
+                    count+=1;
+                }
+            }
+    }
+
+    auto currentAction = sV.evaluate(configurations,{t0,t1},iChain);
+    ASSERT_NEAR(currentAction,count*V0*timeStep,1e-5);
+
+
+    count=0;
+    for(int t=0;t<=M-1;t++)
+    {
+        for(int i=0;i<N;i++)
+            for(int j=0;j<i;j++)
+            {
+                Real dis=0;
+                for(int d=0;d<getDimensions();d++)
+                {
+                    Real tmp=geo.difference(data(i,d,t)-data(j,d,t) ,d);
+                    dis+=tmp*tmp;
+                }
+
+                if (dis<=Rc*Rc)
+                {
+                    count+=1;
+                }
+            }
+    }
+
+    auto totalAction = sV.evaluate(configurations);
+
+
+
+    ASSERT_NEAR(totalAction,count*V0*timeStep,1e-5);
+
+    Eigen::Tensor<Real,3> gradientBuffer(N,getDimensions(), M );
+    Eigen::Tensor<Real,3> gradientBufferTest(N,getDimensions(), M );
+
+
+    gradientBuffer.setConstant(0);
+
+    sV.addGradient(configurations,{0,M-1},{0,N-1},gradientBuffer);
+
+    Eigen::Tensor<Real,0> sumSquares = (gradientBuffer*gradientBuffer).sum();
+
+    ASSERT_NEAR(sumSquares(0),0,1e-5);
+
+    V0=1.;
+    // test on a gaussian interaction potential
+    Real alpha = 2.;
+
+
+     #if DIMENSIONS == 3
+     auto V2 = pimc::makePotentialFunctor(
+         [=](Real x,Real y , Real z) {return V0*exp(-alpha*(x*x + y*y + z*z));} ,
+         [=](Real x,Real y, Real z) {return -2*x*V0*alpha*exp(-alpha*(x*x + y*y + z*z))  ;},
+         [=](Real x,Real y,Real z) {return -2*y*V0*alpha*exp(-alpha*(x*x + y*y + z*z)) ;},
+         [=](Real x,Real y,Real z) {return -2*z*V0*alpha*exp(-alpha*(x*x + y*y + z*z)) ;}
+         );
+    #endif
+
+     #if DIMENSIONS == 1
+     auto V2 = pimc::makePotentialFunctor(
+         [=](Real x) {return V0*exp(-alpha*(x*x ));} ,
+         [=](Real x) {return -2*x*V0*alpha*exp(-alpha*(x*x ) ) ;}
+         );
+    #endif
+
+    auto sV2=pimc::potentialActionTwoBody<decltype(V2)>(timeStep,N,M,V2 ,geo,0,0);
+
+
+    Real currentGaussV=0;
+    for(int t=t0;t<=t1;t++)
+    {
+        for(int j=0;j<N;j++)
+            {
+                Real dis=0;
+                for(int d=0;d<getDimensions();d++)
+                {
+                    Real tmp=geo.difference(data(iChain,d,t)-data(j,d,t) ,d);
+                    dis+=tmp*tmp;
+                }
+
+                currentGaussV+=V0*exp(-alpha*dis);
+            }
+    }
+
+    currentAction = sV2.evaluate(configurations,{t0,t1},iChain);
+    ASSERT_NEAR(currentAction,currentGaussV*timeStep,1e-5);
+
+    currentGaussV=0;
+    for(int t=0;t<=M-1;t++)
+    {
+        for(int i=0;i<N;i++)
+        for(int j=0;j<i;j++)
+            {
+                Real dis2=0;
+                std::array<Real,3> diff;
+
+                for(int d=0;d<getDimensions();d++)
+                {
+                    diff[d]=geo.difference(data(i,d,t)-data(j,d,t) ,d);
+                    dis2+=diff[d]*diff[d];
+                }
+
+                currentGaussV+=V0*exp(-alpha*dis2);
+
+                for(int d=0;d<getDimensions();d++)
+                {
+                    gradientBufferTest(i,d,t)+=-2*alpha*diff[d]*V0*exp(-alpha*dis2)*timeStep;
+                    gradientBufferTest(j,d,t)-=-2*alpha*diff[d]*V0*exp(-alpha*dis2)*timeStep;
+                }
+
+            }
+    }
+
+    totalAction = sV2.evaluate(configurations);
+    ASSERT_NEAR(totalAction,currentGaussV*timeStep,1e-5);
+
+    sV2.addGradient(configurations,{0,M-1},{0,N-1},gradientBuffer);
+
+    Eigen::Tensor<Real,0> sumSquaresTest = (gradientBufferTest*gradientBufferTest).sum();
+
+    sumSquares = (gradientBuffer*gradientBuffer).sum();
+
+    ASSERT_NEAR(sumSquares(0),sumSquaresTest(0),1e-5);
+
+}
+
+TEST(run,free_harmonic_oscillator)
+{   
+    int N=200;
+    int M=60;
+    Real Beta = 1;
+
+    pimc::geometryPBC_PIMC geo(300,300,300);
 
     Real timeStep = Beta/M;
 
     pimc::particleGroup groupA{ 0 , N-1, N - 1 , 1.0};
     pimc::pimcConfigurations configurations(M , getDimensions() , {groupA});
+
+    
 
     configurations.dataTensor().setRandom();
 
@@ -566,6 +761,7 @@ TEST(run,free_harmonic_oscillator)
 
     pimc::translateMove translMove(delta,(M+1)*N);
 
+
     Real C = 1e-1;
     int l = 5;
     
@@ -575,24 +771,26 @@ TEST(run,free_harmonic_oscillator)
     pimc::moveHead moveHeadMove(l);
     pimc::moveTail moveTailMove(l);
 
-    pimc::swapMove swapMove(4,N);
+    pimc::swapMove swapMove(l,N);
 
     pimc::tableMoves table;
-  
+    
+
     table.push_back(& freeMoves,0.8,pimc::sector_t::offDiagonal,"levy");
     table.push_back(& freeMoves,0.8,pimc::sector_t::diagonal,"levy");
 
     //table.push_back(& translMove,0.2,pimc::sector_t::diagonal,"translate");
     //table.push_back(& translMove,0.2,pimc::sector_t::offDiagonal,"translate");
 
+
     table.push_back(& openMove,0.2,pimc::sector_t::diagonal,"open");
+    
     table.push_back(& closeMove,0.2,pimc::sector_t::offDiagonal,"close");
 
-    //table.push_back(& moveHeadMove,0.4,pimc::sector_t::offDiagonal,"moveHead");
-    //table.push_back(& moveTailMove,0.4,pimc::sector_t::offDiagonal,"moveTail");
+    table.push_back(& moveHeadMove,0.4,pimc::sector_t::offDiagonal,"moveHead");
+    table.push_back(& moveTailMove,0.4,pimc::sector_t::offDiagonal,"moveTail");
 
-    //table.push_back(& swapMove,1.9,pimc::sector_t::offDiagonal,"swap");
-
+    table.push_back(& swapMove,0.8,pimc::sector_t::offDiagonal,"swap");
     
 
     randomGenerator_t randG(368);
@@ -616,14 +814,52 @@ TEST(run,free_harmonic_oscillator)
          );
     #endif
 
-    std::shared_ptr<pimc::action> sV=std::make_shared<pimc::potentialActionOneBody<decltype(V)> >(timeStep,V ,geo);
+    Real R0=0.1;
+    Real V0=1;
+
+
+
+     #if DIMENSIONS == 3
+     auto V2 = pimc::makePotentialFunctor(
+         [=](Real x,Real y , Real z) {return  (x*x + y*y + z*z)<=R0*R0 ? V0 : 0 ;} ,
+         [](Real x,Real y, Real z) {return 0  ;},
+         [](Real x,Real y,Real z) {return 0 ;},
+         [](Real x,Real y,Real z) {return 0 ;}
+         );
+    #endif
+/* 
+    #if DIMENSIONS == 1
+    auto V2 = pimc::makePotentialFunctor(
+         [=](Real x) {return  (x*x <=R0*R0) ? V0 : 0 ;} ,
+         [](Real x) {return 0  ;}
+         );        
+    #endif */
+
+    #if DIMENSIONS == 1
+    auto V2 = pimc::makePotentialFunctor(
+         [=](Real x) {return  exp(-x*x) ;} ,
+         [](Real x) {return -2*x*exp(-x*x)  ;}
+         );        
+    #endif
+
+
+
+    std::shared_ptr<pimc::action> sOneBody=std::make_shared<pimc::potentialActionOneBody<decltype(V)> >(timeStep,V ,geo);
+    std::shared_ptr<pimc::action>  sV2B=std::make_shared<pimc::potentialActionTwoBody<decltype(V2)>  >(timeStep,N,M,V2 ,geo,0,0);    
+    
+    std::vector<std::shared_ptr<pimc::action> > Vs = {sOneBody,sV2B};
+
+    
+    std::shared_ptr<pimc::action>  sV = std::make_shared<pimc::sumAction>(Vs);
 
     pimc::firstOrderAction S(sT,  sV);
-    int nTimes = 100000;
+    
+    int nTimes = 100;
     int success = 0;
-    int subSteps=10000;
-    int correlationSteps=100;
+    int subSteps=1000;
+    int correlationSteps=400;
 
+   
     pimc::thermodynamicEnergyEstimator energyEstimator;
 
     pimc::virialEnergyEstimator viriralEnergy(N, M);
@@ -639,6 +875,9 @@ TEST(run,free_harmonic_oscillator)
     { 
         fs::create_directory("configurations"); // create src folder
     }
+
+    configurations.fillHeads();
+
 
     configurations.save("configurations/sample"+std::to_string(0),"pdb");
 
@@ -705,7 +944,6 @@ TEST(run,free)
     int M=10;
     Real Beta = 1;
     Real lBox = std::pow(N/density,1./3) ;
-
     
     pimc::geometryPBC_PIMC geo(lBox,lBox,lBox);
 
@@ -766,17 +1004,16 @@ TEST(run,free)
     table.push_back(& freeMoves,0.8,pimc::sector_t::offDiagonal,"levy");
     table.push_back(& freeMoves,0.8,pimc::sector_t::diagonal,"levy");
 
-
     //table.push_back(& translMove,0.2,pimc::sector_t::diagonal,"translate");
     //table.push_back(& translMove,0.2,pimc::sector_t::offDiagonal,"translate");
 
-    table.push_back(& openMove,0.1,pimc::sector_t::diagonal,"open");
-    table.push_back(& closeMove,0.1,pimc::sector_t::offDiagonal,"close");
+    //table.push_back(& openMove,0.1,pimc::sector_t::diagonal,"open");
+    //table.push_back(& closeMove,0.1,pimc::sector_t::offDiagonal,"close");
 
-    table.push_back(& moveHeadMove,0.4,pimc::sector_t::offDiagonal,"moveHead");
-    table.push_back(& moveTailMove,0.4,pimc::sector_t::offDiagonal,"moveTail");
+    //table.push_back(& moveHeadMove,0.4,pimc::sector_t::offDiagonal,"moveHead");
+    //table.push_back(& moveTailMove,0.4,pimc::sector_t::offDiagonal,"moveTail");
 
-    table.push_back(& swapMove,1.9,pimc::sector_t::offDiagonal,"swap");
+    //table.push_back(& swapMove,1.9,pimc::sector_t::offDiagonal,"swap");
 
 
     randomGenerator_t randG(368);
@@ -805,7 +1042,7 @@ TEST(run,free)
     std::shared_ptr<pimc::action> sV=std::make_shared<pimc::potentialActionOneBody<decltype(V)> >(timeStep,V ,geo);
 
     pimc::firstOrderAction S(sT,  sV);
-    int nTimes = 100000;
+    int nTimes = 1000;
     int success = 0;
     int subSteps=1000;
     int correlationSteps=100;

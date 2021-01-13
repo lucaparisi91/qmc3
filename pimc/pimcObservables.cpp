@@ -40,7 +40,6 @@ Real virialEnergyEstimator::operator()(configurations_t & confs, firstOrderActio
     const auto & data = confs.dataTensor(); 
 
 
-
     // compute rC
     rC.setConstant(0);
     for (const auto & group : confs.getGroups() )
@@ -190,9 +189,7 @@ Real virialEnergyEstimator::operator()(configurations_t & confs, firstOrderActio
     
     // classical gas free contribution
     Real e1 = getDimensions()/(2*beta);
-
-    return e1 + e2 + e3 + e4;
-
+    return e1 + e2  + e3 + e4;
 
 }
 

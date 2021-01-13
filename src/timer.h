@@ -6,7 +6,7 @@ class timer
 public:
   timer();
   using time_t =   decltype (std::chrono::high_resolution_clock::now());
-  
+    
   void start();
   void stop();
   auto milliseconds() { return std::chrono::duration_cast<std::chrono::milliseconds>(duration).count(); }

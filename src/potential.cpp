@@ -5,6 +5,7 @@
 #include "tools.h"
 #include "walkers.h"
 
+
 potential::potential(const geometry_t & geo_ ) : geo(&geo_)
 {
 
