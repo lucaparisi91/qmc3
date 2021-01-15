@@ -733,9 +733,10 @@ TEST(action,twoBody)
 
 TEST(run,free_harmonic_oscillator)
 {   
-    int N=200;
-    int M=60;
+    int N=10;
+    int M=10;
     Real Beta = 1;
+
 
     pimc::geometryPBC_PIMC geo(300,300,300);
 
@@ -821,12 +822,14 @@ TEST(run,free_harmonic_oscillator)
 
      #if DIMENSIONS == 3
      auto V2 = pimc::makePotentialFunctor(
-         [=](Real x,Real y , Real z) {return  (x*x + y*y + z*z)<=R0*R0 ? V0 : 0 ;} ,
-         [](Real x,Real y, Real z) {return 0  ;},
-         [](Real x,Real y,Real z) {return 0 ;},
-         [](Real x,Real y,Real z) {return 0 ;}
+         [=](Real x,Real y , Real z) {return  exp(- (x*x + y*y + z*z) ) ;} ,
+         [](Real x,Real y, Real z) {return -2*x*exp(- (x*x + y*y + z*z) )  ;},
+         [](Real x,Real y,Real z) {return  -2*y*exp(- (x*x + y*y + z*z) );},
+         [](Real x,Real y,Real z) {return -2*z*exp(- (x*x + y*y + z*z) ); }
          );
     #endif
+
+
 /* 
     #if DIMENSIONS == 1
     auto V2 = pimc::makePotentialFunctor(
@@ -854,7 +857,7 @@ TEST(run,free_harmonic_oscillator)
 
     pimc::firstOrderAction S(sT,  sV);
     
-    int nTimes = 100;
+    int nTimes = 1000;
     int success = 0;
     int subSteps=1000;
     int correlationSteps=400;
@@ -934,12 +937,11 @@ TEST(run,free_harmonic_oscillator)
     std::cout << "END." << std::endl;
 }
 
-
 TEST(run,free)
 {   
 
     Real density=0.15884256651199277;
-    int N=500;
+    int N=10;
 
     int M=10;
     Real Beta = 1;
@@ -1007,13 +1009,13 @@ TEST(run,free)
     //table.push_back(& translMove,0.2,pimc::sector_t::diagonal,"translate");
     //table.push_back(& translMove,0.2,pimc::sector_t::offDiagonal,"translate");
 
-    //table.push_back(& openMove,0.1,pimc::sector_t::diagonal,"open");
-    //table.push_back(& closeMove,0.1,pimc::sector_t::offDiagonal,"close");
+    table.push_back(& openMove,0.1,pimc::sector_t::diagonal,"open");
+    table.push_back(& closeMove,0.1,pimc::sector_t::offDiagonal,"close");
 
-    //table.push_back(& moveHeadMove,0.4,pimc::sector_t::offDiagonal,"moveHead");
-    //table.push_back(& moveTailMove,0.4,pimc::sector_t::offDiagonal,"moveTail");
+    table.push_back(& moveHeadMove,0.4,pimc::sector_t::offDiagonal,"moveHead");
+    table.push_back(& moveTailMove,0.4,pimc::sector_t::offDiagonal,"moveTail");
 
-    //table.push_back(& swapMove,1.9,pimc::sector_t::offDiagonal,"swap");
+    table.push_back(& swapMove,1.9,pimc::sector_t::offDiagonal,"swap");
 
 
     randomGenerator_t randG(368);
@@ -1038,8 +1040,40 @@ TEST(run,free)
          );
     #endif
 
+    Real alpha=1/std::pow (0.1*lBox,2);
 
+    Real V0=100;
+
+     #if DIMENSIONS == 3
+     auto V2 = pimc::makePotentialFunctor(
+         [=](Real x,Real y , Real z) {return  V0*exp(-alpha* (x*x + y*y + z*z) ) ;} ,
+         [=](Real x,Real y, Real z) {return -2*alpha*x*V0*exp(- alpha* (x*x + y*y + z*z) )  ;},
+         [=](Real x,Real y,Real z) {return  -2*y*alpha*V0*exp(- alpha* (x*x + y*y + z*z) );},
+         [=](Real x,Real y,Real z) {return -2*z*alpha*V0*exp(-alpha* (x*x + y*y + z*z) ); }
+         );
+    #endif
+
+
+    #if DIMENSIONS == 1
+    auto V2 = pimc::makePotentialFunctor(
+         [=](Real x) {return  exp(-x*x) ;} ,
+         [](Real x) {return -2*x*exp(-x*x)  ;}
+         );        
+    #endif
+
+
+
+    std::shared_ptr<pimc::action> sOneBody=std::make_shared<pimc::potentialActionOneBody<decltype(V)> >(timeStep,V ,geo);
+    std::shared_ptr<pimc::action>  sV2B=std::make_shared<pimc::potentialActionTwoBody<decltype(V2)>  >(timeStep,N,M,V2 ,geo,0,0);    
+    
+    std::vector<std::shared_ptr<pimc::action> > Vs = {sOneBody,sV2B};
+    
+    std::shared_ptr<pimc::action>  sV = std::make_shared<pimc::sumAction>(Vs);
+
+
+    /*
     std::shared_ptr<pimc::action> sV=std::make_shared<pimc::potentialActionOneBody<decltype(V)> >(timeStep,V ,geo);
+    */
 
     pimc::firstOrderAction S(sT,  sV);
     int nTimes = 1000;

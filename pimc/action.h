@@ -447,7 +447,6 @@ class potentialActionTwoBody : public action
 
         const auto & data = configurations.dataTensor();
 
-
         for(int t=timeRange[0]+1;t<=timeRange[1];t++)
         {
             for(int j=particleRange[0];j<=particleRange[1];j++)

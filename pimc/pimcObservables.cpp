@@ -69,7 +69,8 @@ Real virialEnergyEstimator::operator()(configurations_t & confs, firstOrderActio
 
                     for (int d=0;d<getDimensions();d++)
                     {
-                        rC(i,d,alpha)+=0.5*data(ii,d,t)/ confs.nBeads();
+                        rC(i,d,alpha)+=0.5*
+                        (data(ii,d,t) + data(i,d,confs.nBeads()) - data(ii,d,0) )/ confs.nBeads();
                     }
                 }
             }
@@ -83,7 +84,12 @@ Real virialEnergyEstimator::operator()(configurations_t & confs, firstOrderActio
 
                     for (int d=0;d<getDimensions();d++)
                     {
-                        rC(i,d,alpha)+=0.5*data(ii,d,t)/ confs.nBeads();
+                        rC(i,d,alpha)+=
+                        0.5*(
+                            
+                            data(ii,d,t) + data(i,d,0) - data(ii,d,confs.nBeads())
+                        
+                        )/ confs.nBeads();
                     }
                 }
             }
