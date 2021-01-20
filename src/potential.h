@@ -20,18 +20,19 @@ public:
   using state_t = ::state_t;
 
   potential(const geometry_t & geo_ );
-  
+
   virtual real_t operator()(const walker_t & state ) = 0;
   const auto & getGeometry() {return *geo;}
   virtual std::vector<int> sets() const = 0 ;
 
+  virtual bool satisfyConstrains(const walker_t & w) {return true;}
 
-  virtual bool satisfyConstrains(const walker_t & w) {return true;}  
-  
   
 private:
   const geometry_t * geo;
 };
+
+
 
 
 class sumPotentials

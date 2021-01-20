@@ -273,11 +273,13 @@ auto makePotentialFunctor(V_t V_,gradX_t X_,gradY_t Y_, gradZ_t Z_)
 
 
 
-
 template<class functor_t>
 class potentialActionOneBody : public action
 {
     public:
+    potentialActionOneBody(Real tau, geometryPBC_PIMC geo_, const json_t & j):
+    potentialActionOneBody::potentialActionOneBody(tau,functor_t(j["potential"]) , geo_   ) {} 
+
 
     potentialActionOneBody(Real tau_, functor_t V_ ,geometryPBC_PIMC geo_): V(V_),action::action(tau_,geo_) {}
 
@@ -407,6 +409,10 @@ class potentialActionTwoBody : public action
 {
     public:
 
+    potentialActionTwoBody(Real tau_, int nChains_  , int nBeads_, geometryPBC_PIMC geo_, const json_t & j) :
+    potentialActionTwoBody(tau_,nChains_,nBeads_,functor_t(j["potential"]),geo_,j["groupA"].get<int>() , j["groupB"].get<int>()  ) {}
+
+
     potentialActionTwoBody(Real tau_, int nChains_  , int nBeads_, functor_t V_, geometryPBC_PIMC geo_, int  iParticleGroupA_, int iParticleGroupB_) : V(V_),nChains(nChains_),nBeads(nBeads_) ,
     bufferDistances(nChains_,getDimensions(),nBeads_+1),
     iParticleGroupA(iParticleGroupA_),iParticleGroupB(iParticleGroupB_),
@@ -533,7 +539,6 @@ class potentialActionTwoBody : public action
 
         return sum*getTimeStep();
     }
-
 
     Real evaluate(pimcConfigurations_t & configurations)
     {
@@ -854,7 +859,125 @@ public:
 };
 
 
+
+
+/* Action constructor */
+
+
+
+template<class T>
+std::shared_ptr<pimc::action> __createAction(Real timeStep,geometryPBC_PIMC & geo,int nChains, int nBeads, const json_t & j) {
+    return std::make_shared<T >(timeStep, geo,j);
+    }
+
+template<class T>
+std::shared_ptr<pimc::action> __createActionWithBuffers(Real timeStep,geometryPBC_PIMC & geo, int nChains , int nBeads , const json_t & j) {
+    return std::make_shared<T >(timeStep, nChains, nBeads, geo,j);
+    }
+
+
+
+
+class actionConstructor
+{
+    public:
+    using geometry_t=geometryPBC_PIMC;
+
+
+    actionConstructor(geometry_t geo, Real timeStep, int nChains_, int nBeads_) : _geo(geo),_timeStep(timeStep) , 
+    _nChains(nChains_), _nBeads(nBeads_)
+    {}
+
+
+    auto createActionKey(const json_t & j)
+    {
+        return j["kind"].get<std::string>() + "_" + j["potential"]["kind"].get<std::string>();
+
+
+    }
+
+    std::shared_ptr<pimc::action> createAction(const json_t & j)
+    {
+        // creates a copy of the json input and supplement with additional essential information
+     
+
+        std::string key=createActionKey(j) ;
+
+
+        creatorMap_t::const_iterator i;
+        i=creatorMap.find(key);
+        if (i!= creatorMap.end())
+        {
+	    return (i->second)( _timeStep,_geo,_nChains,_nBeads,j  );
+        }
+         else
+        {
+	    throw factoryIdNotRecorded(key);
+        }
+    }
+
+
+    std::vector<std::shared_ptr<pimc::action> > createActions(const json_t & j)
+    {
+        std::vector< std::shared_ptr<pimc::action> > actions;
+        for (const auto & jAction : j)
+        {
+            actions.push_back(createAction(jAction));
+        }
+
+        return actions;
+
+    }
+
+
+
+
+
+    template<class V_t>
+    void registerPotential()
+    {
+        
+        std::string key= "oneBody_" + V_t::name() ;
+        creatorMap[key]= &__createAction<potentialActionOneBody<V_t> > ;
+
+        key= "twoBody_" + V_t::name() ;
+        creatorMap[key]= &__createActionWithBuffers<potentialActionTwoBody<V_t> > ;
+
+
+
+    }
+
+    
+
+    private:
+
+    geometry_t _geo;
+    Real _timeStep;
+
+    int _nChains;
+    int _nBeads;
+
+    
+
+    typedef std::shared_ptr<pimc::action> (*actionCreatorFunc) (Real timeStep,geometryPBC_PIMC & geo, int nChains,int nBeads,const json_t & j);
+    using creatorMap_t = std::map<std::string,actionCreatorFunc>;
+    creatorMap_t creatorMap;
+};
+
+
+
+
+
+
+
+
+
+
 }
+
+
+
+
 
 
 #endif

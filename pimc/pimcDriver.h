@@ -11,6 +11,7 @@ namespace pimc{
         pimcDriver(const json_t & j);
         void run();   
 
+
     private:
     int nBeads;
     firstOrderAction S;
@@ -21,6 +22,7 @@ namespace pimc{
     int seed;
     Real timeStep;
     geometryPBC_PIMC geo;
+    json_t j;
     
     tableMoves tab;
 

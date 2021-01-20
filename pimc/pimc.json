@@ -4,9 +4,9 @@
     "nBlocks" : 1000,
     "stepsPerBlock" : 1000,
     "correlationSteps" : 100,
-    "particles" : [1 ],
-    "lBox" : [300,300,300],
-    "seed" : 41,
+    "particles" : [ 10 ],
+    "lBox" : [300],
+    "seed" : 15,
     "movesTable":
         [
             {
@@ -14,13 +14,12 @@
                 "move" : 
                 {
                     "kind" : "levy",
-                    "reconstructionMaxLength" : 5 
+                    "reconstructionMaxLength" : 3 
                 },
                 "sectors" : ["open","closed"]
             },
-
             {
-                "weight" : 0.2,
+                "weight" : 0.1,
                 "move" : 
                 {
                     "kind" : "translate",
@@ -68,7 +67,7 @@
                 "sectors" : ["open"]
              },
              {
-                "weight" : 1.9,
+                "weight" : 0.8,
                 "move" : 
                 {
                     "kind" : "swap",
@@ -77,7 +76,31 @@
                 "sectors" : ["open"]
              }
 
-         
-        ]
+        ],
+        "action" :
+            [
+                {
+                    "kind" : "oneBody",
+                    "group" : 0,
+                    "potential" : 
+                    {
+                        "kind" : "harmonic",
+                        "omega" : [0.5] 
+                    }
+                },
+                {
+                    "kind" : "twoBody",
+                    "groupA" : 0,
+                    "groupB" : 0,
+                    "potential" :
+                    {
+                        "kind" : "gaussian",
+                        "V0" : 1.0,
+                        "alpha" : 1.0
+                    }
+                }
 
+            ]
+
+            
 }

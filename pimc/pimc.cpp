@@ -13,7 +13,9 @@ int main(int argc, char ** argv)
     std::string filename = argv[1];
     std::ifstream ifs(filename);
     pimc::json_t j = pimc::json_t::parse(ifs);
-    
+
     pimc::pimcDriver driver(j);
     driver.run();
+
+    
 }

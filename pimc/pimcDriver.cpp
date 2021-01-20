@@ -7,19 +7,60 @@
 #include "moves.h"
 #include "pimcObservables.h"
 #include <filesystem>
+#include "pimcPotentials.h"
 
 namespace fs = std::filesystem;
 
 namespace pimc
 {
 
-pimcDriver::pimcDriver(const json_t & j)
+Real getTimeStep(json_t & j)
+{
+    int nBeads= j["nBeads"].get<Real>();
+    Real beta= j["inverseTemperature"].get<Real>();
+
+    return beta/nBeads;
+}
+
+pimcDriver::pimcDriver(const json_t & j_) : j(j_)
 {
     std::vector<Real> lBox;
-    lBox=j["particles"].get<std::vector<Real> >();
+    lBox=j["lBox"].get<std::vector<Real> >();
+
+    if ( lBox.size() != getDimensions() )
+    {
+        throw invalidInput("This executable is compiled for " + std::to_string( getDimensions() ) + ". Input file implies " + std::to_string( lBox.size() ) + " dimensions" );
+    }
+
+
+
+    #if DIMENSIONS == 1
+    geo=pimc::geometryPBC_PIMC(lBox[0],lBox[0],lBox[0]);
+    #endif
+
+    #if DIMENSIONS == 2
+    geo=pimc::geometryPBC_PIMC(lBox[0],lBox[1],lBox[0]);
+    #endif
+
+    #if DIMENSIONS == 3
+    geo=pimc::geometryPBC_PIMC(lBox[0],lBox[1],lBox[2]);
+    #endif
+
+
+
+
+
 
     Real beta = j["inverseTemperature"].get<Real>();
     nParticles = j["particles"].get<std::vector<int> >();
+
+
+    if (nParticles.size() != 1 )
+    {
+        throw missingImplementation("Multiple groups have not been implemented yet");
+
+    }
+
 
     nBeads= j["nBeads"].get<int>();
 
@@ -68,17 +109,14 @@ pimcDriver::pimcDriver(const json_t & j)
     correlationSteps = j["correlationSteps"].get<int>();
 
 
-    
-
-
-
-
 }
 
 void pimcDriver::run()
 {
     // build action 
     std::shared_ptr<action> sT= std::make_shared<kineticAction>(timeStep, nParticles[0] , nBeads  , geo);
+
+    
 
      #if DIMENSIONS == 3
      auto V = pimc::makePotentialFunctor(
@@ -96,8 +134,22 @@ void pimcDriver::run()
          );
     #endif
 
+    int nChains = nParticles[0];
+ 
+    actionConstructor sC(geo,timeStep,nChains,nBeads);
+    
 
-    std::shared_ptr<action> sV=std::make_shared<pimc::potentialActionOneBody<decltype(V)> >(timeStep,V ,geo);
+
+    sC.registerPotential<harmonicPotential>();
+    sC.registerPotential<gaussianPotential>();
+
+    
+    
+
+
+    std::shared_ptr<action> sV=
+    //std::make_shared<pimc::potentialActionOneBody<decltype(hV)> >(timeStep, geo,settings);
+    std::make_shared<sumAction>(sC.createActions(j["action"])); 
 
     S = pimc::firstOrderAction(sT, sV);
     
@@ -138,6 +190,8 @@ void pimcDriver::run()
  */
     
      // build initial  configuration
+
+
     int N = nParticles[0];
     
     randomGenerator_t randG(seed);
@@ -146,6 +200,7 @@ void pimcDriver::run()
 
     pimc::pimcConfigurations configurations(nBeads, getDimensions() , {groupA});
 
+    // sets a random initial condition
     configurations.dataTensor().setRandom();
     configurations.fillHeads();
 
@@ -211,7 +266,8 @@ void pimcDriver::run()
 
         configurations.save("configurations/sample"+std::to_string(i+1));
     }
-    
+
+
     f.close();
     std::cout << "END." << std::endl;
 

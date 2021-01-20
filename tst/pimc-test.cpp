@@ -738,6 +738,8 @@ TEST(run,free_harmonic_oscillator)
     Real Beta = 1;
 
 
+
+
     pimc::geometryPBC_PIMC geo(300,300,300);
 
     Real timeStep = Beta/M;
@@ -764,7 +766,8 @@ TEST(run,free_harmonic_oscillator)
 
 
     Real C = 1e-1;
-    int l = 5;
+    int l = 3;
+
     
     pimc::openMove openMove(C,l);
     pimc::closeMove closeMove(C,l);
@@ -775,7 +778,7 @@ TEST(run,free_harmonic_oscillator)
     pimc::swapMove swapMove(l,N);
 
     pimc::tableMoves table;
-    
+
 
     table.push_back(& freeMoves,0.8,pimc::sector_t::offDiagonal,"levy");
     table.push_back(& freeMoves,0.8,pimc::sector_t::diagonal,"levy");
@@ -851,7 +854,7 @@ TEST(run,free_harmonic_oscillator)
     std::shared_ptr<pimc::action>  sV2B=std::make_shared<pimc::potentialActionTwoBody<decltype(V2)>  >(timeStep,N,M,V2 ,geo,0,0);    
     
     std::vector<std::shared_ptr<pimc::action> > Vs = {sOneBody,sV2B};
-
+    
     
     std::shared_ptr<pimc::action>  sV = std::make_shared<pimc::sumAction>(Vs);
 
