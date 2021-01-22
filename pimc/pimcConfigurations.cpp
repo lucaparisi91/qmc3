@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <sstream>
 #include <algorithm>
+#include "hdf5IO.h"
 
 
 namespace fs = std::filesystem;
@@ -691,6 +692,124 @@ void configurationsSampler::sampleFreeParticlePosition(
         x[d]=mean[d] + normal(randG)*std::sqrt(var);       
     }
 }
+
+void pimcConfigurations::saveHDF5(const std::string & filename)
+{
+    int rank = 1;
+
+    const auto & data = dataTensor();
+
+    size_t dims[rank];
+
+    dims[0]=data.dimensions()[0]*data.dimensions()[1] * data.dimensions()[2] ;
+
+
+    const auto & groups =getGroups();
+    int chunkSize=4;
+    std::vector<int> groupData(groups.size() * chunkSize );
+
+    int groupDims[1]={groups.size()*chunkSize};
+
+    std::vector<double> masses;
+    masses.resize(groups.size());
+
+    for(int i=0;i<groups.size();i++)
+    {
+        groupData[i*chunkSize]=groups[i].iStart;
+        groupData[i*chunkSize+1]=groups[i].iEnd;
+        groupData[i*chunkSize+2]=groups[i].iEndExtended;
+        groupData[i*chunkSize+4]=groups[i].sector;
+        masses[i]=groups[i].mass;
+    }
+
+
+    std::vector<int> chainData;
+    int chainChunkSize=4;
+
+    chainData.resize(_chains.size()*chainChunkSize);
+    for(int i=0;i<_chains.size();i++)
+    {
+        chainData[chainChunkSize*i ]=_chains[i].prev;
+        chainData[chainChunkSize*i + 1 ]=_chains[i].next;
+        chainData[chainChunkSize*i + 2]=_chains[i].head;
+        chainData[chainChunkSize*i + 3]=_chains[i].tail;
+    }
+
+
+
+
+    hdf5IO ioInterface(filename, std::ios::out  );
+
+    ioInterface.write(data.data(),"configurations",& dims[0],rank);
+    ioInterface.write(groupData,"groupings");
+    ioInterface.write(_tails,"tails");
+    ioInterface.write(_heads,"heads");
+    ioInterface.write(chainData,"chains");
+
+
+    
+    ioInterface.write(masses,"mass");
+    ioInterface.annotate("nBeads",M,"configurations");
+    ioInterface.close();
+
+}
+
+pimcConfigurations pimcConfigurations::loadHDF5(const std::string & filename)
+{
+
+     hdf5IO ioInterface2(filename,std::ios::in | std::ios::out );
+    
+    auto groupData2=ioInterface2.get<std::vector<int> >("groupings");
+    auto masses2=ioInterface2.get<std::vector<double> >("mass");
+    int M2[1];
+
+    ioInterface2.readNote("nBeads",M2,"configurations");
+
+    std::cout << "Open file " << filename << std::endl;
+
+    std::vector<pimc::particleGroup> groups2;
+    int chunkSize=4;
+    for(int i=0;i<masses2.size();i++)
+    {
+        pimc::particleGroup currentGroup ( 
+            groupData2[i*chunkSize], 
+            groupData2[i*chunkSize + 1],
+            groupData2[i*chunkSize + 2],
+            masses2[i],
+            (pimc::sector_t)groupData2[i*chunkSize+3] 
+        );  
+        groups2.push_back(currentGroup);
+    }
+
+    
+    pimc::pimcConfigurations configurations2(M2[0] , getDimensions() , groups2); 
+    //pimc::pimcConfigurations configurations2(50 , getDimensions() , {{0,999,999,1}});
+
+
+
+
+    ioInterface2.read(configurations2.data(), "configurations"  );
+    configurations2._tails=ioInterface2.get<std::vector<int> >("tails");
+    configurations2._heads=ioInterface2.get<std::vector<int> >("heads");
+
+    auto chainData=ioInterface2.get<std::vector<int> >("chains");
+
+    int chainChunkSize=4;
+    for(int i=0;i<configurations2._chains.size() ;i++ )
+    {
+        configurations2._chains[i].prev=chainData[i*chainChunkSize];
+        configurations2._chains[i].next=chainData[i*chainChunkSize+1];
+        configurations2._chains[i].head=chainData[i*chainChunkSize+2];
+        configurations2._chains[i].tail=chainData[i*chainChunkSize+3];
+    }
+    
+    ioInterface2.close(); 
+
+    return configurations2;
+    
+}
+
+
 
 
 

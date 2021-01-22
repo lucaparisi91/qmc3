@@ -5,6 +5,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
@@ -18,8 +19,14 @@ if ( ${CMAKE_BUILD_TYPE} MATCHES Debug)
 endif()
 
 
+
+
+
 # set the project name
 project(qmc VERSION 3.0)
+
+
+
 
 if(NOT Boost_INCLUDE_DIR)
   set(Boost_INCLUDE_DIR ${PROJECT_BINARY_DIR}/../external/boost )
@@ -27,6 +34,10 @@ endif()
 
 find_package(MPI REQUIRED)
 find_package(Boost REQUIRED)
+
+find_package(HDF5 COMPONENTS C CXX HL REQUIRED)
+
+include_directories(SYSTEM ${HDF5_INCLUDE_DIR})
 
 
 set(CMAKE_CXX_COMPILE_FLAGS ${CMAKE_CXX_COMPILE_FLAGS} ${MPI_COMPILE_FLAGS} ${CMAKE_CXX_FLAGS_ADDITIONAL} )
@@ -59,6 +70,8 @@ target_include_directories(main_lib SYSTEM PUBLIC ${PROJECT_BINARY_DIR}/../exter
 			 
 target_link_libraries (main_lib eigen)
 target_link_libraries (main_lib ${MPI_LIBRARIES} )
+target_link_libraries( main_lib ${HDF5_CXX_LIBRARIES} ${HDF5_LIBRARIES})
+
 
 add_executable(main src/main.cpp)
 target_link_libraries(main main_lib)

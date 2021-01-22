@@ -4,9 +4,10 @@
     "nBlocks" : 1000,
     "stepsPerBlock" : 1000,
     "correlationSteps" : 100,
-    "particles" : [ 10 ],
+    "particles" : [ 100 ],
     "lBox" : [300],
-    "seed" : 15,
+    "seed" : 18,
+    "checkPointFile" : "chk.h5",
     "movesTable":
         [
             {
@@ -79,15 +80,7 @@
         ],
         "action" :
             [
-                {
-                    "kind" : "oneBody",
-                    "group" : 0,
-                    "potential" : 
-                    {
-                        "kind" : "harmonic",
-                        "omega" : [0.5] 
-                    }
-                },
+             
                 {
                     "kind" : "twoBody",
                     "groupA" : 0,
@@ -100,7 +93,16 @@
                     }
                 }
 
+            ],
+            "observables":
+            [
+                {
+                    "kind" : "thermalEnergy",
+                    "label" : "energy"
+                },
+                {
+                    "kind" : "virialEnergy",
+                    "label" : "eV"
+                }
             ]
-
-            
 }

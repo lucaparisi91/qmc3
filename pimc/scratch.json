@@ -1,0 +1,9 @@
+{
+    "kind" : "oneBody",
+    "group" : 0,
+    "potential" : 
+    {
+        "kind" : "harmonic",
+        "omega" : [0.5] 
+    }
+}

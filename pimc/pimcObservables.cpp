@@ -201,4 +201,6 @@ Real virialEnergyEstimator::operator()(configurations_t & confs, firstOrderActio
 
 
 
+
+
 };

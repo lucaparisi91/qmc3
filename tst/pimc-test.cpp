@@ -6,6 +6,8 @@
 #include "../pimc/pimcConfigurations.h"
 #include "../pimc/moves.h"
 #include "../pimc/pimcObservables.h"
+#include "../pimc/hdf5IO.h"
+
 #include <filesystem>
 
 namespace fs = std::filesystem;
@@ -433,6 +435,129 @@ void testChain(pimc::pimcConfigurations & configurations, int iChain, int expect
     }
 
 }
+TEST(configurations, IO)
+{
+    const int N = 1000;
+    const int M = 50;
+
+    pimc::particleGroup groupA{ 0 , N-1, N , 1.0};
+
+    pimc::pimcConfigurations configurations(M , getDimensions() , {groupA});
+
+    auto & data = configurations.dataTensor();
+
+    data.setRandom();
+
+    configurations.fillHeads();
+
+    configurations.join(100,120);
+    configurations.join(120,100);
+
+    configurations.setHead(10,M+1);
+
+    std::string filename {"testConf.h5"} ;
+
+    configurations.saveHDF5(filename);
+
+
+
+     auto configurations2 = pimc::pimcConfigurations::loadHDF5(filename); 
+    
+    auto & data2 = configurations2.dataTensor();
+
+
+    ASSERT_EQ(configurations.nBeads() , configurations2.nBeads() );
+    ASSERT_EQ(configurations.nParticles() , configurations2.nParticles() );
+
+    for(int t=0;t<M+1;t++)
+        for (int i=0;i<N;i++)
+            for(int d=0;d<getDimensions();d++)
+                {
+                   ASSERT_NEAR( data(i,d,t) , data2(i,d,t), 1e-5);
+                } 
+
+                
+    for(int i=0;i<N;i++)
+    {
+        ASSERT_EQ( configurations2.getChain(i).prev , configurations.getChain(i).prev ); 
+        ASSERT_EQ( configurations2.getChain(i).next , configurations.getChain(i).next ); 
+        ASSERT_EQ( configurations2.getChain(i).head , configurations.getChain(i).head ); 
+        ASSERT_EQ( configurations2.getChain(i).tail , configurations.getChain(i).tail );
+        ASSERT_EQ( configurations2.tails()[0] , configurations.tails()[0] );
+    } 
+
+    configurations.saveHDF5(filename);
+
+}
+
+TEST(observables, IO)
+{
+    const int N = 1000;
+    const int M = 50;   
+    Real Beta=1;
+    Real timeStep=Beta/M;
+
+    pimc::geometryPBC_PIMC geo(300,300,300);
+
+
+
+    pimc::particleGroup groupA{ 0 , N-1, N , 1.0};
+
+    pimc::pimcConfigurations configurations(M , getDimensions() , {groupA});
+
+    auto & data = configurations.dataTensor();
+
+    data.setRandom();
+
+    configurations.fillHeads();
+
+    
+     std::shared_ptr<pimc::action> sT= std::make_shared<pimc::kineticAction>(timeStep, configurations.nChains() , M  , geo);
+
+    #if DIMENSIONS == 1
+    auto V = pimc::makePotentialFunctor(
+         [](Real x) {return 0.5*(x*x ) ;} ,
+         [](Real x) {return 0.5*x ;} 
+         );    
+    #endif
+
+    #if DIMENSIONS == 3
+
+    auto V = pimc::makePotentialFunctor(
+         [](Real x,Real y, Real z) {return 0.5*(x*x + y*y + z*z) ;} ,
+         [](Real x,Real y, Real z) {return x ;} ,
+         [](Real x,Real y, Real z) {return y ;},
+         [](Real x,Real y, Real z) {return z ;}
+         );    
+    #endif
+
+
+     std::shared_ptr<pimc::action> sV=std::make_shared<pimc::potentialActionOneBody<decltype(V)> >(timeStep,V ,geo);
+
+    pimc::firstOrderAction S(sT,  sV);
+
+
+    
+
+    std::vector<std::shared_ptr<pimc::observable> > Os;
+    {
+        auto therm = std::make_shared<pimc::thermodynamicEnergyEstimator>();
+        Os.push_back( std::make_shared<pimc::scalarObservable>(therm,"eT") );
+
+    }
+
+
+    for (auto & O : Os)
+    {
+        O->accumulate(configurations,S);
+        O->out(0);
+        O->clear();
+        O->out(1);
+    }
+
+
+    
+}
 
 
 TEST(configurations, worms)
@@ -477,6 +602,7 @@ TEST(configurations, worms)
     ASSERT_FALSE(configurations.getChain(iChain).hasTail() );
     ASSERT_EQ( configurations.heads().size() , 0 );
     ASSERT_EQ( configurations.tails().size() , 0 );
+
 
     // test creation of a new head and join
      iChain=5;

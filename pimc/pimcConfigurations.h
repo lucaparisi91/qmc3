@@ -65,7 +65,7 @@ public:
     int next; // next chain, null for a head
     int head; // time Slice of the Head, will be M for closed chains and tails
     int tail; // time slice of the tail , -1 if not a a worm tail
-
+    
 };
 
     class pimcConfigurations
@@ -74,6 +74,11 @@ public:
         using configurationsStorage_t =  Eigen::Tensor<Real, 3> ;
 
         
+        void saveHDF5(const std::string & filename);
+        static pimcConfigurations loadHDF5(const std::string & filename);
+
+
+
         pimcConfigurations() : pimcConfigurations(0,getDimensions(), {} 
         ) {}
 
@@ -122,6 +127,8 @@ public:
         void save(const std::string & directoryName,const std::string & format="csv") const;
 
         void load(const std::string & directoryName);
+
+
 
         int nParticles() const {return _nParticles;}
 

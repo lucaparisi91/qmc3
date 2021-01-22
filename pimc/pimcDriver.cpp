@@ -22,8 +22,10 @@ Real getTimeStep(json_t & j)
     return beta/nBeads;
 }
 
+
 pimcDriver::pimcDriver(const json_t & j_) : j(j_)
 {
+    
     std::vector<Real> lBox;
     lBox=j["lBox"].get<std::vector<Real> >();
 
@@ -107,7 +109,21 @@ pimcDriver::pimcDriver(const json_t & j_) : j(j_)
      stepsPerBlock = j["stepsPerBlock"].get<int>();
     nBlocks = j["nBlocks"].get<int>();
     correlationSteps = j["correlationSteps"].get<int>();
+    loadCheckPoint=false;
+    doCheckPoint=false;
 
+    if ( j.find("checkPointFile") != j.end() )
+    {
+        doCheckPoint=true;
+        checkPointFile=j["checkPointFile"].get<std::string>();
+
+        if (std::filesystem::exists(checkPointFile) )
+        {
+             loadCheckPoint=true;
+        }
+        ;
+       
+    }
 
 }
 
@@ -152,6 +168,76 @@ void pimcDriver::run()
     std::make_shared<sumAction>(sC.createActions(j["action"])); 
 
     S = pimc::firstOrderAction(sT, sV);
+
+
+     int N = nParticles[0];
+    
+    randomGenerator_t randG(seed);
+
+    pimc::particleGroup groupA{ 0 , N-1, N - 1 , 1.0};
+
+    pimc::pimcConfigurations configurations(nBeads, getDimensions() , {groupA});
+
+    // sets a random initial condition
+    configurations.dataTensor().setRandom();
+    configurations.fillHeads();
+
+    if (loadCheckPoint )
+    {
+
+
+        configurations=pimc::pimcConfigurations::loadHDF5(checkPointFile);
+    }
+
+    
+
+    std::vector<std::shared_ptr<observable> > observables;
+
+    std::shared_ptr<scalarObservable> eO=nullptr;
+
+
+
+
+    if (j.find("observables") == j.end())
+    {
+        throw invalidInput("No abservables have been defined");
+    }
+    else
+    {
+        for (auto jO : j["observables"])
+    {
+        if ( jO["kind"] == "thermalEnergy" )
+        {
+            std::string label = jO["label"];
+            auto therm = std::make_shared<pimc::thermodynamicEnergyEstimator>();
+            eO=std::make_shared<pimc::scalarObservable>(therm,label);
+            observables.push_back(eO);
+
+        }
+        else
+
+        {
+            if ( jO["kind"] == "virialEnergy" )
+            {
+                std::string label = jO["label"];
+                auto vEst = std::make_shared<pimc::virialEnergyEstimator>(configurations.nChains() ,configurations.nBeads());
+
+                auto eV=std::make_shared<pimc::scalarObservable>(vEst,label);
+                observables.push_back(eV);
+
+            }
+            else
+            {
+                throw invalidInput("Unkown observable " + jO["kind"].get<std::string>());
+     
+            }
+            
+           
+        }
+        
+    }
+    
+    }
     
 
 
@@ -192,17 +278,7 @@ void pimcDriver::run()
      // build initial  configuration
 
 
-    int N = nParticles[0];
-    
-    randomGenerator_t randG(seed);
-
-    pimc::particleGroup groupA{ 0 , N-1, N - 1 , 1.0};
-
-    pimc::pimcConfigurations configurations(nBeads, getDimensions() , {groupA});
-
-    // sets a random initial condition
-    configurations.dataTensor().setRandom();
-    configurations.fillHeads();
+   
 
 
     pimc::thermodynamicEnergyEstimator energyEstimator;
@@ -222,7 +298,6 @@ void pimcDriver::run()
     configurations.save("configurations/sample"+std::to_string(0));
     int success = 0;
 
-    f.open("energy.dat");
 
     std::cout << "Start." << std::endl << std::flush;
 
@@ -244,10 +319,11 @@ void pimcDriver::run()
             
             if (!configurations.isOpen() )
             {
-                Real tmp=energyEstimator(configurations,S);
-                nMeasurements++;
-            
-                eStep+=tmp;
+                
+                for (auto & O : observables)
+                {
+                    O->accumulate(configurations,S);
+                }
             }
             else
             {
@@ -255,16 +331,38 @@ void pimcDriver::run()
             }
             
         }
-       
-        f << i + 1 << "\t" << eStep/nMeasurements << std::endl ;
+
+        
 
         //std::cout << e << std::endl;
-        std::cout << "Energy: " << eStep/nMeasurements << std::endl;
+        if (eO != nullptr )
+        {
+            if (eO->weight() != 0 )
+            {
+                std::cout << "Energy: " << eO->average() << std::endl;
+            }
+        }
+             
+
+        for (auto & O : observables)
+        {
+            O->out(i);
+            O->clear();
+        }
+
+
         std::cout << "Acceptance ratio: " << success*1./((i+1)*stepsPerBlock*correlationSteps) << std::endl;
 
         tab >> std::cout;
 
         configurations.save("configurations/sample"+std::to_string(i+1));
+        
+
+        if (doCheckPoint)
+        {
+            configurations.saveHDF5(checkPointFile);
+        }
+
     }
 
 

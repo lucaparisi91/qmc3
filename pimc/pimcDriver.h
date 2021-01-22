@@ -26,5 +26,10 @@ namespace pimc{
     
     tableMoves tab;
 
+    std::string checkPointFile;
+    bool doCheckPoint;
+    bool loadCheckPoint;
+    
+
  };
 }
