@@ -182,6 +182,30 @@ class action
 
 };
 
+class nullPotentialAction : public action
+{
+    public:
+    // dummy potential which does nothing. Used for a free gas with no potential
+
+    nullPotentialAction(){}
+
+    nullPotentialAction(Real timeStep, const geometryPBC_PIMC & geo_) : action::action(timeStep,geo_){};
+
+
+
+    virtual Real evaluate(configurations_t & configurations, std::array<int,2> timeRange, int iParticle){return 0;};
+
+    virtual Real evaluate( configurations_t & pimcConfigurations){return 0;}
+
+
+    virtual void addGradient(const configurations_t & pimcConfigurations,const std::array<int,2> & timeRange,const  std::array<int,2> & particleRange,  Eigen::Tensor<Real,3> & gradientBuffer){// not doing anything
+    }
+    
+    private:
+    
+};
+
+
 class kineticAction : public action
 {
     public:
@@ -923,6 +947,11 @@ class actionConstructor
         for (const auto & jAction : j)
         {
             actions.push_back(createAction(jAction));
+        }
+
+        if ( actions.size() == 0 )
+        {
+            actions.push_back( std::make_shared<nullPotentialAction>(_timeStep,_geo));
         }
 
         return actions;

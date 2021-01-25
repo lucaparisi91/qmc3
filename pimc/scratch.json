@@ -1,4 +1,5 @@
-{
+[
+    {
     "kind" : "oneBody",
     "group" : 0,
     "potential" : 
@@ -6,4 +7,17 @@
         "kind" : "harmonic",
         "omega" : [0.5] 
     }
+},
+
+{
+    "kind" : "twoBody",
+    "groupA" : 0,
+    "groupB" : 0,
+    "potential" :
+    {
+        "kind" : "gaussian",
+        "V0" : 1.0,
+        "alpha" : 1.0
+    }
 }
+]

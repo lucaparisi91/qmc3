@@ -215,7 +215,6 @@ void pimcDriver::run()
 
         }
         else
-
         {
             if ( jO["kind"] == "virialEnergy" )
             {
