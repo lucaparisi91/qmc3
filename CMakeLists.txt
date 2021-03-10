@@ -1,9 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 
 if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE RELEASE)
+  set(CMAKE_BUILD_TYPE Release)
 endif()
-
 
 
 set(CMAKE_CXX_STANDARD 17)
@@ -12,21 +11,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 if ( ${CMAKE_BUILD_TYPE} MATCHES Debug)
   set(CMAKE_CXX_FLAGS_ADDITIONAL "-Og -g -pg -Wfatal-errors")
   elseif (${CMAKE_BUILD_TYPE} MATCHES Release) 
-  set(CMAKE_CXX_FLAGS_ADDITIONAL "-O3 -pg -Wfatal-errors")
+  set(CMAKE_CXX_FLAGS_ADDITIONAL "-O3 -DNDEBUG -pg -Wfatal-errors")
   else()
   message(FATAL_ERROR "Unrecognized build type: " ${CMAKE_BUILD_TYPE}  )
 
 endif()
 
 
-
-
-
 # set the project name
 project(qmc VERSION 3.0)
-
-
-
 
 if(NOT Boost_INCLUDE_DIR)
   set(Boost_INCLUDE_DIR ${PROJECT_BINARY_DIR}/../external/boost )

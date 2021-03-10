@@ -61,7 +61,6 @@ void pimcConfigurations::setHead( int iChain, int newHead )
     currentChain.head=newHead;
     currentChain.next=-1;
 
-
     if ( oldNext  >= 0 )
     {
         setTail(oldNext,_chains[oldNext].tail);
@@ -221,13 +220,11 @@ int pimcConfigurations::pushChain( particleGroup & group)
     return group.iEnd;
 }
 
-
 int pimcConfigurations::pushChain( int iGroup)
 {
     auto & group = particleGroups[iGroup];
     return pushChain(group);
 }
-
 
 void pimcConfigurations::removeChain( int iChain)
 {

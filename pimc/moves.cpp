@@ -2,7 +2,6 @@
 #include "action.h"
 #include "qmcExceptions.h"
 
-
 namespace pimc
 {      
     std::array<int,2> timeSliceGenerator::operator()(randomGenerator_t & randG, int nBeads , int maxBeadLength)
@@ -231,8 +230,9 @@ bool swapMove::attemptMove(configurations_t & confs, firstOrderAction & S,random
         
         for(int d=0;d<getDimensions();d++)
         {
-            distance[d]=geo.difference(  data(iChainHead,d,iHead) - data(i,d,l),d);
+            distance[d]=geo.difference(  data(iChainHead,d,iHead) - data(i,d,0),d) - data(i,d,l) + data(i,d,0)    ;
         }
+
 
         particleSelectionWeight=exp(freeParticleLogProbability(distance,S.getTimeStep()*l,group.mass));
         weightForwardMove+=particleSelectionWeight;
@@ -254,7 +254,7 @@ bool swapMove::attemptMove(configurations_t & confs, firstOrderAction & S,random
         Real norm=0;
         for(int d=0;d<getDimensions();d++)
         {
-            distance[d]=geo.difference(  data(iPartner,d,0) - data(i,d,l),d);
+            distance[d]=geo.difference(  data(iPartner,d,0) - data(i,d,0),d) + data(i,d,0) - data(i,d,l);
         }
 
 
@@ -279,7 +279,7 @@ bool swapMove::attemptMove(configurations_t & confs, firstOrderAction & S,random
     for(int d=0;d<getDimensions();d++)
         {
             data(iPartner,d,0)=//data(iChainHead,d,iHead);
-            geo.difference (- data (iPartner,d,l) + data(iChainHead,d,iHead) , d);
+            geo.difference (- data (iPartner,d,0) + data(iChainHead,d,iHead) , d) -  data(iPartner,d,l) + data(iPartner,d,0);
             data(iPartner,d,0)+=data (iPartner,d,l);
         }
 
@@ -349,6 +349,7 @@ int sectorTableMoves::sample(randomGenerator_t & randG)
     int iMove = sampler.sample(randG);
     return iMove;
 };
+
 
 openMove::openMove(Real C_ , int maxReconstructedLength_) : C(C_), _levy(maxReconstructedLength_+2) ,  _maxReconstructedLength(maxReconstructedLength_+2) ,buffer(2*(maxReconstructedLength_+2),getDimensions()),
 gauss(0,1),uniformRealNumber(0,1){}
@@ -478,51 +479,51 @@ bool openMove::attemptMove(configurations_t & confs , firstOrderAction & S,rando
     }
 
 
+
     for (int d=0;d<getDimensions();d++)
     {
         difference[d]=
                geo.difference( 
                 data(iChainTail,d,0)-data(iChain,d,t0),d
-            );
+            );                                
 
               //data(iChain,d,iHead)-data(iChain,d,t0);
 
-        if (
+        if (    
             std::abs(data(iChain,d,iHead)-data(iChain,d,t0) ) > geo.getLBox(d)*0.5 )
             {
-                std::cout <<    data(iChain,d,iHead)-data(iChain,d,t0) << std::endl;
-                return false;
+                //std::cout <<    data(iChain,d,iHead)-data(iChain,d,t0) << std::endl;
+                //return false;
             }
         
         
    
     }
 
-
     
     Real mass = confs.getGroupByChain(iChain).mass;
 
     confsSampler.sampleFreeParticlePosition(headPosition,startPosition,timeStep*l,randG,mass);
+
+
+
+/* 
 
     for (int d=0;d<getDimensions();d++)
     {
          if (
             std::abs(headPosition[d]-startPosition[d] ) > geo.getLBox(d)*0.5 )
             {
-                std::cout <<    data(iChain,d,iHead)-data(iChain,d,t0) << std::endl;
-                return false;
+                //std::cout <<    data(iChain,d,iHead)-data(iChain,d,t0) << std::endl;
+                //return false;
             }
 
-    }
+    } */
 
     for (int d=0;d<getDimensions();d++)
     {
         data(iChain,d,iHead)=headPosition[d];
-    
     }
-
-
-    
 
 
     // perform levy reconstruction on l beads
@@ -600,24 +601,22 @@ bool closeMove::attemptMove(configurations_t & confs , firstOrderAction & S,rand
     std::array<Real,3> startPosition;
     std::array<Real,3> distance;
 
-
     for (int d=0;d<getDimensions();d++)
     {
         //std::cout << "close: " <<geo.difference( - data(iChainHead,d,t0) + data(iChainTail,d,iTail),d) << std::endl;
 
 
-        data(iChainHead,d, iHead )=geo.difference( - data(iChainHead,d,t0) + data(iChainTail,d,iTail),d);
+        data(iChainHead,d, iHead )=data(iChainHead,d,iHead) + geo.difference( -  data(iChainHead,d,t0)  + data(iChainTail,d,iTail),d);
+        //data(iChainHead,d, iHead )+=data(iChainHead,d,t0);
+
+
         //data(iChainHead,d, iHead )= - data(iChainHead,d,t0) + data(iChainTail,d,iTail);
 
-        data(iChainHead,d, iHead )+=data(iChainHead,d,t0);
-
+        
         
         //std::cout<<  ( - data(iChainHead,d,t0) + data(iChainHead,d,iHead),d) << std::endl;
 
         //std::cout <<   - data(iChainHead,d,0) + data(iChainHead,d,iHead) << std::endl;
-
-
-
 
 
 

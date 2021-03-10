@@ -7,7 +7,7 @@ class geometry;
 class productWavefunction;
 #include "input.h"
 
-#define DIMENSIONS 1
+#define DIMENSIONS 3
 
 
 using real_t = double;

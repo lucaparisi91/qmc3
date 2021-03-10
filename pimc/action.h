@@ -9,10 +9,8 @@
 #include "qmcExceptions.h"
 #include <memory>
 
-
 namespace pimc
 {
-
     template<class functor_t>
     Real reduceOnSpringDistances(const functor_t & V,const Eigen::Tensor<Real,3> & tn, std::array<int ,2 > timeRange, std::array<int, 2>  particleRange)
     {

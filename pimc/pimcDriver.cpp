@@ -9,6 +9,7 @@
 #include <filesystem>
 #include "pimcPotentials.h"
 
+
 namespace fs = std::filesystem;
 
 namespace pimc
@@ -47,10 +48,6 @@ pimcDriver::pimcDriver(const json_t & j_) : j(j_)
     #if DIMENSIONS == 3
     geo=pimc::geometryPBC_PIMC(lBox[0],lBox[1],lBox[2]);
     #endif
-
-
-
-
 
 
     Real beta = j["inverseTemperature"].get<Real>();
@@ -105,8 +102,9 @@ pimcDriver::pimcDriver(const json_t & j_) : j(j_)
     //auto swapMove = new pimc::swapMove(4,nParticles[0] );
 
     //tab.push_back(swapMove,1.9,pimc::sector_t::offDiagonal,"swap");
+    
 
-     stepsPerBlock = j["stepsPerBlock"].get<int>();
+    stepsPerBlock = j["stepsPerBlock"].get<int>();
     nBlocks = j["nBlocks"].get<int>();
     correlationSteps = j["correlationSteps"].get<int>();
     loadCheckPoint=false;
@@ -291,7 +289,7 @@ void pimcDriver::run()
         fs::create_directory("configurations"); // create src folder
     }
 
-
+    
     configurations.save("configurations/sample"+std::to_string(0));
 
     configurations.save("configurations/sample"+std::to_string(0));
@@ -354,7 +352,7 @@ void pimcDriver::run()
 
         tab >> std::cout;
 
-        configurations.save("configurations/sample"+std::to_string(i+1));
+        //configurations.save("configurations/sample"+std::to_string(i+1));
         
 
         if (doCheckPoint)

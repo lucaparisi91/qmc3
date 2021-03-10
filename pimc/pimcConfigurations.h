@@ -39,10 +39,9 @@ struct particleGroup
     int iStart; // start of the particle group
     int iEnd; // end of the active group
     int iEndExtended; // extended memory for additional particles
-    Real mass;
-    sector_t sector;
+    Real mass; // mass of the particles in the group
+    sector_t sector; // diagonal or off-diagonal sector
     auto size() const {return iEnd - iStart + 1;}  
-
 };
 
 

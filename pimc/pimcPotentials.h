@@ -86,11 +86,11 @@ class harmonicPotential
 
 
     #if DIMENSIONS == 3
-    Real operator()(Real x,Real y,Real z) { return omega[0]*x*x + omega[1]*y*y + omega[2]*z*z;}
+    Real operator()(Real x,Real y,Real z) const { return omega[0]*x*x + omega[1]*y*y + omega[2]*z*z;}
 
-    Real gradX(Real x,Real y,Real z) {return 2*omega[0] *x   ;}
-    Real gradY(Real x,Real y,Real z) {return 2*omega[1] *y   ;}
-    Real gradZ(Real x,Real y,Real z) {return 2*omega[2] *z   ;}
+    Real gradX(Real x,Real y,Real z) const {return 2*omega[0] *x   ;}
+    Real gradY(Real x,Real y,Real z) const {return 2*omega[1] *y   ;}
+    Real gradZ(Real x,Real y,Real z) const {return 2*omega[2] *z   ;}
 
     #endif
 
@@ -134,14 +134,7 @@ class gaussianPotential
     :   _V0(V0),_alpha(alpha) {}
 
 
-    #if DIMENSIONS == 3
-    Real operator()(Real x,Real y,Real z) { return omega[0]*x*x + omega[1]*y*y + omega[2]*z*z;}
-
-    Real gradX(Real x,Real y,Real z) {return 2*omega[0] *x   ;}
-    Real gradY(Real x,Real y,Real z) {return 2*omega[1] *y   ;}
-    Real gradZ(Real x,Real y,Real z) {return 2*omega[2] *z   ;}
-
-    #endif
+   
 
 
     #if DIMENSIONS == 2
@@ -160,9 +153,9 @@ class gaussianPotential
 
     #if DIMENSIONS == 3
     Real operator()(Real x, Real y,Real z) const { Real r2= x*x + y*y + z*z; return _V0*exp(-_alpha*r2);}
-    Real gradX(Real x,Real y,Real z) { Real r2= x*x + y*y + z*z; return -2*x*_V0*_alpha*exp(-_alpha*r2);}
-    Real gradY(Real x,Real y,Real z) { Real r2= x*x + y*y + z*z; return -2*y*_V0*_alpha*exp(-_alpha*r2);}
-    Real gradZ(Real x,Real y,Real z) { Real r2= x*x + y*y + z*z; return -2*z*_V0*_alpha*exp(-_alpha*r2);}
+    Real gradX(Real x,Real y,Real z) const { Real r2= x*x + y*y + z*z; return -2*x*_V0*_alpha*exp(-_alpha*r2);}
+    Real gradY(Real x,Real y,Real z) const { Real r2= x*x + y*y + z*z; return -2*y*_V0*_alpha*exp(-_alpha*r2);}
+    Real gradZ(Real x,Real y,Real z) const { Real r2= x*x + y*y + z*z; return -2*z*_V0*_alpha*exp(-_alpha*r2);}
     #endif
 
     private:
