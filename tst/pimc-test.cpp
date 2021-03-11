@@ -483,7 +483,7 @@ TEST(configurations, IO)
         ASSERT_EQ( configurations2.getChain(i).next , configurations.getChain(i).next ); 
         ASSERT_EQ( configurations2.getChain(i).head , configurations.getChain(i).head ); 
         ASSERT_EQ( configurations2.getChain(i).tail , configurations.getChain(i).tail );
-        ASSERT_EQ( configurations2.tails()[0] , configurations.tails()[0] );
+        ASSERT_EQ( configurations2.getGroups()[0].tails[0] , configurations2.getGroups()[0].tails[0] );
     } 
 
     configurations.saveHDF5(filename);
@@ -585,11 +585,11 @@ TEST(configurations, worms)
     // test open
     configurations.setHead( iChain , M );
 
-    ASSERT_EQ( configurations.heads().size() , 1 );
-    ASSERT_EQ( configurations.tails().size() , 1 );
+    ASSERT_EQ( configurations.getGroup(0).heads.size() , 1 );
+    ASSERT_EQ( configurations.getGroup(0).tails.size() , 1 );
     
-    ASSERT_EQ( configurations.heads()[0],iChain);
-    ASSERT_EQ(configurations.tails()[0],iChain);
+    ASSERT_EQ( configurations.getGroup(0).heads[0],iChain);
+    ASSERT_EQ(configurations.getGroup(0).tails[0],iChain);
 
 
     ASSERT_TRUE( configurations.getChain(iChain).hasHead()     );
@@ -600,9 +600,8 @@ TEST(configurations, worms)
     configurations.join(iChain,iChain);
     ASSERT_FALSE(configurations.getChain(iChain).hasHead() );
     ASSERT_FALSE(configurations.getChain(iChain).hasTail() );
-    ASSERT_EQ( configurations.heads().size() , 0 );
-    ASSERT_EQ( configurations.tails().size() , 0 );
-
+    ASSERT_EQ( configurations.getGroup(0).heads.size() , 0 );
+    ASSERT_EQ( configurations.getGroup(0).tails.size() , 0 );
 
     // test creation of a new head and join
      iChain=5;
@@ -614,13 +613,13 @@ TEST(configurations, worms)
     testChain(configurations, iChain, M, -1); 
     configurations.join(iChain,N);
 
-    ASSERT_EQ( configurations.heads().size() , 1 );
-    ASSERT_EQ( configurations.tails().size() , 1 );
+    ASSERT_EQ( configurations.getGroup(0).heads.size() , 1 );
+    ASSERT_EQ( configurations.getGroup(0).tails.size() , 1 );
 
 
-    ASSERT_EQ( configurations.tails()[0] , iChain );
-    ASSERT_EQ( configurations.heads()[0] , N );
-   
+    ASSERT_EQ( configurations.getGroup(0).tails[0] , iChain );
+    ASSERT_EQ( configurations.getGroup(0).heads[0] , N );
+    
 
 
     // test creation of a new tail and join
@@ -635,11 +634,11 @@ TEST(configurations, worms)
     configurations.join(newChain,iChain); 
 
 
-    ASSERT_EQ( configurations.heads().size() , 1 );
-    ASSERT_EQ( configurations.tails().size() , 1 );
+    ASSERT_EQ( configurations.getGroup(0).heads.size() , 1 );
+    ASSERT_EQ( configurations.getGroup(0).tails.size() , 1 );
 
-    ASSERT_EQ( configurations.tails()[0] , newChain );
-    ASSERT_EQ( configurations.heads()[0] , N );
+    ASSERT_EQ( configurations.getGroup(0).tails[0] , newChain );
+    ASSERT_EQ( configurations.getGroup(0).heads[0] , N );
     ASSERT_EQ(newChain,N+1);
     ASSERT_FALSE(configurations.getChain(N).hasTail() );
     ASSERT_FALSE(configurations.getChain(N+1).hasHead() );
@@ -648,18 +647,18 @@ TEST(configurations, worms)
     // test remove
     configurations.setTail(N,-1);
 
-    ASSERT_EQ( configurations.tails().size() , 2 );
+    ASSERT_EQ( configurations.getGroup(0).tails.size() , 2 );
 
     configurations.setHead(N+1,0);
     
-    ASSERT_EQ( configurations.tails()[1] , N );
-    ASSERT_EQ( configurations.tails()[0] , N + 1 );
+    ASSERT_EQ( configurations.getGroup(0).tails[1] , N );
+    ASSERT_EQ( configurations.getGroup(0).tails[0] , N + 1 );
     
     configurations.removeChain(N); 
     configurations.removeChain(N);
 
-    ASSERT_EQ( configurations.tails()[0] , iChain );
-    ASSERT_EQ( configurations.heads()[0] , iChain );
+    ASSERT_EQ( configurations.getGroup(0).tails[0] , iChain );
+    ASSERT_EQ( configurations.getGroup(0).heads[0] , iChain );
 
 }
 
@@ -884,27 +883,27 @@ TEST(run,free_harmonic_oscillator)
 
     pimc::levyReconstructor reconstructor(M);
 
-    pimc::levyMove freeMoves(5);
+    pimc::levyMove freeMoves(5,0);
 
     Real delta=0.1;
 
-    pimc::translateMove translMove(delta,(M+1)*N);
+    pimc::translateMove translMove(delta,(M+1)*N,0);
 
 
     Real C = 1e-1;
     int l = 3;
 
     
-    pimc::openMove openMove(C,l);
-    pimc::closeMove closeMove(C,l);
+    pimc::openMove openMove(C,0,l);
+    pimc::closeMove closeMove(C,0,l);
 
-    pimc::moveHead moveHeadMove(l);
-    pimc::moveTail moveTailMove(l);
+    pimc::moveHead moveHeadMove(l,0);
+    pimc::moveTail moveTailMove(l,0);
 
-    pimc::swapMove swapMove(l,N);
+    pimc::swapMove swapMove(l,N,0);
 
     pimc::tableMoves table;
-
+    
 
     table.push_back(& freeMoves,0.8,pimc::sector_t::offDiagonal,"levy");
     table.push_back(& freeMoves,0.8,pimc::sector_t::diagonal,"levy");
@@ -1095,8 +1094,6 @@ TEST(run,free)
             data(i,d,j)=(data(i,d,j)-0.5 )*lBox;
         }
     }
-
-
     
 
 
@@ -1111,23 +1108,24 @@ TEST(run,free)
 
     pimc::levyReconstructor reconstructor(M);
 
-    pimc::levyMove freeMoves(M/3);
+    pimc::levyMove freeMoves(M/3,0);
+
 
     Real delta=0.1;
 
-    pimc::translateMove translMove(delta,(M+1)*N);
+    pimc::translateMove translMove(delta,(M+1)*N,0);
 
     Real C = 1e-4;
     int l = 1;
 
 
-    pimc::openMove openMove(C,l);
-    pimc::closeMove closeMove(C,l);
+    pimc::openMove openMove(C,0,l);
+    pimc::closeMove closeMove(C,0,l);
 
-    pimc::moveHead moveHeadMove(l);
-    pimc::moveTail moveTailMove(l);
+    pimc::moveHead moveHeadMove(l,0);
+    pimc::moveTail moveTailMove(l,0);
 
-    pimc::swapMove swapMove(4,N);
+    pimc::swapMove swapMove(4,N,0);
 
     pimc::tableMoves table;
 

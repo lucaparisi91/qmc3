@@ -10,7 +10,6 @@
 #include "toolsPimc.h"
 #include <list>
 
-
 namespace pimc
 {
 
@@ -30,18 +29,79 @@ private:
 
 enum sector_t{ diagonal = 0 , offDiagonal = 1 , any = 2} ;
 
-
 struct particleGroup
 {
+    static const int maxWorms = 1;
+
+
     particleGroup( int iStart_,int iEnd_,int iEndExtended_,Real mass_ = 1, sector_t sector_ = sector_t::diagonal) : 
-    iStart(iStart_),iEnd(iEnd_),iEndExtended(iEndExtended_),mass(mass_),sector(sector_) {}
+    iStart(iStart_),iEnd(iEnd_),iEndExtended(iEndExtended_),mass(mass_),sector(sector_) {
+    }
     bool contains(int iParticle) const {return (iParticle>= iStart) and (iParticle<=iEnd);}
+
+    bool isOpen() const {return (heads.size()) > 0 or (tails.size() > 0); }
+
+    void pushHead(int iHead) 
+    {
+        heads.push_back(iHead);
+    }
+    void pushTail(int iTail) 
+    {
+        tails.push_back(iTail);
+    }
+    void popTail(int iTail)
+    {
+        tails.resize( tails.size() - 1 );
+    }
+    void popHead(int iHead)
+    {
+        heads.resize( heads.size() - 1 );
+    }
+
+    void removeHead(int iChain)
+    {
+        auto & _heads = heads;
+
+        auto it = std::find(_heads.begin(),_heads.end(),iChain) ;
+        if ( it== _heads.end() )
+        {
+            throw invalidState("Could not find the head among registered heads.");
+        }
+
+    std::swap(*it,*(_heads.end() - 1) );
+    _heads.resize(_heads.size() - 1);
+
+    }
+
+
+    void removeTail(int iChain)
+    {
+     
+        auto it = std::find(tails.begin(),tails.end(),iChain) ;
+        if ( it== tails.end() )
+        {
+            throw invalidState("Could not find the head among registered heads.");
+        }
+
+    std::swap(*it,*(tails.end() - 1) );
+    tails.resize(tails.size() - 1);
+
+    }
+
+    bool operator==(particleGroup & groupB)
+    {
+        return (groupB.iStart == iStart) and (groupB.iEnd == iEnd);
+    }
+
     int iStart; // start of the particle group
     int iEnd; // end of the active group
     int iEndExtended; // extended memory for additional particles
     Real mass; // mass of the particles in the group
     sector_t sector; // diagonal or off-diagonal sector
-    auto size() const {return iEnd - iStart + 1;}  
+    auto size() const {return iEnd - iStart + 1;}
+    std::vector<int> heads;
+    std::vector<int> tails;
+
 };
 
 
@@ -76,15 +136,14 @@ public:
         void saveHDF5(const std::string & filename);
         static pimcConfigurations loadHDF5(const std::string & filename);
 
-
-
         pimcConfigurations() : pimcConfigurations(0,getDimensions(), {} 
         ) {}
 
 
         pimcConfigurations(size_t timeSlices, int dimensions, const std::vector<particleGroup> & particleGroups_);
-        bool isOpen() {return (_tails.size() > 0) or (_heads.size() > 0)  ;}
-
+        
+        
+        
 
         auto &  dataTensor() {return _data;}
         const auto &  dataTensor() const {return _data;}
@@ -103,7 +162,6 @@ public:
         const auto & getChain(int i) {return _chains[i];}
 
         const auto & getChain(int i) const {return _chains[i];}
-
 
         const auto & getGroup(int iChain) const
         {
@@ -135,6 +193,8 @@ public:
 
 
 
+
+
         static void copyData(const pimcConfigurations & confFrom, const std::array<int,2> & timeRangeFrom, const std::array<int,2> & particleRangeFrom ,
           Eigen::Tensor<Real,3> & dataTo, int timeOffsetTo, int particleOffestTo );
 
@@ -156,9 +216,21 @@ public:
          }
 
 
-        const auto & tails () {return _tails;}
-        const auto & heads () {return _heads;}
+        const auto & tails (int iGroup) const {return particleGroups[iGroup].tails;}
+        const auto & heads (int iGroup) const {return particleGroups[iGroup].heads;}
 
+
+        bool isOpen(int iGroup) const { return particleGroups[iGroup].isOpen()  ;}
+
+        bool isOpen()
+        {
+            bool open=true;
+            for(int i=0;i<particleGroups.size();i++)
+            {
+                open=open and particleGroups[i].isOpen();
+            }
+            return open;
+        }
 
         void swapTails(int iChainLeft,int iChainRight);
 
@@ -183,7 +255,7 @@ public:
         void swap(int iParticleFrom, int iParticleTo);
 
 
-        particleGroup & getGroupByChain(int iChain) {
+        const particleGroup & getGroupByChain(int iChain) const {
             for (auto & group : particleGroups )
             {
                 if (group.contains(iChain) )
@@ -219,7 +291,20 @@ public:
         std::list<int> buildPolimerList(int iChain) const; // build a list of all chains in the same permutation cycle as iChain 
 
 
+
         protected:
+
+         particleGroup & getModifiableGroupByChain(int iChain) {
+            for (auto & group : particleGroups )
+            {
+                if (group.contains(iChain) )
+                {
+                    return  group;       
+                }
+            }
+            throw invalidInput("Chain is not contained in any group");
+        }
+
 
 
         void updateMask(const chain & chainToUpdate);
@@ -231,8 +316,8 @@ public:
         const auto & getChains() {return _chains; }
 
 
-        int nWorms() {return (_heads.size() + _tails.size() )/2;};
 
+        int nGroups() const {return particleGroups.size();}
 
 
         private:
@@ -245,9 +330,7 @@ public:
         configurationsStorage_t _data;
         std::vector<chain> _chains;
 
-        // accelleration structures
-        std::vector<int> _tails;
-        std::vector<int> _heads;
+
         mask _mask;
         int _nParticles;
     };
@@ -255,23 +338,28 @@ public:
     using configurations_t = pimcConfigurations; 
 
 
-
-
-
 class configurationsSampler
 {
     public:
-    configurationsSampler() : uniformRealNumber(0,1),normal(0,1) {}
+    configurationsSampler() : uniformRealNumber(0,1),normal(0,1),D(0.5) {}
     
-    int sampleChain(configurations_t & confs,randomGenerator_t & randG);
+    int sampleChain(const configurations_t & confs,randomGenerator_t & randG);
+
+    int sampleChain( const configurations_t & confs,int iGroup,randomGenerator_t & randG);
+
+    int sampleGroup(const configurations_t & confs,randomGenerator_t & randG);
+
+
+
 
     void sampleFreeParticlePosition(std::array<Real,getDimensions()> & x,const std::array<Real,getDimensions()> & mean,Real tau,randomGenerator_t & randG,Real mass=1);    
 
     private:
     std::uniform_real_distribution<float> uniformRealNumber;
+    
     std::normal_distribution<Real> normal;
     
-    const Real D = 0.5;
+     Real D ;
 
 };
 

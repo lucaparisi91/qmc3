@@ -9,9 +9,9 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 if ( ${CMAKE_BUILD_TYPE} MATCHES Debug)
-  set(CMAKE_CXX_FLAGS_ADDITIONAL "-Og -g -pg -Wfatal-errors")
+  set(CMAKE_CXX_FLAGS_ADDITIONAL " -g -pg -Wfatal-errors")
   elseif (${CMAKE_BUILD_TYPE} MATCHES Release) 
-  set(CMAKE_CXX_FLAGS_ADDITIONAL "-O3 -DNDEBUG -pg -Wfatal-errors")
+  set(CMAKE_CXX_FLAGS_ADDITIONAL " -DNDEBUG -pg -Wfatal-errors")
   else()
   message(FATAL_ERROR "Unrecognized build type: " ${CMAKE_BUILD_TYPE}  )
 

@@ -91,7 +91,8 @@ namespace pimc
 
     }
 
-levyMove::levyMove(int maxBeadLength_) : _levy(maxBeadLength_) , uniformRealNumber(0,1),maxBeadLength(maxBeadLength_) , buffer(( maxBeadLength_+1)*2,getDimensions() ) {}
+levyMove::levyMove(int maxBeadLength_,int set) : _levy(maxBeadLength_) , uniformRealNumber(0,1),maxBeadLength(maxBeadLength_) , buffer(( maxBeadLength_+1)*2,getDimensions() ) ,singleSetMove::singleSetMove(set){}
+
 
 bool levyMove::attemptMove( configurations_t & confs, firstOrderAction & ST,randomGenerator_t & randG)
 {
@@ -102,8 +103,7 @@ bool levyMove::attemptMove( configurations_t & confs, firstOrderAction & ST,rand
 
     auto & geo = S.getGeometry();
 
-
-    int iChain=confsSampler.sampleChain(confs,randG);
+    int iChain=confsSampler.sampleChain(confs,getSet(),randG);
 
     auto timeRange = tGen(randG,nBeads,maxBeadLength);
 
@@ -124,6 +124,7 @@ bool levyMove::attemptMove( configurations_t & confs, firstOrderAction & ST,rand
     
     auto & data = confs.dataTensor();
 
+    
     auto sOld = S.evaluate(confs, timeRanges[0], iChain);
     sOld += S.evaluate(confs, timeRanges[1], iChainNext);
 
@@ -187,22 +188,26 @@ bool levyMove::attemptMove( configurations_t & confs, firstOrderAction & ST,rand
     return accepted;
 }
 
-swapMove::swapMove(int maxStepLength_,int maxN) :
+swapMove::swapMove(int maxStepLength_,int maxN,int set) :
  maxStepLength(maxStepLength_),buffer(maxStepLength_*2,getDimensions() )
  , uniformRealNumber(0,1) ,_levy(maxStepLength_+2),particleSampler(maxN)
-{}
+, singleSetMove(set){}
+
 
 bool swapMove::attemptMove(configurations_t & confs, firstOrderAction & S,randomGenerator_t & randG)
 {
-    if ( ! confs.isOpen() )
+    if ( ! confs.isOpen(getSet()) )
     {
         throw invalidState("Swap move can only be done in the G sector.");
     }
      auto & data = confs.dataTensor();
     // selects an head at random
 
-    int _iChainHead =  std::floor(  uniformRealNumber(randG) * confs.heads().size() ) ;
-    int iChainHead =  confs.heads()[_iChainHead] ;
+    const auto & group = confs.getGroups()[getSet()];
+
+    const auto & heads =  confs.getGroups()[getSet()].heads;
+    int iiChainHead =  std::floor(  uniformRealNumber( randG )*heads.size() ) ;
+    int iChainHead = heads[iiChainHead];
 
     auto & Spot = S.getPotentialAction();
 
@@ -217,7 +222,7 @@ bool swapMove::attemptMove(configurations_t & confs, firstOrderAction & S,random
     
     // tower sampling a particle i with gaussian weights on the relative distances
    
-    const auto & group = confs.getGroup( iChainHead );
+    
     auto & geo = S.getGeometry();
 
     std::array<Real, 3> distance;
@@ -316,12 +321,15 @@ std::ostream & sectorTableMoves::operator>> (std::ostream & os)
     return os;
 }
 
+
 bool sectorTableMoves::attemptMove(configurations_t & confs, firstOrderAction & S,randomGenerator_t & randG)
 {
     int iMove=sample(randG);
 
+
     auto  move = (_moves[ iMove ]);
     bool success=move->attemptMove(confs,S,randG);
+
 
     _nTrials[iMove]++;
 
@@ -351,10 +359,12 @@ int sectorTableMoves::sample(randomGenerator_t & randG)
 };
 
 
-openMove::openMove(Real C_ , int maxReconstructedLength_) : C(C_), _levy(maxReconstructedLength_+2) ,  _maxReconstructedLength(maxReconstructedLength_+2) ,buffer(2*(maxReconstructedLength_+2),getDimensions()),
-gauss(0,1),uniformRealNumber(0,1){}
+openMove::openMove(Real C_ , int set,int maxReconstructedLength_) : C(C_), _levy(maxReconstructedLength_+2) ,  _maxReconstructedLength(maxReconstructedLength_+2) ,buffer(2*(maxReconstructedLength_+2),getDimensions()),
+gauss(0,1),uniformRealNumber(0,1),
+singleSetMove(set)
+{}
 
-translateMove::translateMove(Real max_delta, int maxBeads) : _max_delta(max_delta),buffer(maxBeads+1,getDimensions())  , distr(-1.,1.)
+translateMove::translateMove(Real max_delta, int maxBeads, int set) : _max_delta(max_delta),buffer(maxBeads+1,getDimensions())  , distr(-1.,1.),singleSetMove(set)
 {
 
 }
@@ -440,12 +450,12 @@ bool openMove::attemptMove(configurations_t & confs , firstOrderAction & S,rando
 {
     Real timeStep = S.getTimeStep();
 
-    if ( confs.isOpen() )
+    if ( confs.isOpen(getSet()) )
     {
         throw invalidState("The configuration is already open.");
     }
 
-    int iChain = confsSampler.sampleChain(confs,randG);
+    int iChain = confsSampler.sampleChain(confs,getSet(),randG);
     int iChainTail=confs.getChain(iChain).next;
 
     int iHead=confs.nBeads();
@@ -503,6 +513,7 @@ bool openMove::attemptMove(configurations_t & confs , firstOrderAction & S,rando
     
     Real mass = confs.getGroupByChain(iChain).mass;
 
+
     confsSampler.sampleFreeParticlePosition(headPosition,startPosition,timeStep*l,randG,mass);
 
 
@@ -555,15 +566,31 @@ bool openMove::attemptMove(configurations_t & confs , firstOrderAction & S,rando
 };
 
 
-closeMove::closeMove(Real C_ , int maxReconstructionLength) : C(C_),_levy(2*(maxReconstructionLength+2)),_maxLength(maxReconstructionLength+2),buffer((maxReconstructionLength+2)*2,getDimensions()),gauss(0,1),uniformRealNumber(0,1)
+closeMove::closeMove(Real C_ , int set,int maxReconstructionLength) : C(C_),_levy(2*(maxReconstructionLength+2)),_maxLength(maxReconstructionLength+2),buffer((maxReconstructionLength+2)*2,getDimensions()),gauss(0,1),uniformRealNumber(0,1),
+singleSetMove(set)
 {}
+
 
 bool closeMove::attemptMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG )
 {
+    
+     if (! confs.isOpen(getSet()) )
+    {
+        throw invalidState("The configuration is already closed.");
+    }
 
-    int iChainHead=confs.heads()[std::floor(uniformRealNumber(randG) * confs.heads().size() )];
-    int iChainTail=confs.tails()[std::floor(uniformRealNumber(randG) * confs.tails().size() )];
-   
+
+    const auto & heads = confs.getGroups()[getSet()].heads;
+    const auto & tails = confs.getGroups()[getSet()].tails;
+
+
+    int iChain=heads[std::floor(uniformRealNumber(randG) * heads.size() )];
+    
+
+
+    int iChainHead=heads[std::floor(uniformRealNumber(randG) * heads.size() )];
+    int iChainTail=tails[std::floor(uniformRealNumber(randG) * tails.size() )];
+    
     auto timeStep = S.getTimeStep();
 
     auto & geo = S.getGeometry();
@@ -684,15 +711,15 @@ bool closeMove::attemptMove(configurations_t & confs , firstOrderAction & S,rand
 };
 
 
-moveHead::moveHead(int maxAdvanceLength_) :
-_maxReconstructedLength(maxAdvanceLength_+2),buffer((maxAdvanceLength_+2)*2,getDimensions()) , _levy((maxAdvanceLength_+2)*2),gauss(0,1),uniformRealNumber(0,1)
+moveHead::moveHead(int maxAdvanceLength_,int set) :
+_maxReconstructedLength(maxAdvanceLength_+2),buffer((maxAdvanceLength_+2)*2,getDimensions()) , _levy((maxAdvanceLength_+2)*2),gauss(0,1),uniformRealNumber(0,1),singleSetMove(set)
 {
 
 }
 
 
-moveTail::moveTail(int maxAdvanceLength_) :
-_maxReconstructedLength(maxAdvanceLength_+2),buffer((maxAdvanceLength_+2)*2,getDimensions()) , _levy((maxAdvanceLength_+2)*2),gauss(0,1),uniformRealNumber(0,1)
+moveTail::moveTail(int maxAdvanceLength_,int set) :
+_maxReconstructedLength(maxAdvanceLength_+2),buffer((maxAdvanceLength_+2)*2,getDimensions()) , _levy((maxAdvanceLength_+2)*2),gauss(0,1),uniformRealNumber(0,1),singleSetMove(set)
 {
     
 }
@@ -702,8 +729,10 @@ bool moveHead::attemptMove(configurations_t & confs , firstOrderAction & S,rando
 {
     Real timeStep = S.getTimeStep();
 
+    const auto & heads = confs.getGroups()[getSet()].heads;
 
-    int iChain=confs.heads()[std::floor(uniformRealNumber(randG) * confs.heads().size() )];
+
+    int iChain=heads[std::floor(uniformRealNumber(randG) * heads.size() )];
     
 
     int iHead=confs.nBeads();
@@ -776,7 +805,12 @@ bool moveTail::attemptMove(configurations_t & confs , firstOrderAction & S,rando
 {
     Real timeStep = S.getTimeStep();
 
-    int iChain=confs.tails()[std::floor(uniformRealNumber(randG) * confs.tails().size() )];
+    const auto & tails = confs.getGroups()[getSet()].tails;
+
+    
+    int iChain=tails[std::floor(uniformRealNumber(randG) * tails.size() )];
+
+
 
     if (not confs.getChain(iChain).hasTail() )
     {
@@ -816,7 +850,10 @@ bool moveTail::attemptMove(configurations_t & confs , firstOrderAction & S,rando
         startPosition[d]=data(iChain,d,t1);
     }
 
-    Real mass = confs.getGroupByChain(iChain).mass;
+    auto confs_const = const_cast<pimcConfigurations_t*>(&confs);
+
+    Real mass = (*confs_const).getGroupByChain(iChain).mass;
+
     Real var=2*D*timeStep/ mass;
 
     confsSampler.sampleFreeParticlePosition(tailPosition,startPosition,timeStep*l,randG,mass);
@@ -852,49 +889,75 @@ bool moveTail::attemptMove(configurations_t & confs , firstOrderAction & S,rando
 
 void tableMoves::push_back( move * move_,Real weight,sector_t sector,const std::string & name)
 {
-    if (sector == sector_t::diagonal)
+    const auto & sets = move_->getSets();
+
+    for ( auto set : sets)
     {
-        closedTab.push_back(move_,weight,name);
-    }
-    else if (sector == sector_t::offDiagonal)
-    {
-        openTab.push_back(move_,weight,name);
-    }
+        if (set >=nRegisteredSets() )
+        {
+           resize(set+1);
+        } 
+        if (sector == sector_t::diagonal)
+        {
+            closedTabs[set].push_back(move_,weight,name);
+
+        }
+        else
+        {
+            openTabs[set].push_back(move_,weight,name);
+        }
+    }    
 
 }
-
 
 bool tableMoves::attemptMove(configurations_t & confs, firstOrderAction & S,randomGenerator_t & randG)
 {
-    if (  confs.isOpen() )
+    int iGroup= _chainSampler.sampleGroup(confs,randG);
+
+    assert(iGroup < nRegisteredSets() );
+
+    if (  confs.isOpen(iGroup) )
     {
-        nOpenSectorMoves++;
-        return openTab.attemptMove(confs,S,randG);
+        nOpenSectorMoves[iGroup]++;
+        return openTabs[iGroup].attemptMove(confs,S,randG);
     }
     else
     {
-        nClosedSectorMoves++;
-        return closedTab.attemptMove(confs,S,randG);
+        nClosedSectorMoves[iGroup]++;
+        return closedTabs[iGroup].attemptMove(confs,S,randG);
     }
-        
+
 }
+
+void tableMoves::resize(int nSets)
+{
+    closedTabs.resize(nSets);
+    openTabs.resize(nSets);
+
+    nOpenSectorMoves.resize(nSets);
+    nClosedSectorMoves.resize(nSets);
+};
+
 
 std::ostream & tableMoves::operator>> (std::ostream & os)
 {
-    os << "----------Open Sector" << "-----------" << std::endl;
-    openTab >> os;
-    os << "----------Closed Sector" << "-----------" << std::endl;
-    closedTab >> os;
-    os << "----------------" << std::endl;
-
-    if ((nOpenSectorMoves + nClosedSectorMoves) > 0 )
+    for (int iSet=0;iSet<nRegisteredSets() ;iSet++ )
     {
-        os << "Open Sector fraction: " << nOpenSectorMoves/(nOpenSectorMoves + nClosedSectorMoves) << std::endl;
+        os << "----Sector: " << iSet << "---------" << std::endl ; 
+        os << "----------Open Sector" << "-----------" << std::endl;
+        openTabs[iSet] >> os;
+        os << "----------Closed Sector" << "-----------" << std::endl;
+        closedTabs[iSet] >> os;
+        os << "----------------" << std::endl;
+
+        if ( (nOpenSectorMoves[iSet] + nClosedSectorMoves[iSet]) > 0 )
+        {
+            os << "Open Sector fraction: " << nOpenSectorMoves[iSet]/(nOpenSectorMoves[iSet] + nClosedSectorMoves[iSet]) << std::endl;
+        }
     }
 
     return os;
 }
-
 
 }
 

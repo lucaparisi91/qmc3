@@ -9,7 +9,6 @@
 #include <filesystem>
 #include "pimcPotentials.h"
 
-
 namespace fs = std::filesystem;
 
 namespace pimc
@@ -54,13 +53,6 @@ pimcDriver::pimcDriver(const json_t & j_) : j(j_)
     nParticles = j["particles"].get<std::vector<int> >();
 
 
-    if (nParticles.size() != 1 )
-    {
-        throw missingImplementation("Multiple groups have not been implemented yet");
-
-    }
-
-
     nBeads= j["nBeads"].get<int>();
 
     timeStep = beta/nBeads;
@@ -68,8 +60,8 @@ pimcDriver::pimcDriver(const json_t & j_) : j(j_)
     seed = j["seed"].get<int>();
 
 
-    //int nChains = std::accumulate(nParticles.begin(),nParticles.end() , 0);
-    int nChains = nParticles[0];
+    int nChains = std::accumulate(nParticles.begin(),nParticles.end() , 0);
+    //int nChains = nParticles[0];
     
 
 
@@ -96,7 +88,10 @@ pimcDriver::pimcDriver(const json_t & j_) : j(j_)
     pimcMoveConstructor.registerMove<pimc::moveHead>("moveHead");
     pimcMoveConstructor.registerMove<pimc::moveTail>("moveTail");
     pimcMoveConstructor.registerMove<pimc::swapMove>("swap");
-    
+
+
+
+
     tab = pimcMoveConstructor.createTable( j["movesTable"] );
 
     //auto swapMove = new pimc::swapMove(4,nParticles[0] );
@@ -148,8 +143,8 @@ void pimcDriver::run()
          );
     #endif
 
-    int nChains = nParticles[0];
- 
+    int nChains = std::accumulate(nParticles.begin(),nParticles.end() , 0);
+    
     actionConstructor sC(geo,timeStep,nChains,nBeads);
     
 
@@ -168,13 +163,22 @@ void pimcDriver::run()
     S = pimc::firstOrderAction(sT, sV);
 
 
-     int N = nParticles[0];
     
     randomGenerator_t randG(seed);
 
-    pimc::particleGroup groupA{ 0 , N-1, N - 1 , 1.0};
+    std::vector<pimc::particleGroup> groups;
+    auto Ns = j["particles"].get<std::vector<int> >();
+    int nStart=0;
 
-    pimc::pimcConfigurations configurations(nBeads, getDimensions() , {groupA});
+    for (auto N : Ns)
+    {
+        pimc::particleGroup currentGroup{ nStart , nStart + N - 1, nStart +  N - 1 , 1.0};
+        groups.push_back(currentGroup);
+
+        nStart+=N;     
+    }
+
+    pimc::pimcConfigurations configurations(nBeads, getDimensions() , groups );
 
     // sets a random initial condition
     configurations.dataTensor().setRandom();
@@ -182,8 +186,6 @@ void pimcDriver::run()
 
     if (loadCheckPoint )
     {
-
-
         configurations=pimc::pimcConfigurations::loadHDF5(checkPointFile);
     }
 
@@ -221,7 +223,6 @@ void pimcDriver::run()
 
                 auto eV=std::make_shared<pimc::scalarObservable>(vEst,label);
                 observables.push_back(eV);
-
             }
             else
             {

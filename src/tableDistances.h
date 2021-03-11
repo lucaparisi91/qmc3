@@ -5,6 +5,7 @@
 #include <map>
 #include <unordered_map>
 
+
 class tableDistances
 {
 public:
@@ -12,7 +13,7 @@ public:
   using distances_t = ::distance_t;
   using state_t = ::state_t;
   using states_t = ::states_t;
-  
+
   tableDistances(){};
   const auto & getGeometry() const {return *geo;}
 
@@ -32,7 +33,8 @@ public:
 	const auto & differences()  const {return _differences;} 
 
 	const distances_t & distances(int setA) const;
-        const distances_t & distances(int setA,int setB) const;
+    const distances_t & distances(int setA,int setB) const;
+
 private:
 	std::vector<diff_t> _differences; // vectorial distances
 	std::vector<distances_t> _distances; // scalar distances

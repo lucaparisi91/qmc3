@@ -554,11 +554,6 @@ class potentialActionTwoBody : public action
             }
         }
 
-
-
-
-
-
         return sum*getTimeStep();
     }
 
@@ -619,16 +614,11 @@ class potentialActionTwoBody : public action
                 }
     
 
-
-  
-
    
 
     }
 
-
     private:
-
 
      Real evaluateOnDifferentGroup(const pimcConfigurations_t & configurations)
      {

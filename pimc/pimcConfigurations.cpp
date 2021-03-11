@@ -5,7 +5,6 @@
 #include <algorithm>
 #include "hdf5IO.h"
 
-
 namespace fs = std::filesystem;
 
 namespace pimc
@@ -44,6 +43,9 @@ void pimcConfigurations::setHead( int iChain, int newHead )
 {
     int oldHead=_chains[iChain].head;
 
+    auto & group = getModifiableGroupByChain(iChain);
+
+
     int delta = newHead - oldHead;
     
     if ( delta > 0)
@@ -64,7 +66,7 @@ void pimcConfigurations::setHead( int iChain, int newHead )
     if ( oldNext  >= 0 )
     {
         setTail(oldNext,_chains[oldNext].tail);
-        _heads.push_back( iChain);
+        group.pushHead( iChain);
     }
 
 };
@@ -99,6 +101,9 @@ void pimcConfigurations::setTail( int iChain, int newTail )
 {
     int oldTail=_chains[iChain].tail;
 
+    auto & group = getModifiableGroupByChain(iChain);
+
+
     int delta = newTail - oldTail;
 
     if ( delta < 0)
@@ -121,7 +126,7 @@ void pimcConfigurations::setTail( int iChain, int newTail )
     if ( oldPrev  >= 0 )
     {
         setHead(oldPrev,_chains[oldPrev].head);
-        _tails.push_back( iChain);
+        group.pushTail( iChain);
     }
 
 };
@@ -209,12 +214,12 @@ int pimcConfigurations::pushChain( particleGroup & group)
 
     if ( _chains[group.iEnd].hasHead() )
     {
-        _heads.push_back(group.iEnd);
+        group.pushHead(group.iEnd);
     }
 
     if ( _chains[group.iEnd].hasTail() )
     {
-        _tails.push_back(group.iEnd);
+        group.pushTail(group.iEnd);
     }
 
     return group.iEnd;
@@ -228,7 +233,7 @@ int pimcConfigurations::pushChain( int iGroup)
 
 void pimcConfigurations::removeChain( int iChain)
 {
-    auto & group=getGroupByChain(iChain);
+    auto & group=getModifiableGroupByChain(iChain);
 
     // unregister chain
     if ( !(getChain(iChain).hasHead()) or !( getChain(iChain).hasTail()) )
@@ -249,28 +254,19 @@ void pimcConfigurations::removeChain( int iChain)
 void pimcConfigurations::deleteHeadFromList(int iChain)
 {
     // delete the head from the list of heads
-    auto it = std::find(_heads.begin(),_heads.end(),iChain) ;
-    if ( it== _heads.end() )
-    {
-        throw invalidState("Could not find the head among registered heads.");
-    }
 
-    std::swap(*it,*(_heads.end() - 1) );
-    _heads.resize(_heads.size() - 1);
+    auto & group = getModifiableGroupByChain(iChain);
 
+    group.removeHead(iChain);
+
+
+   
 }
 
 void pimcConfigurations::deleteTailFromList(int iChain)
 {
-    // delete the tail from the list of tails
-    auto it = std::find(_tails.begin(),_tails.end(),iChain) ;
-    if ( it== _tails.end() )
-    {
-        throw invalidState("Could not find the tail among registered tails.");
-    }
-    std::swap(*it,*(_tails.end() - 1) );
-    _tails.resize(_tails.size() - 1);
-
+    auto & group = getModifiableGroupByChain(iChain);
+    group.removeTail(iChain);
 
 }
 
@@ -615,6 +611,10 @@ void pimcConfigurations::swap(int particleA, int particleB)
     auto chainA=_chains[particleA];
     auto chainB=_chains[particleB];
 
+    auto & groupA = getModifiableGroupByChain(particleA);
+    auto & groupB = getModifiableGroupByChain(particleA);
+
+    assert(groupA == groupB); // only swap between particles of the same set are allowed
 
     if (chainA.prev != -1)
     {
@@ -638,6 +638,10 @@ void pimcConfigurations::swap(int particleA, int particleB)
     // swap the chain info
     std::swap(_chains[particleA],_chains[particleB]);
 
+    auto & _heads = groupA.heads;
+    auto & _tails = groupA.tails;
+
+
     // swap A and B indices in the head list
     std::replace(_heads.begin(),_heads.end(),particleA,-1);
     std::replace(_heads.begin(),_heads.end(),particleB,particleA);
@@ -660,7 +664,7 @@ void pimcConfigurations::swap(int particleA, int particleB)
 
 
 
-int configurationsSampler::sampleChain(configurations_t & confs,randomGenerator_t & randG)
+int configurationsSampler::sampleChain(const configurations_t & confs,randomGenerator_t & randG)
 {
     // sample a chain with probability 1/ N_particles 
     int iParticle = uniformRealNumber(randG)*confs.nParticles();
@@ -680,6 +684,23 @@ int configurationsSampler::sampleChain(configurations_t & confs,randomGenerator_
     return iChain;
 }
 
+
+int configurationsSampler::sampleChain(const configurations_t & confs, int iGroup,randomGenerator_t & randG)
+{
+    // sample a chain from a group with probability 1/ (# particles in the group) 
+
+    const auto & group = confs.getGroups()[iGroup];
+
+    int iParticle = std::floor(uniformRealNumber(randG)*group.size());
+    int k=0;
+    int iChain=-1;
+
+    iChain = group.iStart + iParticle;
+
+    return iChain;
+}
+
+
 void configurationsSampler::sampleFreeParticlePosition(
     std::array<Real,getDimensions()> & x,const std::array<Real,getDimensions()> & mean,Real tau,randomGenerator_t & randG,Real mass
 ){
@@ -689,6 +710,14 @@ void configurationsSampler::sampleFreeParticlePosition(
         x[d]=mean[d] + normal(randG)*std::sqrt(var);       
     }
 }
+
+int configurationsSampler::sampleGroup(const configurations_t & confs,randomGenerator_t & randG)
+{
+     return  std::floor(uniformRealNumber(randG)*confs.getGroups().size());
+}
+    
+
+
 
 void pimcConfigurations::saveHDF5(const std::string & filename)
 {
@@ -702,7 +731,7 @@ void pimcConfigurations::saveHDF5(const std::string & filename)
 
 
     const auto & groups =getGroups();
-    int chunkSize=4;
+    int chunkSize=6;
     std::vector<int> groupData(groups.size() * chunkSize );
 
     int groupDims[1]={groups.size()*chunkSize};
@@ -715,7 +744,20 @@ void pimcConfigurations::saveHDF5(const std::string & filename)
         groupData[i*chunkSize]=groups[i].iStart;
         groupData[i*chunkSize+1]=groups[i].iEnd;
         groupData[i*chunkSize+2]=groups[i].iEndExtended;
-        groupData[i*chunkSize+4]=groups[i].sector;
+        groupData[i*chunkSize+3]=groups[i].sector;
+        
+        if ( groups[i].isOpen() )
+        {
+            groupData[i*chunkSize+4]=groups[i].heads[0];
+            groupData[i*chunkSize+5]=groups[i].tails[0];
+        }
+        else
+        {
+            groupData[i*chunkSize+4]=-1;
+            groupData[i*chunkSize+5]=-1;
+        }
+        
+        
         masses[i]=groups[i].mass;
     }
 
@@ -739,8 +781,6 @@ void pimcConfigurations::saveHDF5(const std::string & filename)
 
     ioInterface.write(data.data(),"configurations",& dims[0],rank);
     ioInterface.write(groupData,"groupings");
-    ioInterface.write(_tails,"tails");
-    ioInterface.write(_heads,"heads");
     ioInterface.write(chainData,"chains");
 
 
@@ -765,7 +805,7 @@ pimcConfigurations pimcConfigurations::loadHDF5(const std::string & filename)
     std::cout << "Open file " << filename << std::endl;
 
     std::vector<pimc::particleGroup> groups2;
-    int chunkSize=4;
+    int chunkSize=6;
     for(int i=0;i<masses2.size();i++)
     {
         pimc::particleGroup currentGroup ( 
@@ -775,6 +815,22 @@ pimcConfigurations pimcConfigurations::loadHDF5(const std::string & filename)
             masses2[i],
             (pimc::sector_t)groupData2[i*chunkSize+3] 
         );  
+
+        int iHead =groupData2[i*chunkSize + 4] ;
+        int iTail = groupData2[i*chunkSize + 5] ;
+
+        if ( ( iTail != -1 ) or ( iHead != -1 ) )
+        {
+            currentGroup.pushHead(iHead);
+            currentGroup.pushTail(iTail);
+        } 
+        else 
+        {
+            // check that both tail and head are missing
+            assert(iTail == -1);
+            assert(iHead == -1);
+        }
+
         groups2.push_back(currentGroup);
     }
 
@@ -783,11 +839,8 @@ pimcConfigurations pimcConfigurations::loadHDF5(const std::string & filename)
     //pimc::pimcConfigurations configurations2(50 , getDimensions() , {{0,999,999,1}});
 
 
-
-
     ioInterface2.read(configurations2.data(), "configurations"  );
-    configurations2._tails=ioInterface2.get<std::vector<int> >("tails");
-    configurations2._heads=ioInterface2.get<std::vector<int> >("heads");
+
 
     auto chainData=ioInterface2.get<std::vector<int> >("chains");
 
