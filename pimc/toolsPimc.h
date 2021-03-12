@@ -1,8 +1,8 @@
 #ifndef TOOLSPIMC_H
 #define TOOLSPIMC_H
 
-#include "../src/traits.h"
-#include "../src/tools.h"
+#include "traits.h"
+#include "tools.h"
 #include <random>
 #include <array>
 

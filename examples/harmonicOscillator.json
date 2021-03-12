@@ -2,7 +2,7 @@
     "N" : [1],
     "seed" : 231,
     "lBox" : [10000.0,10000.0,10000.0],
-    "method" : "vmc",
+    "method" : "dmc",
     "configurations" : "configurations",
     "timeStep" : 1e-2,
     "stepsPerBlock" : 1000,
@@ -52,6 +52,7 @@
 	    "targetLabel" : "cm2",
 	    "forwardWalkingSteps" : 100
 	},
+	
 	{
 	    "kind" : "forwardWalking",
 	    "label" : "cm2_fw2",

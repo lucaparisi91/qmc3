@@ -355,7 +355,7 @@ TEST(moves,levy)
 
     pimc::levyReconstructor levy(M);
 
-    pimc::levyMove mover(20);
+    pimc::levyMove mover(20,0);
     int success = 0;
 
     auto & data2 = configurations2.dataTensor();
@@ -669,6 +669,7 @@ TEST(action,twoBody)
     Real Beta = 1;
 
     Real timeStep=Beta/M;
+    srand(11);
 
     pimc::geometryPBC_PIMC geo(300,300,300);
 
@@ -767,6 +768,8 @@ TEST(action,twoBody)
 
 
     gradientBuffer.setConstant(0);
+    gradientBufferTest.setConstant(0);
+    
 
     sV.addGradient(configurations,{0,M-1},{0,N-1},gradientBuffer);
 
@@ -854,6 +857,9 @@ TEST(action,twoBody)
 
     ASSERT_NEAR(sumSquares(0),sumSquaresTest(0),1e-5);
 
+    std::cout << sumSquares(0) << std::endl;
+    std::cout << sumSquaresTest(0) << std::endl;
+    
 }
 
 TEST(run,free_harmonic_oscillator)

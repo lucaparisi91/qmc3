@@ -3,8 +3,8 @@
 #define PIMCCONFIGURATIONS
 
 #include <vector>
-#include "../src/traits.h"
-#include "../src/tools.h"
+#include "traits.h"
+#include "tools.h"
 #include <unsupported/Eigen/CXX11/Tensor>
 #include "qmcExceptions.h"
 #include "toolsPimc.h"

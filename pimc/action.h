@@ -574,8 +574,21 @@ class potentialActionTwoBody : public action
     virtual void addGradient(const configurations_t & pimcConfigurations,const std::array<int,2> & timeRange,const  std::array<int,2> & particleRange,  Eigen::Tensor<Real,3> & gradientBuffer)
     {
         const auto & geo = getGeometry();
+        const auto & groupA = pimcConfigurations.getGroups()[iParticleGroupA];
 
         // should only used in the diagonal sector with time periodic boundary conditions
+
+        if (iParticleGroupA != iParticleGroupB )
+            {
+                throw missingImplementation("Gradient of different species is not allowed");
+            }
+        bool isInA = groupA.contains(particleRange[0]);
+
+        if (not isInA)
+        {
+            return;
+        }
+
 
          const auto & data = pimcConfigurations.dataTensor();
          for (int t=timeRange[0];t<=timeRange[1];t++)

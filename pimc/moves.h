@@ -1,7 +1,7 @@
 #ifndef MOVESPIMC_H
 #define MOVESPIMC_H
 
-#include "../src/traits.h"
+#include "traits.h"
 #include "pimcConfigurations.h"
 #include "tools.h"
 #include "metropolis.h"
