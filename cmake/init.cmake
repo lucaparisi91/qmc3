@@ -11,7 +11,7 @@ if ( ${CMAKE_BUILD_TYPE} MATCHES Debug)
 
   
   elseif (${CMAKE_BUILD_TYPE} MATCHES Release) 
-  set(CMAKE_CXX_COMPILE_FLAGS_ADDITIONAL " -DNDEBUG -pg -Wfatal-errors")
+  set(CMAKE_CXX_COMPILE_FLAGS_ADDITIONAL " -DNDEBUG -Wfatal-errors")
   set(CMAKE_CXX_LINK_FLAGS_ADDITIONAL " ")
 
   else()

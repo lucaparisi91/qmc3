@@ -1,3 +1,0 @@
-#include "potentialThreeBody.h"
-
-

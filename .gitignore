@@ -1,8 +1,9 @@
-old/*
-build/*
+old/**
+build/**
 *~
-.Rproj.user
-*.ipynb
-test/*
 *.pyc
-external/boost/*
+./vscode/**
+external/**
+test/**
+run/**
+python-tools/.ipynb_checkpoints/**
