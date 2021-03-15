@@ -1,0 +1,3 @@
+[submodule "external/particleKernels"]
+	path = external/particleKernels
+	url = https://github.com/lucaparisi91/particleKernels.git

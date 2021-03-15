@@ -3,7 +3,6 @@ build/**
 *~
 *.pyc
 ./vscode/**
-external/**
 test/**
 run/**
 python-tools/.ipynb_checkpoints/**
