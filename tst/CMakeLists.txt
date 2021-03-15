@@ -1,6 +1,6 @@
 include(../cmake/init.cmake)
 
-add_googletest()
+#add_googletest()
 
 
 set(SOURCES_DMC   parameters-test.cpp jastrow-test.cpp wavefunction-test.cpp dmc-test.cpp ptools-test.cpp
