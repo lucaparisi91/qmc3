@@ -18,6 +18,8 @@ namespace pimc{
     
     Real freeParticleLogProbability(std::array<Real,3> & delta,Real tau,Real mass=1);
 
+    Real average(const std::vector<Real> & observables);
+    
 }
 
 #endif

@@ -12,6 +12,7 @@
 
 namespace fs = std::filesystem;
 
+
 TEST(distances,updateSingleParticleDistances)
 {
     pimc::geometryPBC_PIMC geo(10,10,10);
@@ -1089,6 +1090,7 @@ TEST(run,free)
     Real Beta = 1;
     Real lBox = std::pow(N/density,1./3) ;
     
+
     pimc::geometryPBC_PIMC geo(lBox,lBox,lBox);
 
 

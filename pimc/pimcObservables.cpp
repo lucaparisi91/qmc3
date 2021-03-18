@@ -120,7 +120,6 @@ Real virialEnergyEstimator::operator()(configurations_t & confs, firstOrderActio
                 }
             std::cout <<std::endl;
              */
-            
 
 
         }
@@ -133,8 +132,11 @@ Real virialEnergyEstimator::operator()(configurations_t & confs, firstOrderActio
             {
                 for (int i = group.iStart ; i<=group.iEnd ; i++)
                 {
+                   
                     int inext = confs.getChain(i).next;
 
+                     assert( (inext>= group.iStart) and (inext<= group.iEnd) );
+                     
                     for(int d=0;d<getDimensions();d++)
                     {
                         e2+= 
@@ -155,7 +157,6 @@ Real virialEnergyEstimator::operator()(configurations_t & confs, firstOrderActio
                 }
             }
         //std::cout << e2 << std::endl;
-
         {
             int t=0;
                 for (int i = group.iStart ; i<=group.iEnd ; i++)

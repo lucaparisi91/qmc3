@@ -744,7 +744,6 @@ void pimcConfigurations::saveHDF5(const std::string & filename)
         groupData[i*chunkSize]=groups[i].iStart;
         groupData[i*chunkSize+1]=groups[i].iEnd;
         groupData[i*chunkSize+2]=groups[i].iEndExtended;
-        groupData[i*chunkSize+3]=groups[i].sector;
         
         if ( groups[i].isOpen() )
         {
@@ -812,8 +811,7 @@ pimcConfigurations pimcConfigurations::loadHDF5(const std::string & filename)
             groupData2[i*chunkSize], 
             groupData2[i*chunkSize + 1],
             groupData2[i*chunkSize + 2],
-            masses2[i],
-            (pimc::sector_t)groupData2[i*chunkSize+3] 
+            masses2[i]
         );  
 
         int iHead =groupData2[i*chunkSize + 4] ;

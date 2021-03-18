@@ -100,7 +100,10 @@ class thermodynamicEnergyEstimator : public scalarEstimator
 class virialEnergyEstimator : public scalarEstimator
 {
     public:
-    virialEnergyEstimator(int nMax, int MMax) : buffer(nMax,getDimensions(),MMax),rC(nMax,getDimensions(),MMax) {}
+    virialEnergyEstimator(int nMax, int MMax) : buffer(nMax,getDimensions(),MMax),rC(nMax,getDimensions(),MMax) {
+
+        
+    }
     Real operator()(configurations_t & configurations, firstOrderAction & S);
     
     private:

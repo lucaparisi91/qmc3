@@ -60,4 +60,17 @@ Real freeParticleLogProbability(std::array<Real,3> & delta,Real tau,Real mass)
     }
 
 
+
+Real average(const std::vector<Real> & observables)
+{
+    Real sum=0;
+    for (auto value : observables)
+    {
+        sum+=value;
+    }
+    return sum/observables.size();
+    
+}
+
+
 }

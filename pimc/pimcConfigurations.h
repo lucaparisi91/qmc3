@@ -35,7 +35,7 @@ struct particleGroup
 
 
     particleGroup( int iStart_,int iEnd_,int iEndExtended_,Real mass_ = 1, sector_t sector_ = sector_t::diagonal) : 
-    iStart(iStart_),iEnd(iEnd_),iEndExtended(iEndExtended_),mass(mass_),sector(sector_) {
+    iStart(iStart_),iEnd(iEnd_),iEndExtended(iEndExtended_),mass(mass_) {
     }
     bool contains(int iParticle) const {return (iParticle>= iStart) and (iParticle<=iEnd);}
 
@@ -97,7 +97,6 @@ struct particleGroup
     int iEnd; // end of the active group
     int iEndExtended; // extended memory for additional particles
     Real mass; // mass of the particles in the group
-    sector_t sector; // diagonal or off-diagonal sector
     auto size() const {return iEnd - iStart + 1;}
     std::vector<int> heads;
     std::vector<int> tails;
@@ -226,10 +225,10 @@ public:
 
         bool isOpen()
         {
-            bool open=true;
+            bool open=false;
             for(int i=0;i<particleGroups.size();i++)
             {
-                open=open and particleGroups[i].isOpen();
+                open=open or particleGroups[i].isOpen();
             }
             return open;
         }
@@ -348,7 +347,7 @@ class configurationsSampler
     int sampleChain(const configurations_t & confs,randomGenerator_t & randG);
 
     int sampleChain( const configurations_t & confs,int iGroup,randomGenerator_t & randG);
-    
+
     int sampleGroup(const configurations_t & confs,randomGenerator_t & randG);
 
 
