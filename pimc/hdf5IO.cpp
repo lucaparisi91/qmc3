@@ -2,6 +2,7 @@
 #include "hdf5.h"
 #include <fstream>
 #include "qmcExceptions.h"
+
 hdf5IO::hdf5IO(std::string filename,std::ios_base::openmode mode_) : mode(mode_)
 {
 
@@ -138,8 +139,7 @@ void hdf5IO::annotate(const std::string & name, const int * values, const size_t
     
     status = H5Aclose(attribute_id);
     status = H5Sclose(dataspace_id);
-    status = H5Dclose(dataset_id);
-  
+    status = H5Dclose(dataset_id);  
 
 }
 

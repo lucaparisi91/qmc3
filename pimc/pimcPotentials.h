@@ -86,6 +86,7 @@ class harmonicPotential
 
 
     #if DIMENSIONS == 3
+
     Real operator()(Real x,Real y,Real z) const { return omega[0]*x*x + omega[1]*y*y + omega[2]*z*z;}
 
     Real gradX(Real x,Real y,Real z) const {return 2*omega[0] *x   ;}
@@ -110,15 +111,50 @@ class harmonicPotential
 
     #endif
 
-
-
-
     private:
+
 
     std::vector<Real> omega;
 
 };
 
+class isotropicHarmonicPotential
+{
+    public:
+    
+
+    isotropicHarmonicPotential(const json_t & j) :
+    isotropicHarmonicPotential(j["omega"].get<Real>() ) {}
+    
+
+    static  std::string name() {return "isotropicHarmonic";}
+
+
+    isotropicHarmonicPotential(Real omega) : 
+ _omega(omega) {
+
+ }
+
+    Real radialDerivative(Real r) const {return _omega*r;}
+
+    Real operator()(Real r) const { return 0.5*_omega*r*r;}
+
+
+    #if DIMENSIONS == 3
+
+
+    Real operator()(Real x,Real y,Real z) const { return (*this)(std::sqrt(x*x + y*y + z*z)  );}
+
+
+    Real gradX(Real x,Real y,Real z) const {return _omega*x   ;}
+    Real gradY(Real x,Real y,Real z) const {return _omega*y   ;}
+    Real gradZ(Real x,Real y,Real z) const {return _omega*z   ;}
+    #endif
+
+    private:
+
+    Real _omega;
+};
 
 class gaussianPotential
 {
@@ -133,7 +169,7 @@ class gaussianPotential
     gaussianPotential(  Real V0, Real alpha) 
     :   _V0(V0),_alpha(alpha) {}
 
-
+    Real radialDerivative(Real r) const {return -2*_alpha*r*_V0*exp(-_alpha*r*r);}
    
 
 
@@ -152,6 +188,10 @@ class gaussianPotential
 
 
     #if DIMENSIONS == 3
+
+    Real operator()(Real r) const { Real r2= r*r; return _V0*exp(-_alpha*r2);}
+
+
     Real operator()(Real x, Real y,Real z) const { Real r2= x*x + y*y + z*z; return _V0*exp(-_alpha*r2);}
     Real gradX(Real x,Real y,Real z) const { Real r2= x*x + y*y + z*z; return -2*x*_V0*_alpha*exp(-_alpha*r2);}
     Real gradY(Real x,Real y,Real z) const { Real r2= x*x + y*y + z*z; return -2*y*_V0*_alpha*exp(-_alpha*r2);}

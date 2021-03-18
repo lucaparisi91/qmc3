@@ -37,6 +37,7 @@ target_include_directories("${target}" SYSTEM PUBLIC ${MPI_CXX_INCLUDE_DIRS})
 target_include_directories("${target}" SYSTEM PUBLIC ${Boost_INCLUDE_DIRS})
 target_include_directories(${target} SYSTEM PUBLIC ${PROJECT_SOURCE_DIR}/external/eigen ${PROJECT_SOURCE_DIR}/external/json/single_include)
 target_include_directories(${target} SYSTEM PUBLIC ${HDF5_INCLUDE_DIR})
+target_include_directories(${target} PUBLIC ${PROJECT_SOURCE_DIR}/external)
 
 
 endfunction()
@@ -47,6 +48,8 @@ function(link_qmc_external_libraries target)
 target_link_libraries( ${target} PUBLIC ${HDF5_CXX_LIBRARIES} ${HDF5_LIBRARIES})
 target_link_libraries(${target} PUBLIC MPI::MPI_CXX)
 target_include_directories(${target} PUBLIC ${PROJECT_SOURCE_DIR}/external/eigen )
+target_link_libraries(${target} PUBLIC  particleKernels_lib )
+
 
 endfunction()
 

@@ -147,13 +147,9 @@ void pimcDriver::run()
     
     actionConstructor sC(geo,timeStep,nChains,nBeads);
     
-
-
-    sC.registerPotential<harmonicPotential>();
+    sC.registerPotential<isotropicHarmonicPotential>();
     sC.registerPotential<gaussianPotential>();
 
-    
-    
 
 
     std::shared_ptr<action> sV=

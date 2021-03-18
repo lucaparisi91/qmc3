@@ -30,15 +30,18 @@ Real virialEnergyEstimator::operator()(configurations_t & confs, firstOrderActio
 
     int N=0;
     buffer.setConstant(0.);
+    int iStart=1e+9;
+    int iEnd=0;
 
     for ( const auto & group : confs.getGroups() )
     {
         N+=group.iEnd - group.iStart + 1;
-        Spot.addGradient(confs,{0,confs.nBeads()-1},{group.iStart,group.iEnd},buffer);
+        iStart=std::min(iStart,group.iStart);
+        iEnd=std::max(iEnd,group.iEnd);
+            
     }
-    // 
-    const auto & data = confs.dataTensor(); 
-
+    Spot.addGradient(confs,{0,confs.nBeads()-1},{iStart,iEnd},buffer);
+    const auto & data = confs.dataTensor();     
 
     // compute rC
     rC.setConstant(0);

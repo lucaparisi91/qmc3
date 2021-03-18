@@ -8,6 +8,8 @@
 #include "toolsPimc.h"
 #include "qmcExceptions.h"
 #include <memory>
+#include "../external/particleKernels/src/twoBodyPotential.h"
+
 
 namespace pimc
 {
@@ -164,7 +166,6 @@ class action
 
     virtual Real evaluate( configurations_t & pimcConfigurations)=0; // evaluates the whole action
 
-
     virtual void addGradient(const configurations_t & pimcConfigurations,const std::array<int,2> & timeRange,const  std::array<int,2> & particleRange,  Eigen::Tensor<Real,3> & gradientBuffer){throw missingImplementation("Gradient not implemented for this action.");}
 
 
@@ -179,6 +180,7 @@ class action
     Real _timeStep;
 
 };
+
 
 class nullPotentialAction : public action
 {
@@ -285,10 +287,40 @@ private:
 };
 
 
+template<class V_t,class grad_t>
+class isotropicPotentialFunctor{
+public:
+    isotropicPotentialFunctor(V_t V_,grad_t ddr) : V(V_),_ddr(ddr) {}
+    Real operator()(Real r) const { return V(r); }
+    Real radialDerivative(Real r) const {return _ddr(r);}
+
+    Real operator()(Real x,Real y,Real z) const  {auto r=std::sqrt(x*x+y*y+z*z); return (*this)(r); }
+    
+
+    Real gradX(Real x,Real y,Real z) const  {auto r=std::sqrt(x*x+y*y+z*z); return x*radialDerivative(r)/r; }
+    
+    Real gradY(Real x,Real y,Real z) const  {auto r=std::sqrt(x*x+y*y+z*z); return y*radialDerivative(r)/r; }
+
+    Real gradZ(Real x,Real y,Real z) const  {auto r=std::sqrt(x*x+y*y+z*z); return z*radialDerivative(r)/r; }
+
+
+private:
+    V_t V;
+    grad_t _ddr;
+};
+
+
+
 template<class V_t,class gradX_t ,class gradY_t , class gradZ_t>
 auto makePotentialFunctor(V_t V_,gradX_t X_,gradY_t Y_, gradZ_t Z_)
 {
     return potentialFunctor<V_t,gradX_t,gradY_t,gradZ_t>(V_,X_,Y_,Z_);
+}
+
+template<class V_t,class grad_t>
+auto makeIsotropicPotentialFunctor(V_t V_,grad_t grad)
+{
+    return isotropicPotentialFunctor<V_t,grad_t>(V_,grad);
 }
 
 #endif
@@ -438,197 +470,66 @@ class potentialActionTwoBody : public action
     potentialActionTwoBody(Real tau_, int nChains_  , int nBeads_, functor_t V_, geometryPBC_PIMC geo_, int  iParticleGroupA_, int iParticleGroupB_) : V(V_),nChains(nChains_),nBeads(nBeads_) ,
     bufferDistances(nChains_,getDimensions(),nBeads_+1),
     iParticleGroupA(iParticleGroupA_),iParticleGroupB(iParticleGroupB_),
-    action::action(tau_,geo_)
+    action::action(tau_,geo_),pot2b({0,1},{0,1},{geo_.getLBox(0),geo_.getLBox(1),geo_.getLBox(2)},{nChains_,DIMENSIONS,nBeads})
      {}
 
     virtual Real evaluate(configurations_t & configurations, std::array<int,2> timeRange, int iChain)
      {
-         Real sum=0;
-
-
-        const auto & groupA = configurations.getGroups()[iParticleGroupA];
-        const auto & groupB = configurations.getGroups()[iParticleGroupB];
-
-         
-        bool isInA = groupA.contains(iChain);
-        bool isInB = groupB.contains(iChain);
-
-        if ( isInA or isInB   )
-        {
-            auto & otherGroup = isInA ? groupB : groupA;
-
-            sum+=evaluate(configurations,timeRange,iChain,{otherGroup.iStart, otherGroup.iEnd } );
-        }         
-
-         return sum;
+        return evaluate(configurations,timeRange,{iChain,iChain});
      };
+
+
+    virtual Real evaluate(configurations_t & configurations, std::array<int,2> timeRange,std::array<int,2> particleRange)
+     {
+        
+        configurePot2b(configurations);
+        int t0,t1;
+        int tTail,tHead;
+
+        assert(timeRange[1]<configurations.nBeads());
+
+
+        t0=std::max(timeRange[0],1);
+        t1=std::min(timeRange[1],configurations.nBeads()-2);
+
+        auto sumCentral=pot2b(V,configurations.data(),particleRange[0],particleRange[1],t0,t1);
+
+
+        auto sumTail=0.5*pot2b(V,configurations.data(),particleRange[0],particleRange[1],timeRange[0],0);
+
+
+        auto sumEnd=0.5*pot2b(V,configurations.data(),particleRange[0],particleRange[1],configurations.nBeads()-1,timeRange[1]);
+
+      
+
+         return (sumCentral + sumTail + sumEnd)*getTimeStep();
+     };
+
 
      Real evaluate(pimcConfigurations_t & configurations, std::array<int,2> timeRange, int iChain1, int iChain2)
      {
         throw missingImplementation("Two particles updates are not supported");
      };
 
-    Real evaluate(const pimcConfigurations_t & configurations, std::array<int,2> timeRange, int iChain, std::array<int,2>  particleRange  ) 
-    {
-        const auto & geo = getGeometry();
-        Real sum=0;
-
-        const auto & data = configurations.dataTensor();
-
-        for(int t=timeRange[0]+1;t<=timeRange[1];t++)
-        {
-            for(int j=particleRange[0];j<=particleRange[1];j++)
-            {
-                for(int d=0;d<getDimensions();d++)
-                {
-                    bufferDistances(j,d,t)=geo.difference( 
-                        data(iChain,d,t) - data(j,d,t) ,d
-                    );
-                }
-
-                #if DIMENSIONS == 3
-                sum+=V(bufferDistances(j,0,t) , bufferDistances(j,1,t) , bufferDistances(j,2   ,t)  );
-                #endif 
-
-                 #if DIMENSIONS == 2
-                sum+=V(bufferDistances(j,0,t) , bufferDistances(j,1,t)   );
-                #endif 
-
-                 #if DIMENSIONS == 1
-                sum+=V(bufferDistances(j,0,t)  );
-                #endif 
-
-            }
-        }
-
-        {
-            int t=timeRange[0];
-            for(int j=particleRange[0];j<=particleRange[1];j++)
-            {
-                for(int d=0;d<getDimensions();d++)
-                {
-                    bufferDistances(j,d,t)=geo.difference( 
-                        data(iChain,d,t) - data(j,d,t) ,d
-                    );
-                }
-
-                #if DIMENSIONS == 3
-                sum+=0.5*V(bufferDistances(j,0,t) , bufferDistances(j,1,t) , bufferDistances(j,2   ,t)  );
-                #endif 
-
-                 #if DIMENSIONS == 2
-                sum+=0.5*V(bufferDistances(j,0,t) , bufferDistances(j,1,t)   );
-                #endif 
-
-                 #if DIMENSIONS == 1
-                sum+=0.5*V(bufferDistances(j,0,t)  );
-                #endif 
-
-            }
-        }
-
-
-        {
-            int t=timeRange[1]+1;
-            for(int j=particleRange[0];j<=particleRange[1];j++)
-            {
-                for(int d=0;d<getDimensions();d++)
-                {
-                    bufferDistances(j,d,t)=geo.difference( 
-                        data(iChain,d,t) - data(j,d,t) ,d
-                    );
-                }
-
-                #if DIMENSIONS == 3
-                sum+=0.5*V(bufferDistances(j,0,t) , bufferDistances(j,1,t) , bufferDistances(j,2   ,t)  );
-                #endif 
-
-                 #if DIMENSIONS == 2
-                sum+=0.5*V(bufferDistances(j,0,t) , bufferDistances(j,1,t)   );
-                #endif 
-
-                 #if DIMENSIONS == 1
-                sum+=0.5*V(bufferDistances(j,0,t)  );
-                #endif 
-
-            }
-        }
-
-        return sum*getTimeStep();
-    }
 
     Real evaluate(pimcConfigurations_t & configurations)
     {
-        if (iParticleGroupA == iParticleGroupB)
-        {
-            return evaluateOnSameGroup(configurations);
-        }
-        else
-        {
-            return  evaluateOnDifferentGroup(configurations);
-        }
+
+        const auto & groupA = configurations.getGroups()[iParticleGroupA];
+
+        std::array<int,2 > particleRange {groupA.iStart,groupA.iEnd};
+
+        return evaluate(configurations,{0,configurations.nBeads()-1 },particleRange );
 
     };
 
-
     virtual void addGradient(const configurations_t & pimcConfigurations,const std::array<int,2> & timeRange,const  std::array<int,2> & particleRange,  Eigen::Tensor<Real,3> & gradientBuffer)
     {
-        const auto & geo = getGeometry();
-        const auto & groupA = pimcConfigurations.getGroups()[iParticleGroupA];
-
-        // should only used in the diagonal sector with time periodic boundary conditions
-
-        if (iParticleGroupA != iParticleGroupB )
-            {
-                throw missingImplementation("Gradient of different species is not allowed");
-            }
-        bool isInA = groupA.contains(particleRange[0]);
-
-        if (not isInA)
-        {
-            return;
-        }
+        
+        configurePot2b(pimcConfigurations,gradientBuffer);
 
 
-         const auto & data = pimcConfigurations.dataTensor();
-         for (int t=timeRange[0];t<=timeRange[1];t++)
-            for (int i=particleRange[0] ; i<=particleRange[1];i++ )
-                for (int j=particleRange[0] ; j<i;j++ )
-                {
-
-                    for(int d=0;d<getDimensions();d++)
-                    {
-                        bufferDistances(j,d,t)=geo.difference( 
-                            data(i,d,t) - data(j,d,t) ,d
-                        );
-                    }
-
-                    #if DIMENSIONS == 1
-                    Real tmp=V.gradX( bufferDistances(j,0,t)  )*getTimeStep();
-
-                    gradientBuffer(i,0,t)+=tmp;
-                    gradientBuffer(j,0,t)-=tmp;
-                    #endif
-
-                    #if DIMENSIONS == 3
-                    Real tmp0=V.gradX( bufferDistances(j,0,t), bufferDistances(j,1,t), bufferDistances(j,2,t)  )*getTimeStep();
-                    Real tmp1=V.gradY( bufferDistances(j,0,t), bufferDistances(j,1,t), bufferDistances(j,2,t)  )*getTimeStep();
-                    Real tmp2=V.gradZ( bufferDistances(j,0,t), bufferDistances(j,1,t), bufferDistances(j,2,t)  )*getTimeStep();
-
-
-                    gradientBuffer(i,0,t)+=tmp0;
-                    gradientBuffer(j,0,t)-=tmp0;
-                    gradientBuffer(i,1,t)+=tmp1;
-                    gradientBuffer(j,1,t)-=tmp1;
-                    gradientBuffer(i,2,t)+=tmp2;
-                    gradientBuffer(j,2,t)-=tmp2;
-
-                    #endif
-                }
-    
-
-   
-
+        pot2b.addForce(V,pimcConfigurations.data(),gradientBuffer.data(),particleRange[0],particleRange[1],timeRange[0],timeRange[1],getTimeStep());
     }
 
     private:
@@ -804,12 +705,37 @@ class potentialActionTwoBody : public action
     }
 
 
+    void configurePot2b(const configurations_t & configurations)
+    {
+         const auto & groupA = configurations.getGroups()[iParticleGroupA];
+        const auto & groupB = configurations.getGroups()[iParticleGroupB];
+
+        pot2b.setRange({groupA.iStart,groupA.iEnd},{groupB.iStart,groupB.iEnd});
+
+
+        auto N=(int)configurations.dataTensor().dimensions()[0];
+        auto D=(int)configurations.dataTensor().dimensions()[1];
+        auto T=(int)configurations.dataTensor().dimensions()[2];
+        pot2b.setDimensions({N,D,T});
+
+    }
+
+    void configurePot2b(const configurations_t & pimcConfigurations,  const Eigen::Tensor<Real,3> & gradientBuffer)
+    {
+        configurePot2b(pimcConfigurations);
+
+        int NF = (int) gradientBuffer.dimensions()[0];
+        int DF = (int) gradientBuffer.dimensions()[1];
+        int TF = (int) gradientBuffer.dimensions()[2];
+        pot2b.setForceDimensions({ NF,DF,TF});
+    }
     
 
     functor_t V;
    
     Eigen::Tensor<Real,3> bufferDistances;
     int nChains,nBeads;
+    particleKernels::twoBodyPotential<DIMENSIONS> pot2b;
 
 
     int iParticleGroupA;

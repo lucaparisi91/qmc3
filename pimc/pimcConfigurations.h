@@ -101,7 +101,7 @@ struct particleGroup
     auto size() const {return iEnd - iStart + 1;}
     std::vector<int> heads;
     std::vector<int> tails;
-
+    
 };
 
 
@@ -149,6 +149,8 @@ public:
         const auto &  dataTensor() const {return _data;}
 
         auto data() {return _data.data();}
+
+         const auto data() const {return _data.data();}
         
         auto nChains() const {return N;} 
 
@@ -346,7 +348,7 @@ class configurationsSampler
     int sampleChain(const configurations_t & confs,randomGenerator_t & randG);
 
     int sampleChain( const configurations_t & confs,int iGroup,randomGenerator_t & randG);
-
+    
     int sampleGroup(const configurations_t & confs,randomGenerator_t & randG);
 
 
