@@ -143,13 +143,18 @@ class isotropicHarmonicPotential
     #if DIMENSIONS == 3
 
 
-    Real operator()(Real x,Real y,Real z) const { return (*this)(std::sqrt(x*x + y*y + z*z)  );}
-
+    Real operator()(Real x,Real y,Real z) const { return (*this)(return 0.5*(x*x + y*y + z*z) ;}
 
     Real gradX(Real x,Real y,Real z) const {return _omega*x   ;}
     Real gradY(Real x,Real y,Real z) const {return _omega*y   ;}
     Real gradZ(Real x,Real y,Real z) const {return _omega*z   ;}
     #endif
+
+    #if DIMENSIONS == 1
+    Real gradX(Real x) const {return _omega*x   ;}
+    #endif
+
+
 
     private:
 

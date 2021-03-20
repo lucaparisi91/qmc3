@@ -79,7 +79,7 @@ namespace pimc
     {
         Real sum=0;
 
-        for(int t=timeRange[0]+1;t<=timeRange[1] ; t++ )
+        for(int t=timeRange[0];t<=timeRange[1] ; t++ )
             {
               for (size_t i=particleRange[0];i<=particleRange[1];i++ )
                 {
@@ -97,54 +97,6 @@ namespace pimc
                        ;
                 }
             }
-
-
-            
-            {
-                int t = timeRange[0];
-                for (size_t i=particleRange[0];i<=particleRange[1];i++ )
-                {
-                    sum+= 
-                    #if DIMENSIONS == 3
-                     0.5*V( tn( i,0, t  ) , tn(i,1,t) , tn(i,2,t) )
-                     #endif
-                     #if DIMENSIONS == 1
-                     0.5*V( tn( i,0, t  )) 
-                     #endif
-                     #if DIMENSIONS == 2
-                     0.5*V( tn( i,0, t  ),tn( i,1, t  )) 
-                     #endif
-
-                      
-                     ;
-                }
-
-            }
-
-
-
-            
-            {
-
-                int t = timeRange[1]+1;
-                for (size_t i=particleRange[0];i<=particleRange[1];i++ )
-                {
-                    sum+= 
-                    #if DIMENSIONS == 3
-                     0.5*V( tn( i,0, t  ) , tn(i,1,t) , tn(i,2,t) )
-                     #endif
-                     #if DIMENSIONS == 1
-                     0.5*V( tn( i,0, t  )) 
-                     #endif
-                     #if DIMENSIONS == 2
-                     0.5*V( tn( i,0, t  ),tn( i,1, t  )) 
-                     #endif
-
-                      
-                     ;
-                }
-            }               
-                   
 
 
         return sum;
@@ -238,30 +190,6 @@ class kineticAction : public action
 };
 
 
-#if DIMENSIONS == 1
-template<class V_t,class gradX_t >
-class potentialFunctor{
-public:
-    potentialFunctor(V_t V_,gradX_t gradX_) : V(V_),_gradX(gradX_) {}
-
-    Real operator()(Real x) const {return V(x);}
-    Real gradX(Real x) const  {return _gradX(x);}
-
-private:
-    V_t V;
-    gradX_t _gradX;
-};
-
-
-
-
-template<class V_t,class gradX_t >
-auto makePotentialFunctor(V_t V_,gradX_t X_)
-{
-    return potentialFunctor<V_t,gradX_t>(V_,X_);    
-}
-
-#endif
 
 #if DIMENSIONS == 3
 template<class V_t,class gradX_t , class gradY_t,class gradZ_t>
@@ -326,6 +254,59 @@ auto makeIsotropicPotentialFunctor(V_t V_,grad_t grad)
 #endif
 
 
+#if DIMENSIONS == 1
+
+
+template<class V_t,class gradX_t>
+class potentialFunctor{
+public:
+    
+    potentialFunctor(V_t V_,gradX_t gradX_) : V(V_),_gradX(gradX_) {}
+
+    Real operator()(Real x) const { return V(x); }
+
+    
+    Real gradX(Real x) const  {return _gradX(x);}
+
+private:
+    V_t V;
+    gradX_t _gradX;
+};
+
+
+template<class V_t,class grad_t>
+class isotropicPotentialFunctor{
+public:
+    isotropicPotentialFunctor(V_t V_,grad_t ddr) : V(V_),_ddr(ddr) {}
+    Real operator()(Real r) const { return V(r); }
+    Real radialDerivative(Real r) const {return _ddr(r);}  
+
+
+    Real gradX(Real x) const  {auto r=std::abs(x); return x*radialDerivative(r)/r; }
+
+private:
+    V_t V;
+    grad_t _ddr;
+};
+
+
+
+template<class V_t,class gradX_t>
+auto makePotentialFunctor(V_t V_,gradX_t X_)
+{
+    return potentialFunctor<V_t,gradX_t>(V_,X_);
+}
+
+
+template<class V_t,class grad_t>
+auto makeIsotropicPotentialFunctor(V_t V_,grad_t grad)
+{
+    return isotropicPotentialFunctor<V_t,grad_t>(V_,grad);
+}
+
+#endif
+
+
 
 template<class functor_t>
 class potentialActionOneBody : public action
@@ -341,7 +322,14 @@ class potentialActionOneBody : public action
     {
         auto & data = configurations.dataTensor();
 
-        auto sum = reduceOnPositions(V, data, timeRange, particleRange, configurations.getMask());
+        auto sumCentral = reduceOnPositions(V, data, {timeRange[0]+1,timeRange[1]}, particleRange, configurations.getMask() );
+
+        auto sumTail = 0.5*reduceOnPositions(V, data, {timeRange[0],timeRange[0]},particleRange, configurations.getMask());
+
+        auto sumHead = 0.5*reduceOnPositions(V, data,{timeRange[1] + 1 , timeRange[1] + 1} , particleRange,configurations.getMask());
+
+        auto sum = sumCentral + sumTail + sumHead;
+
 
         return getTimeStep()*sum;
 
@@ -466,11 +454,10 @@ class potentialActionTwoBody : public action
     potentialActionTwoBody(Real tau_, int nChains_  , int nBeads_, geometryPBC_PIMC geo_, const json_t & j) :
     potentialActionTwoBody(tau_,nChains_,nBeads_,functor_t(j["potential"]),geo_,j["groupA"].get<int>() , j["groupB"].get<int>()  ) {}
 
-
     potentialActionTwoBody(Real tau_, int nChains_  , int nBeads_, functor_t V_, geometryPBC_PIMC geo_, int  iParticleGroupA_, int iParticleGroupB_) : V(V_),nChains(nChains_),nBeads(nBeads_) ,
     bufferDistances(nChains_,getDimensions(),nBeads_+1),
     iParticleGroupA(iParticleGroupA_),iParticleGroupB(iParticleGroupB_),
-    action::action(tau_,geo_),pot2b({0,1},{0,1},{geo_.getLBox(0),geo_.getLBox(1),geo_.getLBox(2)},{nChains_,DIMENSIONS,nBeads})
+    action::action(tau_,geo_),pot2b({0,1},{0,1},{TRUNCATE_D(geo_.getLBox(0),geo_.getLBox(1),geo_.getLBox(2)) },{nChains_,DIMENSIONS,nBeads})
      {}
 
     virtual Real evaluate(configurations_t & configurations, std::array<int,2> timeRange, int iChain)
@@ -488,19 +475,13 @@ class potentialActionTwoBody : public action
 
         assert(timeRange[1]<configurations.nBeads());
 
-
-        t0=std::max(timeRange[0],1);
-        t1=std::min(timeRange[1],configurations.nBeads()-2);
-
-        auto sumCentral=pot2b(V,configurations.data(),particleRange[0],particleRange[1],t0,t1);
+        auto sumCentral=pot2b(V,configurations.data(),particleRange[0],particleRange[1],timeRange[0]+1,timeRange[1]);
 
 
-        auto sumTail=0.5*pot2b(V,configurations.data(),particleRange[0],particleRange[1],timeRange[0],0);
+        auto sumTail=0.5*pot2b(V,configurations.data(),particleRange[0],particleRange[1],timeRange[0],timeRange[0]);
 
 
-        auto sumEnd=0.5*pot2b(V,configurations.data(),particleRange[0],particleRange[1],configurations.nBeads()-1,timeRange[1]);
-
-      
+        auto sumEnd=0.5*pot2b(V,configurations.data(),particleRange[0],particleRange[1],timeRange[1]+1,timeRange[1]+1);      
 
          return (sumCentral + sumTail + sumEnd)*getTimeStep();
      };
@@ -527,7 +508,6 @@ class potentialActionTwoBody : public action
     {
         
         configurePot2b(pimcConfigurations,gradientBuffer);
-
 
         pot2b.addForce(V,pimcConfigurations.data(),gradientBuffer.data(),particleRange[0],particleRange[1],timeRange[0],timeRange[1],getTimeStep());
     }

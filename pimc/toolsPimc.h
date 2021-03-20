@@ -7,6 +7,19 @@
 #include <array>
 
 namespace pimc{
+#if DIMENSIONS==1
+    #define TRUNCATE_D(a,b,c) a
+#endif
+
+#if DIMENSIONS==2
+    #define TRUNCATE_D(a,b) a,b
+#endif
+
+#if DIMENSIONS==3
+    #define TRUNCATE_D(a,b) a,b
+#endif
+
+
 
     using json_t = nlohmann::json;
     

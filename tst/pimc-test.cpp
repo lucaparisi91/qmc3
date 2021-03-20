@@ -76,6 +76,7 @@ TEST(distances,updateSingleParticleDistances)
     //geo.springDistances(springDistances,timeConfigurations,0,2 , 0, 3  );
 
 }
+
 #if DIMENSIONS == 3
 TEST(configurations, init)
 {
@@ -683,16 +684,11 @@ TEST(action,twoBody)
     Real Rc=0.1;
     Real V0=2.;
 
-    #if DIMENSIONS == 3
-
 
     auto V = pimc::makeIsotropicPotentialFunctor(
          [=](Real r) {return (r*r)<= Rc*Rc ? V0 :  0 ;} ,
          [](Real r) {return 0  ;}
          );
-    #endif
-
-
 
     auto sV=pimc::potentialActionTwoBody<decltype(V)>(timeStep,N,M,V ,geo,0,0);
 
@@ -943,50 +939,22 @@ TEST(run,free_harmonic_oscillator)
      std::shared_ptr<pimc::action> sT= std::make_shared<pimc::kineticAction>(timeStep, configurations.nChains() , M  , geo);
 
 
-     #if DIMENSIONS == 3
      auto V = pimc::makeIsotropicPotentialFunctor(
          [](Real r) {return 0.5*(r*r) ;} ,
          [](Real r) {return r  ;} );
-    #endif
 
-    #if DIMENSIONS == 1
-    auto V = pimc::makePotentialFunctor(
-         [](Real x) {return 0.5*(x*x ) ;} ,
-         [](Real x) {return x ;} 
-         );
-    #endif
 
     Real R0=0.1;
     Real V0=1;
 
 
 
-     #if DIMENSIONS == 3
   
       auto V2 = pimc::makeIsotropicPotentialFunctor(
          [=](Real r) {return V0*exp(-(r*r));} ,
          [=](Real r) {return -2*r*V0*exp(-r*r)  ;}
           );
 
-
-    #endif
-
-  
-
-/* 
-    #if DIMENSIONS == 1
-    auto V2 = pimc::makePotentialFunctor(
-         [=](Real x) {return  (x*x <=R0*R0) ? V0 : 0 ;} ,
-         [](Real x) {return 0  ;}
-         );        
-    #endif */
-
-    #if DIMENSIONS == 1
-    auto V2 = pimc::makePotentialFunctor(
-         [=](Real x) {return  exp(-x*x) ;} ,
-         [](Real x) {return -2*x*exp(-x*x)  ;}
-         );        
-    #endif
 
 
 
@@ -1166,40 +1134,25 @@ TEST(run,free)
      std::shared_ptr<pimc::action> sT= std::make_shared<pimc::kineticAction>(timeStep, configurations.nChains() , M  , geo);
 
 
-     #if DIMENSIONS == 3
+   
      auto V = pimc::makeIsotropicPotentialFunctor(
          [](Real r) {return 0 ;} ,
          [](Real r) {return 0  ;}
          );
-    #endif
-
-
-    #if DIMENSIONS == 1
-    auto V = pimc::makePotentialFunctor(
-         [](Real x) {return 0 ;} ,
-         [](Real x) {return 0 ;} 
-         );
-    #endif
 
     Real alpha=1/std::pow (0.1*lBox,2);
 
     Real V0=100;
 
-     #if DIMENSIONS == 3
 
       auto V2 = pimc::makeIsotropicPotentialFunctor(
          [=](Real r) {return V0*exp(-alpha*(r*r));} ,
          [=](Real r) {return -2*r*V0*alpha*exp(-alpha*r*r)  ;}
           );
-    #endif
+    
 
 
-    #if DIMENSIONS == 1
-    auto V2 = pimc::makePotentialFunctor(
-         [=](Real x) {return  exp(-x*x) ;} ,
-         [](Real x) {return -2*x*exp(-x*x)  ;}
-         );        
-    #endif
+  
 
 
 

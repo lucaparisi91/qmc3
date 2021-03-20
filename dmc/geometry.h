@@ -61,7 +61,6 @@ public:
 
   virtual void differencesTwoBody(diff_t & differences , const particles_t & particleData, int i) const; // updates differences when particle i is changed
 
-
 private:
 	real_t lBox [3];
 	real_t lBoxInverse [3];

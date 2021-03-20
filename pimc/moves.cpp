@@ -466,7 +466,7 @@ bool openMove::attemptMove(configurations_t & confs , firstOrderAction & S,rando
 
     int t0= iHead - l;
     Real deltaS=0;
-    std::array timeRange={t0  , iHead -1 };
+    std::array<int,2> timeRange={t0  , iHead -1 };
 
     auto & data = confs.dataTensor();
 
@@ -609,7 +609,7 @@ bool closeMove::attemptMove(configurations_t & confs , firstOrderAction & S,rand
     Real deltaS=0;
     int t0= iHead - l;
 
-    std::array timeRange={iHead - l , iHead -1 };
+    std::array<int,2> timeRange={iHead - l , iHead -1 };
 
     auto & data = confs.dataTensor();
 
@@ -743,7 +743,7 @@ bool moveHead::attemptMove(configurations_t & confs , firstOrderAction & S,rando
 
     int t0= iHead - l;
     Real deltaS=0;
-    std::array timeRange={t0  , iHead -1 };
+    std::array<int,2> timeRange={t0  , iHead -1 };
 
     auto & data = confs.dataTensor();
 
@@ -826,7 +826,7 @@ bool moveTail::attemptMove(configurations_t & confs , firstOrderAction & S,rando
 
     int t1= iTail + l;
     Real deltaS=0;
-    std::array timeRange={iTail  , t1 - 1 };
+    std::array<int,2> timeRange={iTail  , t1 - 1 };
 
 
     auto & data = confs.dataTensor();
