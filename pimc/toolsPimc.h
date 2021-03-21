@@ -12,11 +12,11 @@ namespace pimc{
 #endif
 
 #if DIMENSIONS==2
-    #define TRUNCATE_D(a,b) a,b
+    #define TRUNCATE_D(a,b,c) a,b
 #endif
 
 #if DIMENSIONS==3
-    #define TRUNCATE_D(a,b) a,b
+    #define TRUNCATE_D(a,b,c) a,b,c
 #endif
 
 

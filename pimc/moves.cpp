@@ -633,7 +633,11 @@ bool closeMove::attemptMove(configurations_t & confs , firstOrderAction & S,rand
         //std::cout << "close: " <<geo.difference( - data(iChainHead,d,t0) + data(iChainTail,d,iTail),d) << std::endl;
 
 
-        data(iChainHead,d, iHead )=data(iChainHead,d,iHead) + geo.difference( -  data(iChainHead,d,t0)  + data(iChainTail,d,iTail),d);
+        data(iChainHead,d, iHead )=data(iChainHead,d,t0) + geo.difference( -  data(iChainHead,d,t0)  + data(iChainTail,d,iTail),d);
+
+        //data(iChainHead,d, iHead )=data(iChainTail,d,iTail);
+
+
         //data(iChainHead,d, iHead )+=data(iChainHead,d,t0);
 
 

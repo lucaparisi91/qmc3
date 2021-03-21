@@ -6,8 +6,8 @@
 class geometry;
 class productWavefunction;
 #include "input.h"
+#include "userDefinitions.h"
 
-#define DIMENSIONS 1
 
 
 using real_t = double;

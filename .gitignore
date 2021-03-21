@@ -6,3 +6,4 @@ build/**
 test/**
 run/**
 python-tools/.ipynb_checkpoints/**
+dmc/userDefinitions.h
