@@ -488,8 +488,6 @@ bool openMove::attemptMove(configurations_t & confs , firstOrderAction & S,rando
         startPosition[d]=data(iChain,d,t0);
     }
 
-
-
     for (int d=0;d<getDimensions();d++)
     {
         difference[d]=
@@ -497,12 +495,12 @@ bool openMove::attemptMove(configurations_t & confs , firstOrderAction & S,rando
                 data(iChainTail,d,0)-data(iChain,d,t0),d
             );                                
 
-              //data(iChain,d,iHead)-data(iChain,d,t0);
+            //data(iChain,d,iHead)-data(iChain,d,t0);
 
         if (    
             std::abs(data(iChain,d,iHead)-data(iChain,d,t0) ) > geo.getLBox(d)*0.5 )
             {
-                //std::cout <<    data(iChain,d,iHead)-data(iChain,d,t0) << std::endl;
+                std::cout <<    data(iChain,d,iHead)-data(iChain,d,t0) << std::endl;
                 //return false;
             }
         
@@ -518,22 +516,9 @@ bool openMove::attemptMove(configurations_t & confs , firstOrderAction & S,rando
 
 
 
-/* 
-
     for (int d=0;d<getDimensions();d++)
     {
-         if (
-            std::abs(headPosition[d]-startPosition[d] ) > geo.getLBox(d)*0.5 )
-            {
-                //std::cout <<    data(iChain,d,iHead)-data(iChain,d,t0) << std::endl;
-                //return false;
-            }
-
-    } */
-
-    for (int d=0;d<getDimensions();d++)
-    {
-        data(iChain,d,iHead)=headPosition[d];
+        data(iChain,d,iHead)=data(iChain,d,t0)  + geo.difference( headPosition[d] - data(iChain,d,t0) ,d);
     }
 
 
@@ -632,8 +617,10 @@ bool closeMove::attemptMove(configurations_t & confs , firstOrderAction & S,rand
     {
         //std::cout << "close: " <<geo.difference( - data(iChainHead,d,t0) + data(iChainTail,d,iTail),d) << std::endl;
 
+        
+        data(iChainHead,d, iHead )=data(iChainHead,d,t0)  + geo.difference( -  data(iChain,d,t0)  + data(iChainTail,d,iTail),d);
 
-        data(iChainHead,d, iHead )=data(iChainHead,d,t0) + geo.difference( -  data(iChainHead,d,t0)  + data(iChainTail,d,iTail),d);
+
 
         //data(iChainHead,d, iHead )=data(iChainTail,d,iTail);
 
