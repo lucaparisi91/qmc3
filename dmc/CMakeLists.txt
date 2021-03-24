@@ -12,7 +12,6 @@ target_include_directories(dmc_lib PUBLIC
 set_target_properties( dmc_lib PROPERTIES COMPILE_FLAGS ${CMAKE_CXX_COMPILE_FLAGS} )
 
 
-
 add_executable(dmc main.cpp)
 target_include_directories(dmc PUBLIC
                            "${PROJECT_SOURCE_DIR}/dmc"
