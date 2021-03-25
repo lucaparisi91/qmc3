@@ -1,8 +1,8 @@
 {
     "inverseTemperature": 1.0,
     "nBeads": 100,
-    "nBlocks": 10000,
-    "stepsPerBlock": 10,
+    "nBlocks": 100000,
+    "stepsPerBlock": 10000,
     "correlationSteps": 10,
     "particles": [
         20 , 20
@@ -43,8 +43,8 @@
             "weight": 0.2,
             "move": {
                 "kind": "open",
-                "C": 0.1,
-                "reconstructionMaxLength": 6
+                "C": 1,
+                "reconstructionMaxLength": 1
             },
             "sets" : [0,1],
             "sectors": [
@@ -55,8 +55,8 @@
             "weight": 0.2,
             "move": {
                 "kind": "close",
-                "C": 0.1,
-                "reconstructionMaxLength": 6
+                "C": 1,
+                "reconstructionMaxLength": 1
             },
             "sets" : [0,1],
             "sectors": [
@@ -117,7 +117,18 @@
                 "V0": 77.03490735958916,
                 "alpha": 482.74469230281466
             }
+        },
+        {
+            "kind": "twoBody",
+            "groupA": 0,
+            "groupB": 1,
+            "potential": {
+                "kind": "gaussian",
+                "V0": 77.03490735958916,
+                "alpha": 482.74469230281466
+            }
         }
+
     ],
     "observables": [
         {
@@ -127,6 +138,25 @@
         {
             "kind": "virialEnergy",
             "label": "eV"
+        },
+        {
+            "kind" : "pairCorrelation",
+            "label" : "pairAB",
+            "setA" : 0,
+            "setB" : 1,
+            "minx" : 0,
+            "maxx" : 0.43679023236814946,
+            "bins" : 1000
+        },
+        {
+            "kind" : "pairCorrelation",
+            "label" : "pairAA",
+            "setA" : 0,
+            "setB" : 0,
+            "minx" : 0,
+            "maxx" : 0.43679023236814946,
+            "bins" : 1000
         }
+
     ]
 }
