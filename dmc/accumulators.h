@@ -125,7 +125,7 @@ public:
 
   real_t maxx() const {return _maxx;}
 
-  real_t & minx() {return _maxx;}
+  real_t & minx() {return _minx;}
   
   
   auto & weight() {return _weight;}
@@ -143,6 +143,7 @@ public:
 
   }
 
+  auto x(int i) const {return _minx + (i+0.5)*deltax;}
   
   void writeAverage(std::ostream & o) const
   {
@@ -150,7 +151,7 @@ public:
 
     for (int i=0;i<av.size();i++)
       {
-	o << _minx + i*deltax << " " << av(i) << std::endl;
+	o << x(i) << " " << av(i) << std::endl;
       }
   }
   

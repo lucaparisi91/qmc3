@@ -341,7 +341,6 @@ bool sectorTableMoves::attemptMove(configurations_t & confs, firstOrderAction & 
     return success;
 };
 
-
 void sectorTableMoves::push_back(move * move_,Real weight,const std::string & name)
 {
     sampler.accumulateWeight(weight);

@@ -9,7 +9,8 @@ public:
   pairCorrelation(const json_t & j);
   
   std::vector<int> sets() {return {setA,setB};}
-  
+
+
   static std::string name() {return "pairCorrelation";}
   
   virtual std::vector<int> sets() const override {return {setA,setB}; }
@@ -20,6 +21,7 @@ private:
   int setA;
   int setB;
   
+    
   real_t _normalizationFactor;
   real_t max;
   real_t deltax;

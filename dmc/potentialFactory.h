@@ -17,6 +17,7 @@ potential * createPotential(const json_t & j ,const geometry_t & geo)
   return new pot_t(j,geo);
 }
 
+
 class potentialFactory : public abstractFactory<potential,std::string, potentialCreatorFunc>
 {
 public:

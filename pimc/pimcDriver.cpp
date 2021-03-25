@@ -5,7 +5,7 @@
 #include "action.h"
 #include "pimcConfigurations.h"
 #include "moves.h"
-#include "pimcObservables.h"
+#include "pimcObservablesFactory.h"
 #include <filesystem>
 #include "pimcPotentials.h"
 
@@ -189,7 +189,12 @@ void pimcDriver::run()
 
     std::vector<std::shared_ptr<observable> > observables;
 
-    std::shared_ptr<scalarObservable> eO=nullptr;
+    
+    pimcObservablesFactory obFactory(j);
+
+    obFactory.registerObservable<virialEnergyEstimator>("virialEnergy");
+    obFactory.registerObservable<thermodynamicEnergyEstimator>("thermalEnergy");
+    obFactory.registerObservable<pairCorrelation>("pairCorrelation");
 
 
 
@@ -200,38 +205,13 @@ void pimcDriver::run()
     }
     else
     {
-        for (auto jO : j["observables"])
-    {
-        if ( jO["kind"] == "thermalEnergy" )
-        {
-            std::string label = jO["label"];
-            auto therm = std::make_shared<pimc::thermodynamicEnergyEstimator>();
-            eO=std::make_shared<pimc::scalarObservable>(therm,label);
-            observables.push_back(eO);
-
-        }
-        else
-        {
-            if ( jO["kind"] == "virialEnergy" )
-            {
-                std::string label = jO["label"];
-                auto vEst = std::make_shared<pimc::virialEnergyEstimator>(configurations.nChains() ,configurations.nBeads());
-
-                auto eV=std::make_shared<pimc::scalarObservable>(vEst,label);
-                observables.push_back(eV);
-            }
-            else
-            {
-                throw invalidInput("Unkown observable " + jO["kind"].get<std::string>());
-     
-            }
-            
-           
-        }
-        
-    }
+       observables=obFactory.createObservables(j["observables"]) ;
     
     }
+    
+    auto eO=obFactory.getEnergyObservable();
+
+
     
 
 

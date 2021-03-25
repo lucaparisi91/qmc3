@@ -1,7 +1,9 @@
 include(../cmake/init.cmake)
 
 set ( SOURCES geometryPMC.cpp
-  action.cpp  moves.cpp  pimcConfigurations.cpp  pimcObservables.cpp  toolsPimc.cpp  pimcDriver.cpp  pimcPotentials.cpp  hdf5IO.cpp )
+  action.cpp  moves.cpp  pimcConfigurations.cpp  pimcObservables.cpp pimcObservablesFactory.cpp toolsPimc.cpp  pimcDriver.cpp  pimcPotentials.cpp  hdf5IO.cpp
+  
+  )
  
 
  # -------  Set up the static dmc library

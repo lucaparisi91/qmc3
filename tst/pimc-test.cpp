@@ -537,7 +537,7 @@ TEST(observables, IO)
     std::vector<std::shared_ptr<pimc::observable> > Os;
     {
         auto therm = std::make_shared<pimc::thermodynamicEnergyEstimator>();
-        Os.push_back( std::make_shared<pimc::scalarObservable>(therm,"eT") );
+        Os.push_back( std::make_shared<pimc::scalarObservable>(therm,std::string("eT") ) );
 
     }
 
@@ -580,11 +580,11 @@ TEST(configurations, worms)
     // test open
     configurations.setHead( iChain , M );
 
-    ASSERT_EQ( configurations.getGroup(0).heads.size() , 1 );
-    ASSERT_EQ( configurations.getGroup(0).tails.size() , 1 );
+    ASSERT_EQ( configurations.getGroupByChain(0).heads.size() , 1 );
+    ASSERT_EQ( configurations.getGroupByChain(0).tails.size() , 1 );
     
-    ASSERT_EQ( configurations.getGroup(0).heads[0],iChain);
-    ASSERT_EQ(configurations.getGroup(0).tails[0],iChain);
+    ASSERT_EQ( configurations.getGroupByChain(0).heads[0],iChain);
+    ASSERT_EQ(configurations.getGroupByChain(0).tails[0],iChain);
 
 
     ASSERT_TRUE( configurations.getChain(iChain).hasHead()     );
@@ -595,8 +595,8 @@ TEST(configurations, worms)
     configurations.join(iChain,iChain);
     ASSERT_FALSE(configurations.getChain(iChain).hasHead() );
     ASSERT_FALSE(configurations.getChain(iChain).hasTail() );
-    ASSERT_EQ( configurations.getGroup(0).heads.size() , 0 );
-    ASSERT_EQ( configurations.getGroup(0).tails.size() , 0 );
+    ASSERT_EQ( configurations.getGroupByChain(0).heads.size() , 0 );
+    ASSERT_EQ( configurations.getGroupByChain(0).tails.size() , 0 );
 
     // test creation of a new head and join
      iChain=5;
@@ -608,12 +608,12 @@ TEST(configurations, worms)
     testChain(configurations, iChain, M, -1); 
     configurations.join(iChain,N);
 
-    ASSERT_EQ( configurations.getGroup(0).heads.size() , 1 );
-    ASSERT_EQ( configurations.getGroup(0).tails.size() , 1 );
+    ASSERT_EQ( configurations.getGroupByChain(0).heads.size() , 1 );
+    ASSERT_EQ( configurations.getGroupByChain(0).tails.size() , 1 );
 
 
-    ASSERT_EQ( configurations.getGroup(0).tails[0] , iChain );
-    ASSERT_EQ( configurations.getGroup(0).heads[0] , N );
+    ASSERT_EQ( configurations.getGroupByChain(0).tails[0] , iChain );
+    ASSERT_EQ( configurations.getGroupByChain(0).heads[0] , N );
     
 
 
@@ -629,11 +629,11 @@ TEST(configurations, worms)
     configurations.join(newChain,iChain); 
 
 
-    ASSERT_EQ( configurations.getGroup(0).heads.size() , 1 );
-    ASSERT_EQ( configurations.getGroup(0).tails.size() , 1 );
+    ASSERT_EQ( configurations.getGroupByChain(0).heads.size() , 1 );
+    ASSERT_EQ( configurations.getGroupByChain(0).tails.size() , 1 );
 
-    ASSERT_EQ( configurations.getGroup(0).tails[0] , newChain );
-    ASSERT_EQ( configurations.getGroup(0).heads[0] , N );
+    ASSERT_EQ( configurations.getGroupByChain(0).tails[0] , newChain );
+    ASSERT_EQ( configurations.getGroupByChain(0).heads[0] , N );
     ASSERT_EQ(newChain,N+1);
     ASSERT_FALSE(configurations.getChain(N).hasTail() );
     ASSERT_FALSE(configurations.getChain(N+1).hasHead() );
@@ -642,18 +642,18 @@ TEST(configurations, worms)
     // test remove
     configurations.setTail(N,-1);
 
-    ASSERT_EQ( configurations.getGroup(0).tails.size() , 2 );
+    ASSERT_EQ( configurations.getGroupByChain(0).tails.size() , 2 );
 
     configurations.setHead(N+1,0);
     
-    ASSERT_EQ( configurations.getGroup(0).tails[1] , N );
-    ASSERT_EQ( configurations.getGroup(0).tails[0] , N + 1 );
+    ASSERT_EQ( configurations.getGroupByChain(0).tails[1] , N );
+    ASSERT_EQ( configurations.getGroupByChain(0).tails[0] , N + 1 );
     
     configurations.removeChain(N); 
     configurations.removeChain(N);
 
-    ASSERT_EQ( configurations.getGroup(0).tails[0] , iChain );
-    ASSERT_EQ( configurations.getGroup(0).heads[0] , iChain );
+    ASSERT_EQ( configurations.getGroupByChain(0).tails[0] , iChain );
+    ASSERT_EQ( configurations.getGroupByChain(0).heads[0] , iChain );
 
 }
 
@@ -690,19 +690,19 @@ TEST(action,twoBody)
          [](Real r) {return 0  ;}
          );
 
-    auto sV=pimc::potentialActionTwoBody<decltype(V)>(timeStep,N,M,V ,geo,0,0);
 
+    auto sV=pimc::potentialActionTwoBody<decltype(V)>(timeStep,N,M,V ,geo,0,0);
+    
     int t0=0;
     int t1=M-1;
     int iChain=0;
 
-
     Real count=0;
-    for(int t=t0;t<=t1;t++)
+    for(int t=t0;t<=t1+1;t++)
     {
          Real prefactor = 1;
 
-        if ( (t==t0) or (t==t1) )
+        if ( (t==t0) or (t==t1+1) )
         {
             prefactor=0.5;
         }
@@ -724,16 +724,17 @@ TEST(action,twoBody)
             }
     }
 
+
     auto currentAction = sV.evaluate(configurations,{t0,t1},iChain);
     ASSERT_NEAR(currentAction,count*V0*timeStep,1e-5);
 
 
     count=0;
-    for(int t=0;t<=M-1;t++)
+    for(int t=0;t<=M;t++)
     {
         Real prefactor = 1;
 
-        if ( (t==0) or (t==M-1) )
+        if ( (t==0) or (t==M) )
         {
             prefactor=0.5;
         }
@@ -818,14 +819,16 @@ TEST(action,twoBody)
             }
     }
 
-    currentAction = sV2.evaluate(configurations,{t0,t1},iChain);
+
+
+    currentAction = sV2.evaluate(configurations,{t0,t1-1},iChain);
     ASSERT_NEAR(currentAction,currentGaussV*timeStep,1e-5);
 
     currentGaussV=0;
-    for(int t=0;t<=M-1;t++)
+    for(int t=0;t<=M;t++)
     {
          Real prefactor = 1;
-        if ( (t==0) or (t==M-1) )
+        if ( (t==0) or (t==M) )
         {
             prefactor=0.5;
         }
@@ -842,6 +845,24 @@ TEST(action,twoBody)
                 }
 
                 currentGaussV+=prefactor*V0*exp(-alpha*dis2);
+
+            }
+    }
+
+        for(int t=0;t<=M-1;t++)
+    {
+        
+        for(int i=0;i<N;i++)
+        for(int j=0;j<i;j++)
+            {
+                Real dis2=0;
+                std::array<Real,3> diff;
+
+                for(int d=0;d<getDimensions();d++)
+                {
+                    diff[d]=geo.difference(data(i,d,t)-data(j,d,t) ,d);
+                    dis2+=diff[d]*diff[d];
+                }
 
                 for(int d=0;d<getDimensions();d++)
                 {

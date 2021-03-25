@@ -163,20 +163,7 @@ public:
         const auto & getChain(int i) {return _chains[i];}
 
         const auto & getChain(int i) const {return _chains[i];}
-
-        const auto & getGroup(int iChain) const
-        {
-            for (int i=0;i<particleGroups.size();i++)
-            {
-                if ( particleGroups[i].contains(iChain) )
-                {
-                    return particleGroups[i];
-                }
-            }
-
-            throw invalidInput("missing group for particle " + std::to_string(iChain));
-        }
-
+        
 
         void setHead( int iChain, int delta);
         void setTail( int iChain, int delta);

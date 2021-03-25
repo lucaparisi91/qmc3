@@ -204,7 +204,138 @@ Real virialEnergyEstimator::operator()(configurations_t & confs, firstOrderActio
 }
 
 
+pairCorrelation::pairCorrelation(int setA_, int setB_) :
+setA(setA_),setB(setB_)
+{
+
+}
+
+Real pairCorrelation::getNormalizationFactor(const configurations_t & configurations, const firstOrderAction & S , const accumulator_t & acc) const
+{
+    auto geo = S.getGeometry();
+    auto dx = acc.stepSize();
+
+    const auto & groupA = configurations.getGroups()[setA];
+    const auto & groupB = configurations.getGroups()[setB];
+    
+    auto  NA = groupA.iEnd - groupA.iStart + 1;
+    auto  NB = groupB.iEnd - groupB.iStart + 1;
 
 
+#if DIMENSIONS == 3
+    //auto R = 0.5*std::sqrt( geo.getLBox(0)*geo.getLBox(0) + geo.getLBox(1)*geo.getLBox(1) + geo.getLBox(2)*geo.getLBox(2)  );
+    //auto R = 0.5*geo.getLBox(0);
+    //auto V = 4./3.*M_PI*R*R*R;
+    auto V = geo.getLBox(0)*geo.getLBox(1)*geo.getLBox(2);
+    auto _normalizationFactor=V/(dx*4*M_PI*NA*NB);
+#endif
+
+#if DIMENSIONS == 1
+  
+  auto _normalizationFactor=std::pow(lBox,1)/(dx*NA*NB*2);   
+#endif
+  
+  _normalizationFactor = (setA == setB) ? 2*_normalizationFactor : _normalizationFactor;
+  
+  return _normalizationFactor;
+}
+
+
+
+void pairCorrelation::operator()(configurations_t & configurations, firstOrderAction & S,  accumulator_t & histAcc)
+{
+
+    if (setA == setB)
+    {
+        accumulateUnDistinguishable(configurations,S,histAcc);
+    }
+    else
+    {
+        accumulateDistinguishable(configurations,S,histAcc);
+    }
+}
+
+
+
+void pairCorrelation::accumulateUnDistinguishable(configurations_t & confs, firstOrderAction & S,  accumulator_t & acc)
+{    
+    const auto & groupA = confs.getGroups()[setA];
+    
+    const auto & data = confs.dataTensor();
+    const auto & geo = S.getGeometry();
+
+    auto norm = getNormalizationFactor(confs,S,acc);
+    
+    for(int t=0;t<confs.nBeads();t++)
+    {
+        for(int i=groupA.iStart;i<=groupA.iEnd;i++)
+            for(int j=groupA.iStart;j<i;j++)
+            {
+                Real r2=0;
+                for (int d=0;d<getDimensions();d++)
+                    {
+                        auto tmp=geo.difference( data(i,d,t) - data(j,d,t)  ,d );
+                        r2+=tmp*tmp;
+                    }
+                Real r= std::sqrt(r2);
+
+                if( 
+                    ( r > acc.minx() ) and  
+                    ( r < acc.maxx() )
+                  )
+                {
+                    acc.accumulate(norm,r);
+                } 
+
+            }
+    }
+
+    acc.weight()+=confs.nBeads();
+}
+
+
+void pairCorrelation::accumulateDistinguishable(configurations_t & confs, firstOrderAction & S,  accumulator_t & acc)
+{    
+    const auto & groupA = confs.getGroups()[setA];
+    const auto & groupB = confs.getGroups()[setB];
+
+
+
+    
+    const auto & data = confs.dataTensor();
+    const auto & geo = S.getGeometry();
+
+
+    auto norm = getNormalizationFactor(confs,S,acc);
+
+
+    for(int t=0;t<confs.nBeads();t++)
+    {
+        for(int i=groupA.iStart;i<=groupA.iEnd;i++)
+            for(int j=groupB.iStart;j<=groupB.iEnd;j++)
+            {
+                Real r2=0;
+                for (int d=0;d<getDimensions();d++)
+                    {
+                        auto tmp=geo.difference( data(i,d,t) - data(j,d,t)  ,d );
+                        r2+=tmp*tmp;
+                    }
+                Real r= std::sqrt(r2);
+
+                if( 
+                    ( r > acc.minx() ) and  
+                    ( r < acc.maxx() )
+                  )
+                {
+                    acc.accumulate(norm,r);
+                } 
+
+            }
+    }
+
+    acc.weight()+=confs.nBeads();
+}
 
 };
+
+
