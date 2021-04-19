@@ -156,6 +156,15 @@
             "minx" : 0,
             "maxx" : 0.43679023236814946,
             "bins" : 1000
+        },
+        {
+            "kind" : "pairCorrelation",
+            "label" : "pairBB",
+            "setA" : 1,
+            "setB" : 1,
+            "minx" : 0,
+            "maxx" : 0.43679023236814946,
+            "bins" : 1000
         }
 
     ]

@@ -299,8 +299,6 @@ void pairCorrelation::accumulateDistinguishable(configurations_t & confs, firstO
     const auto & groupA = confs.getGroups()[setA];
     const auto & groupB = confs.getGroups()[setB];
 
-
-
     
     const auto & data = confs.dataTensor();
     const auto & geo = S.getGeometry();
