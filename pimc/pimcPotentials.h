@@ -10,8 +10,6 @@ namespace pimc
 
 using Real = double;
 
-
-
 class poschlTellerPotential
 {
     public:

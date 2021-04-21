@@ -13,18 +13,25 @@
 namespace pimc
 {
 
-class mask
+
+
+class maskTensor
 {
 public:
-    mask(){}
-    mask( int nBeads, int nChains) : _mask(nChains,nBeads) {_mask.setConstant(1);}
+    maskTensor(){}
+    maskTensor( int nChains, int nBeads) : _mask(nChains,nBeads+2) {_mask.setConstant(0);}
 
-    void setConstant(int value){_mask.setConstant(value);}
 
-    auto & operator()(int i,int j) {return _mask(j,i);}
-    const auto &  operator()(int i,int j) const {return _mask(j,i);}
+    void setConstant(Real value){_mask.setConstant(value);}
+
+    const auto & dataTensor() const {return _mask;}
+
+    auto & operator()(int i,int j) {return _mask(i,j+1);}
+    const auto &  operator()(int i,int j) const {return _mask(i,j+1);}
+    void resize(int nChains,int nBeads) {_mask.resize(nChains,nBeads+2);}
+
 private:
-    Eigen::Tensor<int, 2> _mask;
+    Eigen::Tensor<Real, 2> _mask;
 };
 
 enum sector_t{ diagonal = 0 , offDiagonal = 1 , any = 2} ;
@@ -106,6 +113,9 @@ struct particleGroup
 
 class pimcConfigurations;
 
+
+enum ensamble_t {grandCanonical=2, canonical=1};
+
 struct chain
 {
 
@@ -130,7 +140,7 @@ public:
     {
         public:
         using configurationsStorage_t =  Eigen::Tensor<Real, 3> ;
-
+        using tags_t = maskTensor;
         
         void saveHDF5(const std::string & filename);
         static pimcConfigurations loadHDF5(const std::string & filename);
@@ -230,14 +240,29 @@ public:
         pimcConfigurations & confTo,
        int timeOffsetTo, int particleOffsetTo );
 
+       void swapTags( pimcConfigurations & confFrom, const std::array<int,2> & timeRangeFrom,const std::array<int,2> & particleRangeFrom ,
+        pimcConfigurations & confTo,
+       int timeOffsetTo, int particleOffsetTo );
+
+
        void swapData(const std::array<int,2> & timeRange, int iParticleFrom, int iParticleTo)
          {
              pimcConfigurations::swapData(*this,timeRange,{iParticleFrom,iParticleFrom},(*this),timeRange[0],iParticleTo);
          }
 
+         void swapTags(const std::array<int,2> & timeRange, int iParticleFrom, int iParticleTo)
+         {
+             pimcConfigurations::swapTags(*this,timeRange,{iParticleFrom,iParticleFrom},(*this),timeRange[0],iParticleTo);
+         }
+
         void swapData(int iParticleFrom, int iParticleTo)
          {
              swapData({0,nBeads()},iParticleFrom,iParticleTo);
+         }
+
+         void swapTags(int iParticleFrom, int iParticleTo)
+         {
+             swapTags({0,nBeads()},iParticleFrom,iParticleTo);
          }
 
         void swap(int iParticleFrom, int iParticleTo);
@@ -254,9 +279,8 @@ public:
             throw invalidInput("Chain is not contained in any group");
         }
 
-        
-        const auto & getMask() const  {return _mask;}
 
+        const auto & getTags() const  {return _tags;}
 
         int pushChain(particleGroup & group);
         int pushChain(int iGroup);
@@ -278,6 +302,9 @@ public:
 
         std::list<int> buildPolimerList(int iChain) const; // build a list of all chains in the same permutation cycle as iChain 
 
+        void setEnsamble(ensamble_t ensamble2){ensamble=ensamble2;}
+        
+        auto getEnsamble() const {return ensamble;}
 
 
         protected:
@@ -295,7 +322,7 @@ public:
 
 
 
-        void updateMask(const chain & chainToUpdate);
+        void updateTags(const chain & chainToUpdate);
 
         void deleteBeads(   std::array<int,2> timeRange, int iChain ); // deactive the beads in the mask
 
@@ -308,6 +335,7 @@ public:
         int nGroups() const {return particleGroups.size();}
 
 
+
         private:
 
         int M;
@@ -316,10 +344,11 @@ public:
 
         std::vector<particleGroup> particleGroups;
         configurationsStorage_t _data;
+        tags_t _tags;
         std::vector<chain> _chains;
 
 
-        mask _mask;
+        ensamble_t ensamble;
         int _nParticles;
     };
 

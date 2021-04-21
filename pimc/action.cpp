@@ -43,19 +43,17 @@ Real kineticAction::evaluate( pimcConfigurations_t & configurations , std::array
     return sum;
 }
 
-
 Real kineticAction::evaluate( pimcConfigurations_t & configurations , std::array<int,2> timeSlices , int iChain1 , int iChain2 )
 {   
     return evaluate(configurations,timeSlices,iChain1) + evaluate(configurations,timeSlices,iChain2) ; 
 }
-
 
 Real kineticAction::evaluate( pimcConfigurations_t & configurations )
 {
     Real sum=0;
     
     const auto & particleGroups = configurations.getGroups();
-    
+
     for (auto & group : particleGroups)
     {
         sum+=evaluate(configurations  , {0 , nBeads-1} , {group.iStart,group.iEnd} ) ;

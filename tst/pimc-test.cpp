@@ -391,7 +391,7 @@ void testChain(pimc::pimcConfigurations & configurations, int iChain, int expect
     const auto chain = configurations.getChain(iChain);
 
 
-    const auto & mask = configurations.getMask(); 
+    const auto & tags = configurations.getTags(); 
 
     ASSERT_EQ( chain.head , expectedHead   );
     ASSERT_EQ( chain.tail , expectedTail   );
@@ -400,15 +400,15 @@ void testChain(pimc::pimcConfigurations & configurations, int iChain, int expect
     {
         for(int t=expectedTail+1;t<expectedHead;t++)
         {
-            ASSERT_EQ(mask(t,iChain) , 1  );
+            ASSERT_EQ(tags(iChain,t) , 1  );
         }
         for(int t=0;t<=expectedTail;t++)
         {
-            ASSERT_EQ(mask(t,iChain) , 0  );
+            ASSERT_EQ(tags(iChain,t) , 0  );
         }
         for(int t=expectedHead;t<configurations.nBeads();t++)
         {
-            ASSERT_EQ(mask(t,iChain) , 0  );
+            ASSERT_EQ(tags(iChain,t) , 0  );
         }
 
     }
@@ -416,15 +416,15 @@ void testChain(pimc::pimcConfigurations & configurations, int iChain, int expect
     {
         for(int t=expectedTail;t<=expectedHead;t++)
         {
-            ASSERT_EQ(mask(t,iChain) , 0  );
+            ASSERT_EQ(tags(iChain,t) , 0  );
         }
         for(int t=0;t<expectedTail;t++)
         {
-            ASSERT_EQ(mask(t,iChain) , 1  );
+            ASSERT_EQ(tags(iChain,t) , 1  );
         }
         for(int t=expectedHead+1;t<configurations.nBeads();t++)
         {
-            ASSERT_EQ(mask(t,iChain) , 1  );
+            ASSERT_EQ(tags(iChain,t) , 1  );
         }
 
     }
@@ -563,9 +563,10 @@ TEST(configurations, worms)
     pimc::particleGroup groupA{ 0 , N-1, N + 1 , 1.0};
 
     pimc::pimcConfigurations configurations(M , getDimensions() , {groupA});
-    
+
+
     auto & data = configurations.dataTensor();
-    const auto & mask = configurations.getMask();
+    const auto & tags = configurations.getTags();
 
     data.setRandom();
 
@@ -655,7 +656,126 @@ TEST(configurations, worms)
     ASSERT_EQ( configurations.getGroupByChain(0).tails[0] , iChain );
     ASSERT_EQ( configurations.getGroupByChain(0).heads[0] , iChain );
 
+    pimc::particleGroup groupB{ 0 , N-1, N + 2 , 1.0};
+
+    pimc::pimcConfigurations configurations2(M , getDimensions() , {groupB});
+    
+    configurations2.setEnsamble(pimc::ensamble_t::grandCanonical);
+    int newHead=M/2;
+    int newTail=M/2 ;
+    int iOpen=N/2;
+
+    configurations2.dataTensor().setRandom();
+    configurations2.fillHeads();
+    int iNext=configurations2.getChain(iOpen).next;
+
+    configurations2.setHead(iOpen,newHead);
+    auto iChainTail=configurations2.pushChain(0);
+    configurations2.setTail(iChainTail,newTail);
+    configurations2.join(iChainTail,iNext);
+
+    ASSERT_EQ( configurations2.getGroupByChain(0).heads[0] , iOpen );
+    ASSERT_EQ( configurations2.getChain(iChainTail).next , iNext );
+    ASSERT_EQ( configurations2.getChain(iNext).prev , iChainTail );
+    ASSERT_EQ( configurations2.getGroupByChain(0).tails[0] , iChainTail );
+    ASSERT_EQ( configurations2.getGroupByChain(0).heads[0] , iOpen );
+
+
+    testChain(configurations2,iOpen,newHead,-1);
+    testChain(configurations2,iChainTail,M,newTail);
+
+    configurations2.setHead(iChainTail,M);
+    configurations2.removeChain(iOpen);
+
+    testChain(configurations2,iOpen,M,newTail);
+
+
+    ASSERT_EQ( configurations2.getGroupByChain(0).heads[0] , iOpen );
+    ASSERT_EQ( configurations2.getGroupByChain(0).tails[0] , iOpen );
+
+
+    configurations2.setTail(iOpen,-1);
+    iChainTail=configurations2.pushChain(0);
+    configurations2.setHead(iChainTail,M);
+    configurations2.setTail(iChainTail,newTail);
+    configurations2.join(iChainTail,iOpen);
+
+    testChain(configurations2,iOpen,M,-1);
+    testChain(configurations2,iChainTail,M,newTail);
+
 }
+
+
+TEST(action,oneBodyGrandCanonical)
+{
+    int N=100;
+    int M=50;
+
+    pimc::particleGroup group{ 0 , N-1, N + 2 , 1.0};
+
+    pimc::pimcConfigurations configurations(M , getDimensions() , {group});
+
+    configurations.setEnsamble(pimc::ensamble_t::grandCanonical);
+    configurations.dataTensor().setRandom();
+
+    int iOpen=N-1;
+    int newHead=M/2;
+
+    int iChainHead=configurations.pushChain(0);
+    ASSERT_EQ(iChainHead,N);
+
+    configurations.setHead(iOpen,M);
+    configurations.setHead(iChainHead,newHead);
+    configurations.setTail(iChainHead,-1);
+    configurations.join(iOpen,iChainHead); 
+    configurations.fillHeads();
+
+    testChain(configurations,iChainHead,newHead,-1);
+    
+    pimc::geometryPBC_PIMC geo(300,300,300);
+
+    Real timeStep=1e-1;
+
+     auto V = pimc::makeIsotropicPotentialFunctor(
+         [=](Real r) { return 0.5*r*r ;} ,
+         [](Real r) {return r  ;}
+         );
+
+
+    const auto & mask = configurations.getTags();
+
+    const auto & data = configurations.dataTensor();
+    
+    
+
+    
+     Real sum=0;
+    for(int t=0;t<=M;t++)
+    {
+        Real prefactor = ((t ==0) or (t == M)) ? 0.5 : 1;
+        for(int i=0;i<N;i++)
+        {
+            sum+=prefactor*V( TRUNCATE_D(data(i,0,t), data(i,1,t),data(i,2,t) ) );
+        }
+    }
+
+
+
+     for(int t=0;t<=newHead;t++)
+    {
+        Real prefactor = (t ==0 or t == newHead) ? 0.5 : 1;
+        int i=N;
+        sum+=prefactor*V( TRUNCATE_D(data(i,0,t), data(i,1,t),data(i,2,t) ) );
+    }
+
+
+    auto sOneBody=std::make_shared<pimc::potentialActionOneBody<decltype(V)> >(timeStep,V ,geo);
+
+    auto sumAction=sOneBody->evaluate(configurations);
+
+    ASSERT_NEAR(sumAction,sum*timeStep,1e-5);
+      
+}   
 
 TEST(action,twoBody)
 {
@@ -683,7 +803,6 @@ TEST(action,twoBody)
 
     Real Rc=0.1;
     Real V0=2.;
-
 
     auto V = pimc::makeIsotropicPotentialFunctor(
          [=](Real r) {return (r*r)<= Rc*Rc ? V0 :  0 ;} ,
@@ -886,7 +1005,7 @@ TEST(action,twoBody)
 
     std::cout << sumSquares(0) << std::endl;
     std::cout << sumSquaresTest(0) << std::endl;
-    
+
 }
 
 TEST(run,free_harmonic_oscillator)
@@ -894,7 +1013,6 @@ TEST(run,free_harmonic_oscillator)
     int N=10;
     int M=10;
     Real Beta = 1;
-
 
 
 
@@ -1069,6 +1187,191 @@ TEST(run,free_harmonic_oscillator)
     std::cout << "END." << std::endl;
 }
 
+TEST(run,free_harmonic_oscillator_grandCanonical)
+{   
+    int N=10;
+    int M=10;
+    Real Beta = 1;
+
+
+    pimc::geometryPBC_PIMC geo(300,300,300);
+
+    Real timeStep = Beta/M;
+
+    pimc::particleGroup groupA{ 0 , N-1, N + 10 , 1.0};
+    pimc::pimcConfigurations configurations(M , getDimensions() , {groupA});
+
+    
+
+    configurations.dataTensor().setRandom();
+
+    //configurations.join(0,1);
+    //configurations.join(1,0);
+    
+    configurations.fillHeads();
+
+    pimc::levyReconstructor reconstructor(M);
+
+    pimc::levyMove freeMoves(5,0);
+
+    Real delta=0.1;
+
+    //pimc::translateMove translMove(delta,(M+1)*N,0);
+
+
+    Real C = 1e-1;
+    int l = 3;
+
+    
+    //pimc::openMove openMove(C,0,l);
+    //pimc::closeMove closeMove(C,0,l);
+
+    //pimc::moveHead moveHeadMove(l,0);
+    //pimc::moveTail moveTailMove(l,0);
+
+    //pimc::swapMove swapMove(l,N,0);
+
+    pimc::tableMoves table;
+
+    //table.push_back(& freeMoves,0.8,pimc::sector_t::offDiagonal,"levy");
+    table.push_back(& freeMoves,0.8,pimc::sector_t::diagonal,"levy");
+
+    //table.push_back(& translMove,0.2,pimc::sector_t::diagonal,"translate");
+    //table.push_back(& translMove,0.2,pimc::sector_t::offDiagonal,"translate");
+
+
+    //table.push_back(& openMove,0.2,pimc::sector_t::diagonal,"open");
+    
+    //table.push_back(& closeMove,0.2,pimc::sector_t::offDiagonal,"close");
+
+    //table.push_back(& moveHeadMove,0.4,pimc::sector_t::offDiagonal,"moveHead");
+    //table.push_back(& moveTailMove,0.4,pimc::sector_t::offDiagonal,"moveTail");
+
+    //table.push_back(& swapMove,0.8,pimc::sector_t::offDiagonal,"swap");
+    
+
+    randomGenerator_t randG(368);
+
+     std::shared_ptr<pimc::action> sT= std::make_shared<pimc::kineticAction>(timeStep, configurations.nChains() , M  , geo);
+
+
+     auto V = pimc::makeIsotropicPotentialFunctor(
+         [](Real r) {return 0.5*(r*r) ;} ,
+         [](Real r) {return r  ;} );
+
+
+    Real R0=0.1;
+    Real V0=1;
+
+
+
+  
+      auto V2 = pimc::makeIsotropicPotentialFunctor(
+         [=](Real r) {return V0*exp(-(r*r));} ,
+         [=](Real r) {return -2*r*V0*exp(-r*r)  ;}
+          );
+
+
+
+
+    std::shared_ptr<pimc::action> sOneBody=std::make_shared<pimc::potentialActionOneBody<decltype(V)> >(timeStep,V ,geo);
+    std::shared_ptr<pimc::action>  sV2B=std::make_shared<pimc::potentialActionTwoBody<decltype(V2)>  >(timeStep,N,M,V2 ,geo,0,0);    
+    
+    std::vector<std::shared_ptr<pimc::action> > Vs = {sOneBody,sV2B};
+    
+    
+    std::shared_ptr<pimc::action>  sV = std::make_shared<pimc::sumAction>(Vs);
+
+    pimc::firstOrderAction S(sT,  sV);
+    
+    int nTimes = 1000;
+    int success = 0;
+    int subSteps=1000;
+    int correlationSteps=10;
+
+   
+    pimc::thermodynamicEnergyEstimator energyEstimator;
+
+    pimc::virialEnergyEstimator viriralEnergy(N, M);
+
+    Real e=0;
+    Real e2=0;
+
+    std::ofstream f;
+    std::ofstream fV;
+
+
+    if ( ! fs::exists("configurations") ) 
+    { 
+        fs::create_directory("configurations"); // create src folder
+    }
+
+    configurations.fillHeads();
+
+
+    configurations.save("configurations/sample"+std::to_string(0),"pdb");
+
+    f.open("energy.dat");
+    fV.open("energyVirial.dat");
+
+    for (int i=0;i< nTimes ; i++)
+    {
+        Real eStep=0,eVirialStep=0;
+        int nMeasurements=0;
+
+        for (int k=0;k< subSteps;k++)
+        {
+            
+            for (int j=0;j<correlationSteps;j++)
+            {
+                bool accepted=table.attemptMove(configurations, S, randG);
+
+                if (accepted)
+                {success+=1;}
+            }
+            
+            if (!configurations.isOpen() )
+            {
+                Real tmp=energyEstimator(configurations,S);
+                Real tmp1=viriralEnergy(configurations,S);
+            
+                nMeasurements++;
+            
+                eStep+=tmp;
+                eVirialStep+=tmp1;
+            }
+            else
+            {
+               
+            }
+            
+        }
+
+        f << i + 1 << "\t" << eStep/nMeasurements << std::endl ;
+        fV << i + 1 << "\t" << eVirialStep/nMeasurements << std::endl ;
+
+        //std::cout << e << std::endl;
+        std::cout << "Energy: " << eStep/nMeasurements << std::endl;
+        std::cout << "Acceptance ratio: " << success*1./((i+1)*subSteps*correlationSteps) << std::endl;
+
+        table >> std::cout;
+
+        configurations.save("configurations/sample"+std::to_string(i+1),"pdb");
+    }
+
+    f.close();
+    ASSERT_TRUE( (success*1./nTimes )> 0);
+    std::cout << "END." << std::endl;
+}
+
+
+
+
+
+
+
+
+
 TEST(run,free)
 {   
 
@@ -1134,7 +1437,6 @@ TEST(run,free)
 
     pimc::tableMoves table;
 
-
     table.push_back(& freeMoves,0.8,pimc::sector_t::offDiagonal,"levy");
     table.push_back(& freeMoves,0.8,pimc::sector_t::diagonal,"levy");
 
@@ -1170,11 +1472,6 @@ TEST(run,free)
          [=](Real r) {return V0*exp(-alpha*(r*r));} ,
          [=](Real r) {return -2*r*V0*alpha*exp(-alpha*r*r)  ;}
           );
-    
-
-
-  
-
 
 
     std::shared_ptr<pimc::action> sOneBody=std::make_shared<pimc::potentialActionOneBody<decltype(V)> >(timeStep,V ,geo);
@@ -1250,6 +1547,7 @@ TEST(run,free)
             }
             
         }
+
 
         f << i + 1 << "\t" << eStep/nMeasurements << std::endl ;
         fV << i + 1 << "\t" << eVirialStep/nMeasurements << std::endl ;

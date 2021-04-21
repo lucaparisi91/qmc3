@@ -131,14 +131,13 @@ void pimcConfigurations::setTail( int iChain, int newTail )
 
 };
 
-
 pimcConfigurations::pimcConfigurations(
     size_t timeSlices, int dimensions, const std::vector<particleGroup> &  particleGroups_) :
     particleGroups(particleGroups_),
     M(timeSlices),
     N(getTotalSize(particleGroups_)), // number of chains(includign padding chains)
     _data(N,dimensions,2*(timeSlices+1) ),// contains a copy for buffer operations
-     _mask( timeSlices+1,N),
+     _tags(N, timeSlices ),
     _nParticles(getNParticles(particleGroups_))// number of chains without the padding
 {
     _chains.resize(N);
@@ -149,8 +148,21 @@ pimcConfigurations::pimcConfigurations(
         _chains[i].next=i;
         _chains[i].prev=i;
     }
-
     
+    _tags.setConstant(0);
+    for (const auto & group : particleGroups)
+    {
+        for (int t=0;t<nBeads();t++)
+        {
+            for(int i=group.iStart;i<=group.iEndExtended;i++)
+            {
+                _tags(i,t)=1;
+            }
+        }
+    }
+
+
+    ensamble = ensamble_t::canonical;
 
 }; 
 
@@ -186,12 +198,11 @@ void pimcConfigurations::fillHeads()
 }
 
 
-
 void pimcConfigurations::deleteBeads(   std::array<int,2> timeRange, int iChain )
 {
     for (int t=timeRange[0] ; t<= timeRange[1] ;t++   )
     {
-        _mask(t,iChain)=0;
+        _tags(iChain,t)=0;
     }
 }
 
@@ -199,7 +210,7 @@ void pimcConfigurations::createBeads(   std::array<int,2> timeRange, int iChain 
 {
     for (int t=timeRange[0] ; t<= timeRange[1] ;t++   )
     {
-        _mask(t,iChain)=1;
+        _tags(iChain,t)=1;
     }
 }
 
@@ -221,7 +232,7 @@ int pimcConfigurations::pushChain( particleGroup & group)
     {
         group.pushTail(group.iEnd);
     }
-
+    
     return group.iEnd;
 }
 
@@ -245,7 +256,6 @@ void pimcConfigurations::removeChain( int iChain)
 
     deleteTailFromList(group.iEnd);
     deleteHeadFromList(group.iEnd);
-
 
     group.iEnd-=1;
 
@@ -271,7 +281,6 @@ void pimcConfigurations::deleteTailFromList(int iChain)
 }
 
 
-
 void pimcConfigurations::join( int iChainLeft, int iChainRight)
 {
     setHead(iChainLeft,_chains[iChainLeft].head);
@@ -284,13 +293,9 @@ void pimcConfigurations::join( int iChainLeft, int iChainRight)
     _chains[iChainRight].prev=iChainLeft;
 
     deleteHeadFromList(iChainLeft);
-    deleteTailFromList(iChainRight);
-    
-    
+    deleteTailFromList(iChainRight);   
 
 }
-
-
 
 void pimcConfigurations::swapTails(int iChain1, int iChain2)
 {
@@ -357,7 +362,7 @@ void pimcConfigurations::save(const std::string & dirname,const std::string & fo
 
 
 
-                    f << _mask(t,i) << std::endl;
+                    f << _tags(i,t) << std::endl;
                 }
         }
         f.close();
@@ -483,8 +488,10 @@ void pimcConfigurations::load(const std::string & dirname)
     M=j["timeSlices"].get<int>();
 
     _data.resize(N,getDimensions(),M);
-    _mask=mask(nBeads(),nChains()) ;
-    _mask.setConstant(0);
+    _tags.resize(nChains(),nBeads()) ;
+    
+    _tags.setConstant(0);
+
 
     auto format = j["format"].get<std::string>();
 
@@ -509,7 +516,7 @@ void pimcConfigurations::load(const std::string & dirname)
                     for (int d=0;d<getDimensions();d++)
                     {
                         f >> _data(ii,d,tt) ;
-                        _mask(tt,ii)=1;
+                        _tags(ii,tt)=1;
                     }
                 }
     
@@ -589,8 +596,7 @@ void pimcConfigurations::swapData( pimcConfigurations & confFrom, const std::arr
         {
              auto & dataFrom = confFrom.dataTensor();
             auto & dataTo = confTo.dataTensor();
-            auto & maskFrom = confFrom.getMask();
-            auto & maskTo = confTo.getMask();
+            
 
             for(int t=timeRangeFrom[0], tt=timeOffsetTo;t<=timeRangeFrom[1];t++ & tt++)
             {
@@ -600,7 +606,23 @@ void pimcConfigurations::swapData( pimcConfigurations & confFrom, const std::arr
                         std::swap(dataTo(ii,d,tt),dataFrom(i,d,t));
                     }
             }
+        }
 
+
+void pimcConfigurations::swapTags( pimcConfigurations & confFrom, const std::array<int,2> & timeRangeFrom,const std::array<int,2> & particleRangeFrom ,
+        pimcConfigurations & confTo,
+       int timeOffsetTo, int particleOffsetTo)
+        {
+            auto & dataFrom = confFrom._tags;
+            auto & dataTo = confTo._tags;
+
+            for(int t=timeRangeFrom[0], tt=timeOffsetTo;t<=timeRangeFrom[1];t++ & tt++)
+            {
+                   for(int i=particleRangeFrom[0], ii=particleOffsetTo;i<=particleRangeFrom[1];i++ & ii++)
+                    {
+                        std::swap(dataTo(ii,tt),dataFrom(i,t));
+                    }
+            }
         }
 
 
@@ -657,8 +679,11 @@ void pimcConfigurations::swap(int particleA, int particleB)
 
     swapData(particleA,particleB);
 
-
-
+    if ( ensamble != ensamble_t::canonical)
+    {
+        swapTags(particleA,particleB);
+    }
+    
 
 }
 

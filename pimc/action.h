@@ -13,49 +13,6 @@
 
 namespace pimc
 {
-    template<class functor_t>
-    Real reduceOnSpringDistances(const functor_t & V,const Eigen::Tensor<Real,3> & tn, std::array<int ,2 > timeRange, std::array<int, 2>  particleRange)
-    {
-        Real sum=0;
-
-         for (size_t i=particleRange[0];i<=particleRange[1];i++ )
-            for(int t=timeRange[0];t<=timeRange[1] ; t++ )
-                {
-                    sum+=V( tn( t,0, i  ) , tn(t,1,i) , tn(t,2,i)  ) ;
-                }
-
-        return sum;
-    };
-
-
-     template<class functor_t>
-    Real reduceOnSpringDistances(const functor_t & V,const Eigen::Tensor<Real,3> & tn, std::array<int ,2 > timeRange, std::array<int, 2>  particleRange, const mask & mask)
-    {
-        Real sum=0;
-
-         for (size_t i=particleRange[0];i<=particleRange[1];i++ )
-            for(int t=timeRange[0];t<=timeRange[1] ; t++ )
-                {
-                    sum+=
-
-                    #if DIMENSIONS == 3
-                     V( tn( t,0, i  ) , tn(t,1,i) , tn(t,2,i)  ) 
-                    #endif
-
-                    #if DIMENSIONS == 1
-                     V( tn( t,0, i  )   ) 
-                    #endif
-
-                    #if DIMENSIONS == 2
-                     V( tn( t,0, i  ) , tn(t,1,i)   ) 
-                    #endif
-
-                     ;
-                }
-        return sum;
-    };
-
-
 
 /*
     template<class functor_t>
@@ -75,15 +32,45 @@ namespace pimc
 */
 
     template<class functor_t>
-    Real reduceOnPositions(const functor_t & V,const Eigen::Tensor<Real,3> & tn, std::array<int ,2 > timeRange, std::array<int, 2>  particleRange, const mask & mask)
+    Real reduceOnPositions(const functor_t & V,const Eigen::Tensor<Real,3> & tn, std::array<int ,2 > timeRange, std::array<int, 2>  particleRange)
     {
         Real sum=0;
+
 
         for(int t=timeRange[0];t<=timeRange[1] ; t++ )
             {
               for (size_t i=particleRange[0];i<=particleRange[1];i++ )
                 {
                     sum+= 
+                    #if DIMENSIONS == 3
+                     V( tn( i,0, t  ) , tn(i,1,t) , tn(i,2,t) )
+                     #endif
+                     #if DIMENSIONS == 1
+                     V( tn( i,0, t  )) 
+                     #endif
+                     #if DIMENSIONS == 2
+                     V( tn( i,0, t  ),tn( i,1, t  )) 
+                     #endif
+
+                       ;
+                }
+            }
+
+
+        return sum;
+    };
+
+
+    template<class functor_t>
+    Real reduceOnPositions(const functor_t & V,const Eigen::Tensor<Real,3> & tn, std::array<int ,2 > timeRange, std::array<int, 2>  particleRange, const pimcConfigurations::tags_t & mask)
+    {
+        Real sum=0;
+        for(int t=timeRange[0];t<=timeRange[1] ; t++ )
+            {
+              for (size_t i=particleRange[0];i<=particleRange[1];i++ )
+                {
+                    sum+=
+                    0.5*(mask(i,t) + mask(i,t-1) )* 
                     #if DIMENSIONS == 3
                      V( tn( i,0, t  ) , tn(i,1,t) , tn(i,2,t) )
                      #endif
@@ -322,17 +309,27 @@ class potentialActionOneBody : public action
     {
         auto & data = configurations.dataTensor();
 
-        auto sumCentral = reduceOnPositions(V, data, {timeRange[0]+1,timeRange[1]}, particleRange, configurations.getMask() );
+        if (configurations.getEnsamble() == ensamble_t::canonical)
+        {
+        auto sumCentral = reduceOnPositions(V, data, {timeRange[0]+1,timeRange[1]}, particleRange );
 
-        auto sumTail = 0.5*reduceOnPositions(V, data, {timeRange[0],timeRange[0]},particleRange, configurations.getMask());
+        auto sumTail = 0.5*reduceOnPositions(V, data, {timeRange[0],timeRange[0]},particleRange);
 
-        auto sumHead = 0.5*reduceOnPositions(V, data,{timeRange[1] + 1 , timeRange[1] + 1} , particleRange,configurations.getMask());
+        auto sumHead = 0.5*reduceOnPositions(V, data,{timeRange[1] + 1 , timeRange[1] + 1} , particleRange);
 
         auto sum = sumCentral + sumTail + sumHead;
-
-
         return getTimeStep()*sum;
-
+        }
+        else if (configurations.getEnsamble() == ensamble_t::grandCanonical)
+        {
+            auto sum = reduceOnPositions(V, data, {timeRange[0],timeRange[1]+1}, particleRange, configurations.getTags() );
+            return getTimeStep()*sum;
+        }
+        else
+        {
+            return 0;
+        }
+        
     }
 
     Real evaluate(pimcConfigurations_t & configurations, std::array<int,2> timeRange, int iChain  ) 
@@ -627,62 +624,6 @@ class potentialActionTwoBody : public action
 
         return sum*getTimeStep();
     };
-
-
-    Real reduceOnDifferences(const Eigen::Tensor<Real,3> & tn, std::array<int,2> timeRange, int j,  std::array<int,2> particleRange  ) const 
-    {
-         Real sum=0;
-
-         auto iStartLeft = particleRange[0];
-         auto iEndLeft = std::min(particleRange[1],j);
-
-         auto iStartRight = iEndLeft + 1;
-         auto iEndRight = particleRange[1];
-
-
-        for(int t=timeRange[0];t<=timeRange[1] ; t++)
-        {
-            for (size_t i=iStartLeft;i<=iEndLeft;i++ )
-                {
-                    sum+=V( tn(i,0,t ) , tn(i,1,t) , tn(i,2,t)  ) ;
-                }
-        for (size_t i=iStartRight;i<=iEndRight;i++ )
-                {
-                    sum+=V( tn(i,0,t ) , tn(i,1,t) , tn(i,2,t)  ) ;
-                }
-        }
-
-        return sum;
-
-    }
-    
-    Real reduceOnDifferences(const Eigen::Tensor<Real,3> & tn, std::array<int,2> timeRange, int j,  std::array<int,2> particleRange  , const mask & mask) const 
-    {
-         Real sum=0;
-
-         auto iStartLeft = particleRange[0];
-         auto iEndLeft = std::min(particleRange[1],j);
-
-         auto iStartRight = iEndLeft + 1;
-         auto iEndRight = particleRange[1];
-
-
-        for(int t=timeRange[0];t<=timeRange[1] ; t++)
-        {
-            for (size_t i=iStartLeft;i<=iEndLeft;i++ )
-                {
-                    sum+= V( tn(i,0,t ) , tn(i,1,t) , tn(i,2,t)   ) ;
-                }
-        for (size_t i=iStartRight;i<=iEndRight;i++ )
-                {
-                    sum+= V( tn(i,0,t ) , tn(i,1,t) , tn(i,2,t)   )  ;
-                }
-        }
-
-
-        return sum;
-
-    }
 
 
     void configurePot2b(const configurations_t & configurations)
