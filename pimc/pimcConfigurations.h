@@ -10,10 +10,9 @@
 #include "toolsPimc.h"
 #include <list>
 
+
 namespace pimc
 {
-
-
 
 class maskTensor
 {
@@ -48,6 +47,7 @@ struct particleGroup
 
     bool isOpen() const {return (heads.size()) > 0 or (tails.size() > 0); }
 
+    
     void pushHead(int iHead) 
     {
         heads.push_back(iHead);
@@ -148,11 +148,13 @@ public:
         pimcConfigurations() : pimcConfigurations(0,getDimensions(), {} 
         ) {}
 
+        int nParticles() const ;
 
         pimcConfigurations(size_t timeSlices, int dimensions, const std::vector<particleGroup> & particleGroups_);
         
-        
-        
+        void setChemicalPotential(Real mu);
+
+
 
         auto &  dataTensor() {return _data;}
         const auto &  dataTensor() const {return _data;}
@@ -177,20 +179,14 @@ public:
 
         void setHead( int iChain, int delta);
         void setTail( int iChain, int delta);
+        void setHeadTail( int iChain, int newHead, int newTail);
 
 
         void save(const std::string & directoryName,const std::string & format="csv") const;
 
         void load(const std::string & directoryName);
 
-
-
-        int nParticles() const {return _nParticles;}
-
         const auto & getGroups() const {return particleGroups;}
-
-
-
 
 
         static void copyData(const pimcConfigurations & confFrom, const std::array<int,2> & timeRangeFrom, const std::array<int,2> & particleRangeFrom ,
@@ -230,6 +226,7 @@ public:
             return open;
         }
 
+
         void swapTails(int iChainLeft,int iChainRight);
 
          void copyDataToBuffer(  Eigen::Tensor<Real,2> & buffer, const std::array<int,2> & timeRange, int iParticle ,int timeOffset=0) const;
@@ -267,6 +264,13 @@ public:
 
         void swap(int iParticleFrom, int iParticleTo);
 
+        void deleteBeads(   std::array<int,2> timeRange, int iChain ); // deactive the beads in the mask
+
+        void createBeads(   std::array<int,2> timeRange, int iChain ); // activates the bead in the mask
+        
+        auto getChemicalPotential() const { return mu;}
+        
+        int nParticles( int i) const;
 
         const particleGroup & getGroupByChain(int iChain) const {
             for (auto & group : particleGroups )
@@ -276,7 +280,7 @@ public:
                     return  group;       
                 }
             }
-            throw invalidInput("Chain is not contained in any group");
+             throw invalidInput("Chain " + std::to_string(iChain) + " is not contained in any group");
         }
 
 
@@ -294,6 +298,8 @@ public:
 
         void removeChain(int iChain); // orders of chain is not mantained
 
+        void removeChains(int iChain1, int iChain2);
+
         void join( int iChainLeft, int iChainRight);
 
         void deleteHeadFromList(int iChain); // deletes the head from the list
@@ -306,6 +312,7 @@ public:
         
         auto getEnsamble() const {return ensamble;}
 
+        std::ostream &  operator>>( std::ostream & f) const;
 
         protected:
 
@@ -317,23 +324,24 @@ public:
                     return  group;       
                 }
             }
-            throw invalidInput("Chain is not contained in any group");
+
+            int iEnd=0;
+            
+
+            throw invalidInput("Chain " + std::to_string(iChain) + " is not contained in any group");
         }
 
 
 
         void updateTags(const chain & chainToUpdate);
 
-        void deleteBeads(   std::array<int,2> timeRange, int iChain ); // deactive the beads in the mask
-
-        void createBeads(   std::array<int,2> timeRange, int iChain ); // activates the bead in the mask
         
         const auto & getChains() {return _chains; }
 
+        
 
 
         int nGroups() const {return particleGroups.size();}
-
 
 
         private:
@@ -347,6 +355,7 @@ public:
         tags_t _tags;
         std::vector<chain> _chains;
 
+        Real mu;
 
         ensamble_t ensamble;
         int _nParticles;

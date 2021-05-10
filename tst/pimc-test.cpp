@@ -7,7 +7,7 @@
 #include "../pimc/moves.h"
 #include "../pimc/pimcObservables.h"
 #include "../pimc/hdf5IO.h"
-
+#include "../pimc/toolsPimcTest.h"
 #include <filesystem>
 
 namespace fs = std::filesystem;
@@ -35,7 +35,6 @@ TEST(distances,updateSingleParticleDistances)
     }
 
     int T = 50;
-    
 
     Eigen::Tensor<Real, 3> data(N,getDimensions(),T+1);
     data.setRandom();
@@ -385,51 +384,7 @@ TEST(moves,levy)
 
  }
 
-void testChain(pimc::pimcConfigurations & configurations, int iChain, int expectedHead, int expectedTail)
-{
-    
-    const auto chain = configurations.getChain(iChain);
 
-
-    const auto & tags = configurations.getTags(); 
-
-    ASSERT_EQ( chain.head , expectedHead   );
-    ASSERT_EQ( chain.tail , expectedTail   );
-
-    if (expectedHead > expectedTail)
-    {
-        for(int t=expectedTail+1;t<expectedHead;t++)
-        {
-            ASSERT_EQ(tags(iChain,t) , 1  );
-        }
-        for(int t=0;t<=expectedTail;t++)
-        {
-            ASSERT_EQ(tags(iChain,t) , 0  );
-        }
-        for(int t=expectedHead;t<configurations.nBeads();t++)
-        {
-            ASSERT_EQ(tags(iChain,t) , 0  );
-        }
-
-    }
-    else 
-    {
-        for(int t=expectedTail;t<=expectedHead;t++)
-        {
-            ASSERT_EQ(tags(iChain,t) , 0  );
-        }
-        for(int t=0;t<expectedTail;t++)
-        {
-            ASSERT_EQ(tags(iChain,t) , 1  );
-        }
-        for(int t=expectedHead+1;t<configurations.nBeads();t++)
-        {
-            ASSERT_EQ(tags(iChain,t) , 1  );
-        }
-
-    }
-
-}
 TEST(configurations, IO)
 {
     const int N = 1000;
@@ -774,7 +729,6 @@ TEST(action,oneBodyGrandCanonical)
     auto sumAction=sOneBody->evaluate(configurations);
 
     ASSERT_NEAR(sumAction,sum*timeStep,1e-5);
-      
 }   
 
 TEST(action,twoBody)
@@ -1010,10 +964,9 @@ TEST(action,twoBody)
 
 TEST(run,free_harmonic_oscillator)
 {   
-    int N=10;
+    int N=1;
     int M=10;
     Real Beta = 1;
-
 
 
     pimc::geometryPBC_PIMC geo(300,300,300);
@@ -1054,7 +1007,6 @@ TEST(run,free_harmonic_oscillator)
     pimc::swapMove swapMove(l,N,0);
 
     pimc::tableMoves table;
-    
 
     table.push_back(& freeMoves,0.8,pimc::sector_t::offDiagonal,"levy");
     table.push_back(& freeMoves,0.8,pimc::sector_t::diagonal,"levy");
@@ -1063,7 +1015,7 @@ TEST(run,free_harmonic_oscillator)
     //table.push_back(& translMove,0.2,pimc::sector_t::offDiagonal,"translate");
 
 
-    table.push_back(& openMove,0.2,pimc::sector_t::diagonal,"open");
+    //table.push_back(& openMove,0.2,pimc::sector_t::diagonal,"open");
     
     table.push_back(& closeMove,0.2,pimc::sector_t::offDiagonal,"close");
 
@@ -1100,185 +1052,8 @@ TEST(run,free_harmonic_oscillator)
     std::shared_ptr<pimc::action> sOneBody=std::make_shared<pimc::potentialActionOneBody<decltype(V)> >(timeStep,V ,geo);
     std::shared_ptr<pimc::action>  sV2B=std::make_shared<pimc::potentialActionTwoBody<decltype(V2)>  >(timeStep,N,M,V2 ,geo,0,0);    
     
-    std::vector<std::shared_ptr<pimc::action> > Vs = {sOneBody,sV2B};
-    
-    
-    std::shared_ptr<pimc::action>  sV = std::make_shared<pimc::sumAction>(Vs);
+    std::vector<std::shared_ptr<pimc::action> > Vs = {sOneBody};
 
-    pimc::firstOrderAction S(sT,  sV);
-    
-    int nTimes = 1000;
-    int success = 0;
-    int subSteps=1000;
-    int correlationSteps=400;
-
-   
-    pimc::thermodynamicEnergyEstimator energyEstimator;
-
-    pimc::virialEnergyEstimator viriralEnergy(N, M);
-
-    Real e=0;
-    Real e2=0;
-
-    std::ofstream f;
-    std::ofstream fV;
-
-
-    if ( ! fs::exists("configurations") ) 
-    { 
-        fs::create_directory("configurations"); // create src folder
-    }
-
-    configurations.fillHeads();
-
-
-    configurations.save("configurations/sample"+std::to_string(0),"pdb");
-
-    f.open("energy.dat");
-    fV.open("energyVirial.dat");
-
-    for (int i=0;i< nTimes ; i++)
-    {
-        Real eStep=0,eVirialStep=0;
-        int nMeasurements=0;
-
-        for (int k=0;k< subSteps;k++)
-        {
-            
-            for (int j=0;j<correlationSteps;j++)
-            {
-                bool accepted=table.attemptMove(configurations, S, randG);
-
-                if (accepted)
-                {success+=1;}
-            }
-            
-            if (!configurations.isOpen() )
-            {
-                Real tmp=energyEstimator(configurations,S);
-                Real tmp1=viriralEnergy(configurations,S);
-            
-                nMeasurements++;
-            
-                eStep+=tmp;
-                eVirialStep+=tmp1;
-            }
-            else
-            {
-               
-            }
-            
-        }
-
-        f << i + 1 << "\t" << eStep/nMeasurements << std::endl ;
-        fV << i + 1 << "\t" << eVirialStep/nMeasurements << std::endl ;
-
-        //std::cout << e << std::endl;
-        std::cout << "Energy: " << eStep/nMeasurements << std::endl;
-        std::cout << "Acceptance ratio: " << success*1./((i+1)*subSteps*correlationSteps) << std::endl;
-
-        table >> std::cout;
-
-        configurations.save("configurations/sample"+std::to_string(i+1),"pdb");
-    }
-
-    f.close();
-    ASSERT_TRUE( (success*1./nTimes )> 0);
-    std::cout << "END." << std::endl;
-}
-
-TEST(run,free_harmonic_oscillator_grandCanonical)
-{   
-    int N=10;
-    int M=10;
-    Real Beta = 1;
-
-
-    pimc::geometryPBC_PIMC geo(300,300,300);
-
-    Real timeStep = Beta/M;
-
-    pimc::particleGroup groupA{ 0 , N-1, N + 10 , 1.0};
-    pimc::pimcConfigurations configurations(M , getDimensions() , {groupA});
-
-    
-
-    configurations.dataTensor().setRandom();
-
-    //configurations.join(0,1);
-    //configurations.join(1,0);
-    
-    configurations.fillHeads();
-
-    pimc::levyReconstructor reconstructor(M);
-
-    pimc::levyMove freeMoves(5,0);
-
-    Real delta=0.1;
-
-    //pimc::translateMove translMove(delta,(M+1)*N,0);
-
-
-    Real C = 1e-1;
-    int l = 3;
-
-    
-    //pimc::openMove openMove(C,0,l);
-    //pimc::closeMove closeMove(C,0,l);
-
-    //pimc::moveHead moveHeadMove(l,0);
-    //pimc::moveTail moveTailMove(l,0);
-
-    //pimc::swapMove swapMove(l,N,0);
-
-    pimc::tableMoves table;
-
-    //table.push_back(& freeMoves,0.8,pimc::sector_t::offDiagonal,"levy");
-    table.push_back(& freeMoves,0.8,pimc::sector_t::diagonal,"levy");
-
-    //table.push_back(& translMove,0.2,pimc::sector_t::diagonal,"translate");
-    //table.push_back(& translMove,0.2,pimc::sector_t::offDiagonal,"translate");
-
-
-    //table.push_back(& openMove,0.2,pimc::sector_t::diagonal,"open");
-    
-    //table.push_back(& closeMove,0.2,pimc::sector_t::offDiagonal,"close");
-
-    //table.push_back(& moveHeadMove,0.4,pimc::sector_t::offDiagonal,"moveHead");
-    //table.push_back(& moveTailMove,0.4,pimc::sector_t::offDiagonal,"moveTail");
-
-    //table.push_back(& swapMove,0.8,pimc::sector_t::offDiagonal,"swap");
-    
-
-    randomGenerator_t randG(368);
-
-     std::shared_ptr<pimc::action> sT= std::make_shared<pimc::kineticAction>(timeStep, configurations.nChains() , M  , geo);
-
-
-     auto V = pimc::makeIsotropicPotentialFunctor(
-         [](Real r) {return 0.5*(r*r) ;} ,
-         [](Real r) {return r  ;} );
-
-
-    Real R0=0.1;
-    Real V0=1;
-
-
-
-  
-      auto V2 = pimc::makeIsotropicPotentialFunctor(
-         [=](Real r) {return V0*exp(-(r*r));} ,
-         [=](Real r) {return -2*r*V0*exp(-r*r)  ;}
-          );
-
-
-
-
-    std::shared_ptr<pimc::action> sOneBody=std::make_shared<pimc::potentialActionOneBody<decltype(V)> >(timeStep,V ,geo);
-    std::shared_ptr<pimc::action>  sV2B=std::make_shared<pimc::potentialActionTwoBody<decltype(V2)>  >(timeStep,N,M,V2 ,geo,0,0);    
-    
-    std::vector<std::shared_ptr<pimc::action> > Vs = {sOneBody,sV2B};
-    
     
     std::shared_ptr<pimc::action>  sV = std::make_shared<pimc::sumAction>(Vs);
 
@@ -1364,13 +1139,237 @@ TEST(run,free_harmonic_oscillator_grandCanonical)
     std::cout << "END." << std::endl;
 }
 
+TEST(run,free_harmonic_oscillator_grandCanonical)
+{   
+    int N=1;
+    int M=10;
+    Real Beta = 1;
+
+    int seed=356;
+    int buffer=1000;
+
+    int nChains=N + buffer;
+
+    std::srand((unsigned int) seed);
+    randomGenerator_t randG(seed);
+
+    std::default_random_engine generator;
+    std::uniform_real_distribution<double> uniformDistribution(0.0,1.0);
+
+    pimc::geometryPBC_PIMC geo(300,300,300);
+
+    Real timeStep = Beta/M;
+
+    pimc::particleGroup groupA{ 0 , N-1, nChains -1 , 1.0};
+
+    pimc::pimcConfigurations configurations(M , getDimensions() , {groupA});
+
+    configurations.setEnsamble(pimc::ensamble_t::grandCanonical);
+    configurations.setChemicalPotential(3/2. * 0.9);
+
+    auto & data=configurations.dataTensor();
+
+    for (int t=0;t<data.dimensions()[2];t++)
+        for (int i=0;i<data.dimensions()[0];i++)
+            for  (int d=0;d<getDimensions();d++)
+            {
+                data(i,d,t)=uniformDistribution(randG);
+            }
+
+
+    std::cout << configurations.dataTensor().sum();
+    //configurations.join(0,1);
+    //configurations.join(1,0);
+    
+    configurations.fillHeads();
+
+    pimc::levyReconstructor reconstructor(M);
+
+    pimc::levyMove freeMoves(5,0);
+
+    Real delta=0.1;
+
+    //pimc::translateMove translMove(delta,(M+1)*N,0);
+
+    Real C = 1e-4;
+    int l = 1;
+
+    
+    pimc::openMove openMove(C,0,l);
+    pimc::closeMove closeMove(C,0,l);
+
+    pimc::moveHead moveHeadMove(l,0);
+    pimc::moveTail moveTailMove(l,0);
+
+
+    pimc::advanceHead advanceHeadMove(l,0);
+    pimc::recedeHead recedeHeadMove(l,0);
+
+    pimc::createWorm addMove(C,0,l,1);
+    pimc::deleteWorm removeMove(C,0,l,1);
+
+    //pimc::swapMove swapMove(l,N,0);
+
+    pimc::tableMoves table;
+
+    table.push_back(& freeMoves,0.8,pimc::sector_t::offDiagonal,"levy");
+    table.push_back(& freeMoves,0.8,pimc::sector_t::diagonal,"levy");
+
+    //table.push_back(& translMove,0.2,pimc::sector_t::diagonal,"translate");
+    //table.push_back(& translMove,0.2,pimc::sector_t::offDiagonal,"translate");
+
+    table.push_back(& openMove,0.2,pimc::sector_t::diagonal,"open");
+    table.push_back(& closeMove,0.2,pimc::sector_t::offDiagonal,"close");
+
+    //table.push_back(& addMove,0.2,pimc::sector_t::diagonal,"addMove");
+    //table.push_back(& removeMove,0.2,pimc::sector_t::offDiagonal,"removeMove");
+
+
+    table.push_back(& moveHeadMove,0.4,pimc::sector_t::offDiagonal,"moveHead");
+    table.push_back(& moveTailMove,0.4,pimc::sector_t::offDiagonal,"moveTail");
+
+    table.push_back(& advanceHeadMove,0.4,pimc::sector_t::offDiagonal,"advanceHead");
+    
+
+    table.push_back(& recedeHeadMove,0.4,pimc::sector_t::offDiagonal,"recedeHead");
+
+
+
+    //table.push_back(& swapMove,0.8,pimc::sector_t::offDiagonal,"swap");
+
+
+     std::shared_ptr<pimc::action> sT= std::make_shared<pimc::kineticAction>(timeStep, configurations.nChains() , M  , geo);
+
+
+     auto V = pimc::makeIsotropicPotentialFunctor(
+         [](Real r) {return 0.5*(r*r) ;} ,
+         [](Real r) {return r  ;} );
+
+
+    Real R0=0.1;
+    Real V0=1;
+
+
+
+  
+      auto V2 = pimc::makeIsotropicPotentialFunctor(
+         [=](Real r) {return V0*exp(-(r*r));} ,
+         [=](Real r) {return -2*r*V0*exp(-r*r)  ;}
+          );
 
 
 
 
+    std::shared_ptr<pimc::action> sOneBody=std::make_shared<pimc::potentialActionOneBody<decltype(V)> >(timeStep,V ,geo);
+    std::shared_ptr<pimc::action>  sV2B=std::make_shared<pimc::potentialActionTwoBody<decltype(V2)>  >(timeStep,nChains,M,V2 ,geo,0,0);    
+    
+    std::vector<std::shared_ptr<pimc::action> > Vs = {sOneBody};
+    
+    
+    std::shared_ptr<pimc::action>  sV = std::make_shared<pimc::sumAction>(Vs);
+
+    pimc::firstOrderAction S(sT,  sV);
+    
+    int nTimes = 100000;
+    int success = 0;
+    int subSteps=10000;
+    int correlationSteps=10;
+   
+    pimc::thermodynamicEnergyEstimator energyEstimator;
+
+    pimc::virialEnergyEstimator viriralEnergy(nChains, M);
+
+    pimc::particleNumber particleEstimator(0);
+
+    Real e=0;
+    Real e2=0;
+    Real sumN=0;
 
 
+    std::ofstream f;
+    std::ofstream fV;
+    std::ofstream fN;
+    
 
+    if ( ! fs::exists("configurations") ) 
+    { 
+        fs::create_directory("configurations"); // create src folder
+    }
+
+    configurations.fillHeads();
+
+    configurations.save("configurations/sample"+std::to_string(0),"pdb");
+
+    f.open("energy.dat",std::ios_base::app);
+    fV.open("energyVirial.dat",std::ios_base::app);
+    fN.open("N.dat",std::ios_base::app);
+
+    int iSuspicious=0;
+    int iOpen=0;
+
+
+    for (int i=0;i< nTimes ; i++)
+    {
+        Real eStep=0,eVirialStep=0,nStep=0;
+        int nMeasurements=0;
+
+        for (int k=0;k< subSteps;k++)
+        {
+            
+            for (int j=0;j<correlationSteps;j++)
+            {
+                bool accepted=table.attemptMove(configurations, S, randG);
+
+                if (accepted)
+                {success+=1;}
+            }
+            
+            if (!configurations.isOpen() )
+            {
+                Real tmp=energyEstimator(configurations,S);
+                Real tmp1=viriralEnergy(configurations,S);
+
+                Real tmp2=particleEstimator(configurations,S);
+            
+                nMeasurements++;
+
+                if (tmp < -20)
+                {
+                    std::string name="configurations/sample"+std::to_string(iSuspicious);
+                      //configurations.save(name,"pdb"); 
+                    iSuspicious++;             
+                }
+                eStep+=tmp;
+                eVirialStep+=tmp1;
+                nStep+=tmp2;
+            }
+            else
+            {
+                //configurations.save("configurations/sampleOpen"+std::to_string(iOpen),"pdb");
+                //iOpen++;
+            }
+            
+        }
+
+        f << i + 1 << "\t" << eStep/nMeasurements << std::endl ;
+        fV << i + 1 << "\t" << eVirialStep/nMeasurements << std::endl ;
+
+        fN << i + 1 << "\t" << nStep/nMeasurements << std::endl ;
+
+        //std::cout << e << std::endl;
+        std::cout << "Energy: " << eStep/nMeasurements << std::endl;
+        std::cout << "Acceptance ratio: " << success*1./((i+1)*subSteps*correlationSteps) << std::endl;
+        std::cout << "N: " << configurations.nParticles() << std::endl;
+
+        table >> std::cout;
+
+        configurations.save("configurations/sample"+std::to_string(i+1),"pdb");
+    }
+
+    f.close();
+    ASSERT_TRUE( (success*1./nTimes )> 0);
+    std::cout << "END." << std::endl;
+}
 
 TEST(run,free)
 {   

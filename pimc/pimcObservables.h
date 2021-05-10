@@ -7,7 +7,6 @@
 #include "action.h"
 #include "accumulators.h"
 
-
 namespace pimc
 {
 
@@ -111,11 +110,9 @@ public:
     std::string delim;
 };
 
-
 class histogramObservable : public observable
 {
 public:
-
 
     using estimator_t = histogramEstimator;
     
@@ -199,6 +196,23 @@ class thermodynamicEnergyEstimator : public scalarEstimator
 
 
     virtual Real operator()(configurations_t & configurations, firstOrderAction & S);
+};
+
+
+class particleNumber : public scalarEstimator 
+{
+    
+    public:
+    
+    particleNumber(int setA) : _setA(setA) {}
+    
+    particleNumber(const json_t & j) : particleNumber( j["set"].get<int>() ) {}
+
+
+    virtual Real operator()(configurations_t & configurations, firstOrderAction & S) {return configurations.nParticles(_setA);}
+
+    private: 
+    int _setA;
 };
 
 

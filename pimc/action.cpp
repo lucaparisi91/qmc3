@@ -10,7 +10,16 @@ Real kineticAction::evaluate( pimcConfigurations_t & configurations , std::array
 
     Real sum=0;
 
-    for (size_t i=particleRange[0];i<=particleRange[1];i++ )
+    assert(timeRange[0]>=0);
+    assert(timeRange[1]<configurations.nBeads() );
+
+    assert(particleRange[0] >=0  );
+    assert(particleRange[1] <= configurations.nChains() );
+#ifndef DEBUG
+#endif
+
+   
+    for (int i=particleRange[0];i<=particleRange[1];i++ )
         for(int t=timeRange[0];t<=timeRange[1] ; t++ )
             {
                 for(int d=0;d<getDimensions();d++)
@@ -23,7 +32,7 @@ Real kineticAction::evaluate( pimcConfigurations_t & configurations , std::array
                 }
                 
             }
-
+            
     return sum/(4* D * getTimeStep());
 }
 

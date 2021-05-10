@@ -13,10 +13,10 @@ Real thermodynamicEnergyEstimator::operator()(configurations_t & confs, firstOrd
     auto sV=potA.evaluate(confs);
 
     auto beta = confs.nBeads() * kA.getTimeStep(); 
-    sA/=beta*confs.nParticles();
-    sV/=beta*confs.nParticles();
+    sA/=beta;
+    sV/=beta;
 
-    return sV - sA +  getDimensions()/(2.*kA.getTimeStep());
+    return sV - sA +  getDimensions()/(2.*kA.getTimeStep())*confs.nParticles();
 }
 
 
@@ -191,14 +191,14 @@ Real virialEnergyEstimator::operator()(configurations_t & confs, firstOrderActio
 
     Real beta = S.getTimeStep() * confs.nBeads();
     e4= S.getPotentialAction().evaluate(confs);
-    e4/=(beta *N);
+    e4/=(beta );
 
-    e3/=(2*N*beta);
+    e3/=(2*beta);
 
-    e2/=(2*N*beta*beta);
+    e2/=(2*beta*beta);
     
     // classical gas free contribution
-    Real e1 = getDimensions()/(2*beta);
+    Real e1 = confs.nParticles()*   getDimensions()/(2*beta);
     return e1 + e2  + e3 + e4;
 
 }
@@ -207,7 +207,7 @@ Real virialEnergyEstimator::operator()(configurations_t & confs, firstOrderActio
 pairCorrelation::pairCorrelation(int setA_, int setB_) :
 setA(setA_),setB(setB_)
 {
-
+    
 }
 
 Real pairCorrelation::getNormalizationFactor(const configurations_t & configurations, const firstOrderAction & S , const accumulator_t & acc) const

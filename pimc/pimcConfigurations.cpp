@@ -4,6 +4,8 @@
 #include <sstream>
 #include <algorithm>
 #include "hdf5IO.h"
+#include <iostream>
+
 
 namespace fs = std::filesystem;
 
@@ -17,7 +19,7 @@ int getTotalSize( const std::vector<particleGroup> & groups )
     {
         nMax=std::max(group.iEndExtended,nMax);
     }
-
+    
     return nMax+1;
 }
 
@@ -38,6 +40,26 @@ prev(-1) , next(-1) , head(0) , tail(-1)
 
     }
 
+void pimcConfigurations::setHeadTail( int iChain, int newHead , int newTail )
+{
+    int oldHead=_chains[iChain].head;
+    int oldTail=_chains[iChain].tail;
+
+    int deltaHead = newHead - oldHead;
+    int deltaTail = newTail - oldTail;
+
+    if (deltaHead > 0)
+    {
+        setHead(iChain,newHead);
+        setTail(iChain,newTail);
+    }
+    else
+    {
+        setTail(iChain,newTail);
+        setHead(iChain,newHead);
+    }
+    
+}
 
 void pimcConfigurations::setHead( int iChain, int newHead )
 {
@@ -62,6 +84,8 @@ void pimcConfigurations::setHead( int iChain, int newHead )
 
     currentChain.head=newHead;
     currentChain.next=-1;
+
+    assert(currentChain.tail < currentChain.head);
 
     if ( oldNext  >= 0 )
     {
@@ -122,6 +146,7 @@ void pimcConfigurations::setTail( int iChain, int newTail )
     currentChain.tail=newTail;
     currentChain.prev=-1;
 
+    assert(currentChain.tail < currentChain.head);
 
     if ( oldPrev  >= 0 )
     {
@@ -136,11 +161,13 @@ pimcConfigurations::pimcConfigurations(
     particleGroups(particleGroups_),
     M(timeSlices),
     N(getTotalSize(particleGroups_)), // number of chains(includign padding chains)
-    _data(N,dimensions,2*(timeSlices+1) ),// contains a copy for buffer operations
-     _tags(N, timeSlices ),
-    _nParticles(getNParticles(particleGroups_))// number of chains without the padding
+    _data(getTotalSize(particleGroups_),dimensions,2*(timeSlices+1) ),// contains a copy for buffer operations
+     _tags(getTotalSize(particleGroups_), timeSlices ),
+    _nParticles(getNParticles(particleGroups_)),// number of chains without the padding
+    mu(0)
 {
     _chains.resize(N);
+
     for(int i=0;i<N;i++)
     {
         _chains[i].tail=-1;
@@ -148,7 +175,7 @@ pimcConfigurations::pimcConfigurations(
         _chains[i].next=i;
         _chains[i].prev=i;
     }
-    
+
     _tags.setConstant(0);
     for (const auto & group : particleGroups)
     {
@@ -165,6 +192,12 @@ pimcConfigurations::pimcConfigurations(
     ensamble = ensamble_t::canonical;
 
 }; 
+
+void pimcConfigurations::setChemicalPotential(Real mu_)
+{
+    mu=mu_;
+    setEnsamble(ensamble_t::grandCanonical);
+}
 
 void pimcConfigurations::fillHead(int iChain)
 {
@@ -197,6 +230,41 @@ void pimcConfigurations::fillHeads()
 
 }
 
+int pimcConfigurations::nParticles() const
+{
+    int nTot=0;
+    for( int i=0;i < particleGroups.size() ; i++ )
+    {
+      nTot+=nParticles(i);
+    }    
+
+    return nTot;
+}
+
+
+int pimcConfigurations::nParticles( int i) const
+{
+    assert(i < particleGroups.size());
+    const auto & group = getGroups()[i];
+
+    
+    int N=(group.iEnd - group.iStart + 1);
+
+    if ( group.isOpen() )
+    {
+        if ( group.heads[0] == group.tails[0] )
+        {
+            N-=1;
+        } 
+        else
+        {
+            N-=2;
+        }
+    }
+
+    return N;
+
+}
 
 void pimcConfigurations::deleteBeads(   std::array<int,2> timeRange, int iChain )
 {
@@ -246,6 +314,8 @@ void pimcConfigurations::removeChain( int iChain)
 {
     auto & group=getModifiableGroupByChain(iChain);
 
+    assert(iChain<= group.iEnd);
+    
     // unregister chain
     if ( !(getChain(iChain).hasHead()) or !( getChain(iChain).hasTail()) )
     {
@@ -258,6 +328,30 @@ void pimcConfigurations::removeChain( int iChain)
     deleteHeadFromList(group.iEnd);
 
     group.iEnd-=1;
+    
+}
+
+void pimcConfigurations::removeChains( int iChain1, int iChain2)
+{
+    auto & group1=getModifiableGroupByChain(iChain1);
+    auto & group2=getModifiableGroupByChain(iChain2);
+
+    removeChain(iChain1);
+
+    if (iChain1 == iChain2) 
+    {
+        return ;
+    }
+
+
+    if (iChain2 != group1.iEnd + 1)
+    {
+        removeChain(iChain2);
+    }
+    else
+    {
+        removeChain(iChain1);
+    }
 
 }
 
@@ -285,7 +379,6 @@ void pimcConfigurations::join( int iChainLeft, int iChainRight)
 {
     setHead(iChainLeft,_chains[iChainLeft].head);
     setTail(iChainRight,_chains[iChainRight].tail);
-
     
 
     
@@ -315,6 +408,48 @@ void pimcConfigurations::swapTails(int iChain1, int iChain2)
         }
 }
 
+
+std::ostream & pimcConfigurations::operator>>( std::ostream & f) const
+{
+        const std::string delim = "\t";
+
+        f << "particle"<<" time" << delim << "x" << delim << "y" << delim << "z" <<delim << "tag" << std::endl;
+        f << std::setprecision(7);
+
+        for (int t=0;t<=nBeads() ;t++ )
+        {
+                for (int i=0;i<nChains();i++)
+                {
+                    
+                
+                    f<< i << delim << t << delim;
+
+                    #if DIMENSIONS == 3    
+                        f <<  _data(i,0,t) << delim;
+                        f <<  _data(i,1,t) << delim;
+                        f <<  _data(i,1,t) << delim;   
+                    #endif
+
+                    #if DIMENSIONS == 1    
+                        f <<  _data(i,0,t) << delim;
+                        f <<  0 << delim;
+                        f << 0 << delim;   
+                    #endif
+
+                    #if DIMENSIONS == 2    
+                        f <<  _data(i,0,t) << delim;
+                        f <<  _data(i,1,t) << delim;
+                        f <<  0 << delim;   
+                    #endif
+
+
+
+                    f << _tags(i,t) << std::endl;
+                }
+        }
+
+        return f;
+}
 
 void pimcConfigurations::save(const std::string & dirname,const std::string & format ) const
 {
@@ -395,28 +530,67 @@ void pimcConfigurations::save(const std::string & dirname,const std::string & fo
         f << std::fixed << std::setprecision(3) << std::right ;
         for (int t=0;t<=nBeads() ;t++ )
         {
-                for (int i=0;i<nChains();i++)
+             for (const auto & group : getGroups())
+                for (int i=group.iStart;i<=group.iEndExtended;i++)
                 {
+                    
+                    bool isVisible = (i <= group.iEnd) ? 1 : 0;
+                    
+                    isVisible = isVisible and (bool)(std::max(_tags(i,t) , _tags(i,t-1) ));
+
+                    Real bogus=1e+3;
+
+                    Real x = 0;
+                    Real y = 0;
+                    Real z = 0;
+                    
+                    if (isVisible)
+                    {
+                        # if DIMENSIONS == 3
+                        x = _data(i,0,t);
+                        y = _data(i,1,t);
+                        z = _data(i,2,t);
+                        #endif
+
+                        # if DIMENSIONS == 2
+                        x = _data(i,0,t);
+                        y = _data(i,1,t);
+                        #endif
+
+                        # if DIMENSIONS == 1
+                        x = _data(i,0,t);
+                        #endif
+                    }
+                    else
+                    {
+                        # if DIMENSIONS == 3
+                        x = bogus;
+                        y = bogus;
+                        z = bogus;
+                        #endif
+
+                        # if DIMENSIONS == 2
+                        x = bogus;
+                        y = bogus;
+                        #endif
+
+                        # if DIMENSIONS == 1
+                        x = bogus;
+                        #endif
+                    }
+                    
+
 
                     f<< "HETATM"
                     <<  std::setw(5) << nChains()*t + i << " C    VAL A" << std::setw(4) <<  t << "    "
-                    # if DIMENSIONS == 3
-                    << std::setw(8) << _data(i,0,t)
-                    << std::setw(8) << _data(i,1,t)
-                    << std::setw(8) << _data(i,2,t)
-                    #endif 
-                    # if DIMENSIONS == 2
-                    << std::setw(8) << _data(i,0,t)
-                    << std::setw(8) << _data(i,1,t)
-                    #endif 
-                    # if DIMENSIONS == 1
-                    << std::setw(8) << _data(i,0,t)
-                    << std::setw(8) << 0
-                    << std::setw(8) << 0
-                    #endif 
+                    
+                    << std::setw(8) << x
+                    << std::setw(8) << y
+                    << std::setw(8) << z
                     
                     
-                    << std::setw(6) << std::setprecision(2) << 1.00
+                    
+                    << std::setw(6) << std::setprecision(2) << 1.0
                     << std::setw(6) << std::setprecision(2) << i 
                     << "     C" << std::endl;
 
@@ -651,7 +825,7 @@ void pimcConfigurations::swap(int particleA, int particleB)
     {
         _chains[chainB.prev].next=particleA; 
     }
-    if (chainA.next != -1)
+    if (chainB.next != -1)
     {
         _chains[chainB.next].prev=particleA; 
     }
@@ -683,7 +857,7 @@ void pimcConfigurations::swap(int particleA, int particleB)
     {
         swapTags(particleA,particleB);
     }
-    
+
 
 }
 
@@ -716,6 +890,12 @@ int configurationsSampler::sampleChain(const configurations_t & confs, int iGrou
 
     const auto & group = confs.getGroups()[iGroup];
 
+    if (group.size() == 0)
+    {
+        return -1;
+    }
+
+    
     int iParticle = std::floor(uniformRealNumber(randG)*group.size());
     int k=0;
     int iChain=-1;

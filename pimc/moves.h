@@ -131,7 +131,6 @@ class tableMoves
     std::vector<sectorTableMoves> openTabs;
     std::vector<sectorTableMoves> closedTabs;
 
-
     std::vector<Real> nOpenSectorMoves;
     std::vector<Real> nClosedSectorMoves;
     configurationsSampler _chainSampler;
@@ -146,9 +145,8 @@ class levyMove : public singleSetMove
     {}
 
 
-
     bool attemptMove(configurations_t & confs , firstOrderAction & S, randomGenerator_t & randG);
-    
+
     private:
 
     bool isValidSlice( configurations_t & confs , const std::array<int,2> timeRange,int iChain) const;
@@ -173,9 +171,13 @@ class openMove : public singleSetMove
 
     openMove(const json_t & j) : openMove(j["C"].get<Real>() ,j["set"].get<int>() ,j["reconstructionMaxLength"].get<int>() ) {}
 
-
     bool attemptMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG);
     
+    bool attemptGrandCanonicalMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG);
+    
+    bool attemptCanonicalMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG);
+
+
     private:
     Real C;
     int _maxReconstructedLength;
@@ -190,14 +192,99 @@ class openMove : public singleSetMove
     Eigen::Tensor<Real,2> buffer;
 };
 
+class createWorm : public singleSetMove
+{
+    public:
+    // splits a chain in two morms with one overlapping bead
+    createWorm(Real C_ , int set,int maxReconstructedLength_=1,Real sigma_=1);
+
+
+    createWorm(const json_t & j) : createWorm(j["C"].get<Real>() ,j["set"].get<int>() ,j["reconstructionMaxLength"].get<int>() , j["alpha"].get<Real >() ) {}
+
+
+    bool attemptMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG);
+
+
+    Real probabilityInitialPosition(const geometry_t & geo,const std::array<Real,getDimensions()> & x) const
+    {
+        Real sum=0;
+
+        for(int d=0;d<getDimensions();d++)
+        {
+            sum+= -0.5*log(2*M_PI*sigma2) -0.5 * x[d]*x[d] / sigma2;    
+        }
+
+        return sum;
+        
+    }
+
+    private:
+    Real C;
+    int _maxReconstructedLength;
+    std::array<Real, 3> tmp;
+    Real sigma2;
+
+    const Real D = 0.5;
+    configurationsSampler confsSampler;
+    std::normal_distribution<Real> gauss;
+    std::uniform_real_distribution<float> uniformRealNumber;
+    levyReconstructor _levy;
+    metropolis sampler;
+};
+
+class deleteWorm : public singleSetMove
+{
+    public:
+    // splits a chain in two worms with one overlapping bead
+    deleteWorm(Real C_ , int set,int maxReconstructedLength_=1,Real sigma_=1);
+
+
+    deleteWorm(const json_t & j) : deleteWorm(j["C"].get<Real>() ,j["set"].get<int>() ,j["reconstructionMaxLength"].get<int>() , j["alpha"].get<Real >() ) {}
+
+
+    bool attemptMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG);
+
+     Real probabilityInitialPosition(const geometry_t & geo,const std::array<Real,getDimensions()> & x) const
+    {
+        Real sum=0;
+
+        for(int d=0;d<getDimensions();d++)
+        {
+            sum+= -0.5*log(2*M_PI*sigma2) -0.5 * x[d]*x[d] / sigma2;    
+        }
+
+        return sum;
+        
+    }
+
+
+    private:
+    Real C;
+    int _maxReconstructedLength;
+    std::array<Real, 3> tmp;
+    Real sigma2;
+
+    const Real D = 0.5;
+    configurationsSampler confsSampler;
+    std::normal_distribution<Real> gauss;
+    std::uniform_real_distribution<float> uniformRealNumber;
+    metropolis sampler;
+};
+
+
+
 class closeMove : public singleSetMove
 {
     public:
     // splits a chain in two morms with one overlapping bead
 
-    
+
     closeMove(Real C_ , int set,int maxReconstructionLength=1) ;
     bool attemptMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG);
+
+    bool attemptCanonicalMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG);
+
+    bool attemptGrandCanonicalMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG);
 
 
     closeMove(const json_t & j) : closeMove(j["C"].get<Real>() , j["set"].get<int>(),j["reconstructionMaxLength"].get<int>()   ) {}
@@ -240,6 +327,62 @@ class moveHead : public singleSetMove
     metropolis sampler;
     Eigen::Tensor<Real,2> buffer;
 };
+
+
+class advanceHead : public singleSetMove
+{
+    public:
+    advanceHead(int maxAdvanceLength_,int set);
+
+
+    advanceHead(const json_t & j) : advanceHead(j["reconstructionMaxLength"].get<int>() ,j["set"].get<int>() ) {}
+
+    bool attemptMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG);
+
+
+    private:
+
+    int _maxReconstructedLength;
+    std::array<Real, 3> tmp;
+
+    const Real D = 0.5;
+    configurationsSampler confsSampler;
+    std::normal_distribution<Real> gauss;
+    std::uniform_real_distribution<float> uniformRealNumber;
+    levyReconstructor _levy;
+    metropolis sampler;
+};
+
+class recedeHead : public singleSetMove
+{
+    public:
+    recedeHead(int maxAdvanceLength_,int set);
+
+
+    recedeHead(const json_t & j) : recedeHead(j["reconstructionMaxLength"].get<int>() ,j["set"].get<int>() ) {}
+
+    bool attemptMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG);
+
+    private:
+
+    int _maxReconstructedLength;
+    std::array<Real, 3> tmp;
+
+    const Real D = 0.5;
+    configurationsSampler confsSampler;
+    std::normal_distribution<Real> gauss;
+    std::uniform_real_distribution<float> uniformRealNumber;
+    levyReconstructor _levy;
+    metropolis sampler;
+};
+
+
+
+
+
+
+
+
 
 class moveTail : public singleSetMove
 {

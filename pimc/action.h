@@ -13,7 +13,7 @@
 
 namespace pimc
 {
-
+    
 /*
     template<class functor_t>
     Real reduceOnPositions(const functor_t & V,const Eigen::Tensor<Real,3> & tn, std::array<int ,2 > timeRange, std::array<int, 2>  particleRange)
@@ -60,14 +60,35 @@ namespace pimc
         return sum;
     };
 
-
     template<class functor_t>
     Real reduceOnPositions(const functor_t & V,const Eigen::Tensor<Real,3> & tn, std::array<int ,2 > timeRange, std::array<int, 2>  particleRange, const pimcConfigurations::tags_t & mask)
     {
         Real sum=0;
-        for(int t=timeRange[0];t<=timeRange[1] ; t++ )
+        // tail part
+        {
+        int t=timeRange[0];
+        for (int i=particleRange[0];i<=particleRange[1];i++ )
+                {
+                    sum+=
+                    0.5*(mask(i,t) )* 
+                    #if DIMENSIONS == 3
+                     V( tn( i,0, t  ) , tn(i,1,t) , tn(i,2,t) )
+                     #endif
+                     #if DIMENSIONS == 1
+                     V( tn( i,0, t  )) 
+                     #endif
+                     #if DIMENSIONS == 2
+                     V( tn( i,0, t  ),tn( i,1, t  )) 
+                     #endif
+
+                       ;
+                }
+        }
+
+        // central part
+        for(int t=timeRange[0]+1;t<=timeRange[1] ; t++ )
             {
-              for (size_t i=particleRange[0];i<=particleRange[1];i++ )
+              for (int i=particleRange[0];i<=particleRange[1];i++ )
                 {
                     sum+=
                     0.5*(mask(i,t) + mask(i,t-1) )* 
@@ -85,7 +106,27 @@ namespace pimc
                 }
             }
 
+        // end part
+        {
+        int t = timeRange[1] + 1;
+        for (int i=particleRange[0];i<=particleRange[1];i++ )
+                {
+                    sum+=
+                    0.5*(mask(i,t-1) )* 
+                    #if DIMENSIONS == 3
+                     V( tn( i,0, t  ) , tn(i,1,t) , tn(i,2,t) )
+                     #endif
+                     #if DIMENSIONS == 1
+                     V( tn( i,0, t  )) 
+                     #endif
+                     #if DIMENSIONS == 2
+                     V( tn( i,0, t  ),tn( i,1, t  )) 
+                     #endif
 
+                       ;
+                }
+
+        }
         return sum;
     };
 
@@ -309,6 +350,11 @@ class potentialActionOneBody : public action
     {
         auto & data = configurations.dataTensor();
 
+        if (timeRange[0] > timeRange[1])
+        {
+            return 0; 
+        }
+
         if (configurations.getEnsamble() == ensamble_t::canonical)
         {
         auto sumCentral = reduceOnPositions(V, data, {timeRange[0]+1,timeRange[1]}, particleRange );
@@ -322,8 +368,16 @@ class potentialActionOneBody : public action
         }
         else if (configurations.getEnsamble() == ensamble_t::grandCanonical)
         {
-            auto sum = reduceOnPositions(V, data, {timeRange[0],timeRange[1]+1}, particleRange, configurations.getTags() );
+            if (timeRange[1] < timeRange[0] )
+            {
+                return 0;
+            }
+            else
+            {
+                auto sum = reduceOnPositions(V, data, {timeRange[0],timeRange[1]}, particleRange, configurations.getTags() );
             return getTimeStep()*sum;
+            }
+
         }
         else
         {
