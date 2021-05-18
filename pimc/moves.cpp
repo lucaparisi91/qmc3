@@ -126,7 +126,7 @@ bool levyMove::attemptMove( configurations_t & confs, firstOrderAction & ST,rand
     if (
         (timeRange[1] > currentChain.head and  (currentChain.next == -1 ) )
         or (   ( currentChain.next != -1 ) and
-            ( confs.getChain(iChainNext).head <= timeRanges[1][1]   )
+            ( confs.getChain(iChainNext).head < timeRanges[1][1]   )
     )
         )
     {
@@ -202,10 +202,27 @@ bool levyMove::attemptMove( configurations_t & confs, firstOrderAction & ST,rand
 swapMove::swapMove(int maxStepLength_,int maxN,int set) :
  maxStepLength(maxStepLength_),buffer(maxStepLength_*2,getDimensions() )
  , uniformRealNumber(0,1) ,_levy(maxStepLength_+2),particleSampler(maxN)
-, singleSetMove(set){}
+, singleSetMove(set){
+    setRandomLength();
+}
 
 
-bool swapMove::attemptMove(configurations_t & confs, firstOrderAction & S,randomGenerator_t & randG)
+bool swapMove::attemptMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG )
+{
+    if ( confs.getEnsamble() == ensamble_t::canonical)
+    {
+        return attemptCanonicalMove(confs,S,randG);
+    }
+    else if ( confs.getEnsamble() == ensamble_t::grandCanonical)
+    {
+        return attemptGrandCanonicalMove(confs,S,randG);
+    }
+
+    return false;
+}
+
+
+bool swapMove::attemptCanonicalMove(configurations_t & confs, firstOrderAction & S,randomGenerator_t & randG)
 {
     if ( ! confs.isOpen(getSet()) )
     {
@@ -315,6 +332,187 @@ bool swapMove::attemptMove(configurations_t & confs, firstOrderAction & S,random
     return accept;
 }
 
+bool swapMove::attemptGrandCanonicalMove(configurations_t & confs, firstOrderAction & S,randomGenerator_t & randG)
+{
+    if ( ! confs.isOpen(getSet()) )
+    {
+        throw invalidState("Swap move can only be done in the G sector.");
+    }
+
+     auto & data = confs.dataTensor();
+    // selects an head at random
+
+    const auto & group = confs.getGroups()[getSet()];
+
+    const auto & heads =  confs.getGroups()[getSet()].heads;
+    int iiChainHead =  std::floor(  uniformRealNumber( randG )*heads.size() ) ;
+    int iChainHead = heads[iiChainHead];
+
+    auto & Spot = S.getPotentialAction();
+
+    // selects a time slice length at random. Refuse if reconstructed time slice crosses over the end bead
+
+
+    int l = sampleLength();
+
+    //int l = maxStepLength;
+    int M= confs.nBeads();
+
+    
+    int tHead=confs.getChain(iChainHead).head;
+    int tTail=confs.getChain(iChainHead).tail;
+
+    
+    int tJoin = (tHead + l) %M;
+    
+    // tower sampling a particle i with gaussian weights on the relative distances
+    
+    auto & geo = S.getGeometry();
+
+    std::array<Real, 3> distance;
+    particleSampler.reset();
+
+    Real weightForwardMove = 0;
+    
+    for(int i=group.iStart;i<=group.iEnd;i++)
+    {
+        
+        for(int d=0;d<getDimensions();d++)
+        {
+            distance[d]=geo.difference(  data(iChainHead,d,tHead) - data(i,d,tJoin),d)    ;
+        }
+
+        particleSelectionWeight=exp(freeParticleLogProbability(distance,S.getTimeStep()*l,group.mass));
+        weightForwardMove+=particleSelectionWeight;
+        particleSampler.accumulateWeight(particleSelectionWeight);
+    }
+
+    int iPartner=particleSampler.sample(randG) + group.iStart;
+    
+
+    if ( confs.getChain(iPartner).hasHead()   )
+    {
+        return false;
+    }
+
+
+    
+
+    int iPartnerNext = confs.getChain(iPartner).next;
+    
+    int iNewChainHead=-1;
+    if (tHead + l >= M)
+    {
+        iNewChainHead=confs.getChain(iPartner).prev;
+
+        if ( confs.getChain(iNewChainHead).tail >= tHead)
+        {
+            return false;
+        }
+    }
+    else
+    {
+        iNewChainHead=iPartner;
+    }
+
+
+
+
+    // metropolic test based on ratio of forward and backward move
+    Real weightBackwardMove= 0;
+
+    for(int i=group.iStart;i<=group.iEnd;i++)
+    {
+        Real norm=0;
+        for(int d=0;d<getDimensions();d++)
+        {
+            distance[d]=geo.difference(  data(iNewChainHead,d,tHead) - data(i,d,tJoin),d) ;
+        }
+
+
+        weightBackwardMove+=exp(freeParticleLogProbability(distance,S.getTimeStep()*l,group.mass));
+    }
+    
+
+    Real deltaS=-(log(weightForwardMove) - log(weightBackwardMove)) ;
+    deltaS=0;
+    
+    const auto  partnerChain = confs.getChain(iPartner);
+
+
+    deltaS-=Spot.evaluate(confs,{tHead,std::min(tHead + l ,M) -1},iNewChainHead);
+    deltaS-=Spot.evaluate(confs,{0,tHead + l - M  - 1},iPartner);
+
+
+    confs.copyDataToBuffer(buffer,{0,tHead + l - M  - 1},iPartner);
+
+
+    // performs levy reconstruction between the head and the bead
+    for(int d=0;d<getDimensions();d++)
+        {
+            data(iChainHead,d,tHead + l)=data(iPartner,d,tJoin);
+        }
+
+    _levy.apply(confs,  {tHead,tHead + l },  iChainHead, S ,randG );
+    confs.copyData( { M, tHead + l} , iChainHead, 0,iPartner );
+    
+    confs.setHead( iChainHead , std::min(tHead + l,M) );
+    confs.setHead(iNewChainHead,tHead);
+
+
+    deltaS+=Spot.evaluate(confs,{tHead,std::min(tHead + l ,M) -1},iChainHead);
+    deltaS+=Spot.evaluate(confs,{0,tHead + l - M  - 1},iPartner);
+
+    bool accept = metropolisSampler.acceptLog(-deltaS,randG);
+    if (accept) 
+    {
+        if (tHead + l >=M )
+        {
+            confs.join(iChainHead,iPartner );
+        }
+        else
+        {
+            confs.copyData({tJoin+1,M},iPartner,iChainHead);
+            confs.setHead(iChainHead,M);
+            confs.join(iChainHead,iPartnerNext);
+        }
+        assert( confs.getGroups()[getSet()].heads[0] == iNewChainHead);
+        assert( confs.getGroups()[getSet()].heads.size() == 1);
+        
+
+    }
+    else
+    {
+        confs.copyDataFromBuffer(buffer,{0,tHead + l - M  - 1},iPartner);
+        confs.setHead( iChainHead , tHead );
+        confs.setHead( iNewChainHead , M );
+
+        if (tHead + l >= M)
+        {
+            confs.join(iNewChainHead,iPartner);
+        }
+        else
+        {
+            confs.join(iNewChainHead,iPartnerNext);
+        }
+
+        #ifndef NDEBUG
+        TESTCHAIN(confs,iChainHead,tHead,tTail);
+        TESTCHAIN(confs,iPartner,M,-1);
+        #endif
+
+        assert( confs.getGroups()[getSet()].heads[0] == iChainHead);
+        assert( confs.getGroups()[getSet()].heads.size() == 1);
+        
+    }    
+
+    assert(group.isOpen());
+
+
+    return accept;
+}
+
+
 std::ostream & sectorTableMoves::operator>> (std::ostream & os)
 {
     for (int i=0;i<_moves.size();i++)
@@ -370,6 +568,10 @@ int sectorTableMoves::sample(randomGenerator_t & randG)
 
 openMove::openMove(Real C_ , int set,int maxReconstructedLength_) : C(C_), _levy(maxReconstructedLength_+2) ,  _maxReconstructedLength(maxReconstructedLength_+2) ,buffer(2*(maxReconstructedLength_+2),getDimensions()),
 gauss(0,1),uniformRealNumber(0,1),
+setStartingBeadRandom(true),
+setLengthCutRandom(true),
+startingBead(-1),
+lengthCut(-1),
 singleSetMove(set)
 {}
 
@@ -594,10 +796,12 @@ bool createWorm::attemptMove(configurations_t & confs , firstOrderAction & S,ran
 
     int l= std::floor( uniformRealNumber(randG) * (_maxReconstructedLength -2) ) + 1 ;
 
+    int lMax= _maxReconstructedLength -2;
+
+
     
     #ifndef NDEBUG
-    int nOld = confs.nParticles();
-
+    int oldSize = confs.getGroups()[getSet()].size();
     #endif
 
     auto & data = confs.dataTensor();
@@ -647,7 +851,7 @@ bool createWorm::attemptMove(configurations_t & confs , firstOrderAction & S,ran
     Real deltaS=0;
 
 
-    std::array<int,2> timeRange{t0, std::min(t0 + l-1,M-1)  };
+    std::array<int,2> timeRange{t0, std::min(t0 + l,M) - 1  };
     std::array<int,2> timeRange2{0,t0 + l - M -1};
 
 
@@ -665,7 +869,7 @@ bool createWorm::attemptMove(configurations_t & confs , firstOrderAction & S,ran
     deltaS+=sPot.evaluate(confs,timeRange,iChainTail);
     deltaS+=sPot.evaluate(confs,timeRange2,iChainHead);
 
-    auto propRatio = -deltaS + confs.getChemicalPotential()*l*timeStep - probabilityInitialPosition(geo,x1) + log(C);
+    auto propRatio = -deltaS + confs.getChemicalPotential()*l*timeStep - probabilityInitialPosition(geo,x1) + log(C*M*lMax);
 
 
     bool accept = sampler.acceptLog(propRatio,randG);
@@ -677,7 +881,7 @@ bool createWorm::attemptMove(configurations_t & confs , firstOrderAction & S,ran
         {
             confs.join(iChainTail,iChainHead);
             #ifndef NDEBUG
-            assert(confs.nParticles() == nOld + 2);
+            assert(confs.getGroups()[getSet() ].size() == oldSize + 2);
             #endif
 
 
@@ -685,16 +889,15 @@ bool createWorm::attemptMove(configurations_t & confs , firstOrderAction & S,ran
         else
         {
             #ifndef NDEBUG
-            assert(confs.nParticles() == nOld + 1);
-            
+            assert(confs.getGroups()[getSet() ].size() == oldSize + 1);
             TESTCHAIN(confs,iChainTail,tHead,tTail);
-            
             #endif
 
         }
 #ifndef NDEBUG        
         assert(confs.getChain(iChainTail).hasTail() );
         assert(confs.getChain(iChainHead).hasHead() );
+        assert(confs.isOpen(getSet()));            
 #endif
     }
     else
@@ -705,6 +908,7 @@ bool createWorm::attemptMove(configurations_t & confs , firstOrderAction & S,ran
             confs.setTail(iChainHead,-1);
 
             confs.removeChains(iChainTail,iChainHead);
+            
         }
         else
         {
@@ -714,12 +918,13 @@ bool createWorm::attemptMove(configurations_t & confs , firstOrderAction & S,ran
             TESTCHAIN(confs,iChainTail,tHead,tTail);
             
             #endif
-
+            
         }
 
-
+        
         #ifndef NDEBUG
-            assert(confs.nParticles() == nOld );
+        assert(not confs.isOpen(getSet()));
+        assert(confs.getGroups()[getSet()].size() == oldSize );
         #endif
 
     }
@@ -773,13 +978,12 @@ bool deleteWorm::attemptMove(configurations_t & confs , firstOrderAction & S,ran
         return false;
     }
 
-
     auto & sPot = S.getPotentialAction();
     Real deltaS=0;
 
     int t0=tTail + 1;
 
-    std::array<int,2> timeRange{t0, std::min(t0 + l-1,M-1)  };
+    std::array<int,2> timeRange{t0, std::min(t0 + l,M) - 1  };
     std::array<int,2> timeRange2{0,t0 + l - M -1};
 
 
@@ -797,7 +1001,7 @@ bool deleteWorm::attemptMove(configurations_t & confs , firstOrderAction & S,ran
         x1[d]=data(iChainTail,d,t0);   
     }
 
-    auto propRatio = -deltaS - confs.getChemicalPotential()*l*timeStep + probabilityInitialPosition(geo,x1) - log(C);
+    auto propRatio = -deltaS - confs.getChemicalPotential()*l*timeStep + probabilityInitialPosition(geo,x1) - log(C*M*lMax);
 
     bool accept = sampler.acceptLog(propRatio,randG);
 
@@ -831,6 +1035,30 @@ bool deleteWorm::attemptMove(configurations_t & confs , firstOrderAction & S,ran
     return accept;
 }
 
+
+
+
+Real openMove::openCloseRatioCoefficient(int N,int M)
+    {
+        Real coeff=N*C;
+
+        if (setStartingBeadRandom)
+        {
+            coeff*=M;
+            
+        }
+        if (setLengthCutRandom)
+        {
+            coeff*=(_maxReconstructedLength - 2);
+        }
+
+        return coeff;
+    }
+
+
+
+
+
 bool openMove::attemptGrandCanonicalMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG )
 {
     Real timeStep = S.getTimeStep();
@@ -850,17 +1078,37 @@ bool openMove::attemptGrandCanonicalMove(configurations_t & confs , firstOrderAc
     }
 
     int iChain = confsSampler.sampleChain(confs,getSet(),randG);
+    
 
     if (iChain < 0)
     {
         return false;
     }
 
-    int l = std::floor(uniformRealNumber(randG) * (_maxReconstructedLength -2   ) ) + 1;
 
+
+    int l = lengthCut;
+
+
+    if (setLengthCutRandom)
+    {
+        l = std::floor(uniformRealNumber(randG) * (_maxReconstructedLength -2   ) ) + 1;
+    }
+    
     int M = confs.nBeads();
 
-    int tHead =  std::floor(  uniformRealNumber( randG )*confs.nBeads() ) ;
+
+    int tHead = startingBead;
+
+
+    if (setStartingBeadRandom)
+    {
+        
+
+        tHead =  std::floor(  uniformRealNumber( randG )*confs.nBeads() );
+    }
+    
+
     int t1 = std::min(tHead+l,M);
 
     Real deltaS=0;
@@ -913,7 +1161,8 @@ bool openMove::attemptGrandCanonicalMove(configurations_t & confs , firstOrderAc
     }
 
 
-    auto propRatio = -deltaS - freeParticleLogProbability(difference,S.getTimeStep()*l,mass)  -  confs.getChemicalPotential()*l*timeStep + log(N*M*l*C);
+    auto propRatio = -deltaS - freeParticleLogProbability(difference,S.getTimeStep()*l,mass)  -  confs.getChemicalPotential()*l*timeStep + log( openCloseRatioCoefficient(N,M) );
+
 
     bool accept = sampler.acceptLog(propRatio,randG);
 
@@ -970,6 +1219,10 @@ bool openMove::attemptGrandCanonicalMove(configurations_t & confs , firstOrderAc
 
 
 closeMove::closeMove(Real C_ , int set,int maxReconstructionLength) : C(C_),_levy(2*(maxReconstructionLength+2)),_maxLength(maxReconstructionLength+2),buffer((maxReconstructionLength+2)*2,getDimensions()),gauss(0,1),uniformRealNumber(0,1),
+setStartingBeadRandom(true),
+setLengthCutRandom(true),
+startingBead(-1),
+lengthCut(-1),
 singleSetMove(set)
 {}
 
@@ -988,6 +1241,7 @@ bool closeMove::attemptMove(configurations_t & confs , firstOrderAction & S,rand
     return false;
 }
 
+
 bool closeMove::attemptCanonicalMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG )
 {
     
@@ -1000,7 +1254,7 @@ bool closeMove::attemptCanonicalMove(configurations_t & confs , firstOrderAction
     const auto & heads = confs.getGroups()[getSet()].heads;
     const auto & tails = confs.getGroups()[getSet()].tails;
 
-    int iChain=heads[std::floor(uniformRealNumber(randG) * heads.size() )];
+    
 
     int iChainHead=heads[std::floor(uniformRealNumber(randG) * heads.size() )];
     int iChainTail=tails[std::floor(uniformRealNumber(randG) * tails.size() )];
@@ -1046,7 +1300,7 @@ bool closeMove::attemptCanonicalMove(configurations_t & confs , firstOrderAction
         //std::cout << "close: " <<geo.difference( - data(iChainHead,d,t0) + data(iChainTail,d,iTail),d) << std::endl;
 
         
-        data(iChainHead,d, iHead )=data(iChainHead,d,t0)  + geo.difference( -  data(iChain,d,t0)  + data(iChainTail,d,iTail),d);
+        data(iChainHead,d, iHead )=data(iChainHead,d,t0)  + geo.difference( -  data(iChainHead,d,t0)  + data(iChainTail,d,iTail),d);
 
 
 
@@ -1123,12 +1377,29 @@ bool closeMove::attemptCanonicalMove(configurations_t & confs , firstOrderAction
     {
         confs.copyDataFromBuffer(buffer,{t0,iHead },iChainHead,0);
     }
-
     
     return accept;
 
 };
 
+Real closeMove::openCloseRatioCoefficient(int N,int M)
+    {
+        Real coeff=N*C;
+
+        if (setStartingBeadRandom)
+        {
+            coeff*=M;
+            
+        }
+        if (setLengthCutRandom)
+        {
+            coeff*=(_maxLength );
+        }
+
+
+
+        return coeff;
+    }
 bool closeMove::attemptGrandCanonicalMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG )
 {
   /*   std::cout << "Before close" << std::endl;
@@ -1227,7 +1498,7 @@ bool closeMove::attemptGrandCanonicalMove(configurations_t & confs , firstOrderA
 
     Real mass = confs.getGroupByChain(iChainHead).mass;
 
-    auto propRatio = -deltaS + freeParticleLogProbability(difference,S.getTimeStep()*l,mass) -log((N+1)*M*l*C) + confs.getChemicalPotential()*l*timeStep ;
+    auto propRatio = -deltaS + freeParticleLogProbability(difference,S.getTimeStep()*l,mass) -log( openCloseRatioCoefficient(N+1,M)   ) + confs.getChemicalPotential()*l*timeStep ;
 
     bool accept = sampler.acceptLog(propRatio,randG);
     
@@ -1273,7 +1544,34 @@ bool closeMove::attemptGrandCanonicalMove(configurations_t & confs , firstOrderA
 advanceHead::advanceHead(int maxAdvanceLength_,int set) :
 _maxReconstructedLength(maxAdvanceLength_+2) , _levy((maxAdvanceLength_+2)*2),gauss(0,1),uniformRealNumber(0,1),singleSetMove(set)
 {
+    setRandomLength();
+}
 
+
+int advanceHead::sampleLength(randomGenerator_t & randG) 
+{
+    if (_setRandomLength)
+    {
+
+        return  std::floor( uniformRealNumber(randG) * (_maxReconstructedLength -2) ) + 1 ; // distance from itime where the head is formed
+    }
+    else
+    {
+        return _maxReconstructedLength - 2;
+    }
+}
+
+int recedeHead::sampleLength(randomGenerator_t & randG) 
+{
+    if (_setRandomLength)
+    {
+
+    return  std::floor( uniformRealNumber(randG) * (_maxReconstructedLength -2) ) + 1 ; // distance from itime where the head is formed
+    }
+    else
+    {
+        return _maxReconstructedLength - 2;
+    }
 }
 
 
@@ -1291,7 +1589,7 @@ bool advanceHead::attemptMove(configurations_t & confs , firstOrderAction & S,ra
 
     int M = confs.nBeads();
     
-    int l= std::floor( uniformRealNumber(randG) * (_maxReconstructedLength -2) ) + 1 ; // distance from itime where the head is formed
+    int l= sampleLength(randG);
 
 
     
@@ -1325,6 +1623,10 @@ bool advanceHead::attemptMove(configurations_t & confs , firstOrderAction & S,ra
     Real var=2*D*timeStep/ mass;
 
     confsSampler.sampleFreeParticlePosition(headPosition,startPosition,timeStep*l,randG,mass);
+
+    assert(l>0);
+
+
 
     for (int d=0;d<getDimensions();d++)
     {
@@ -1379,7 +1681,8 @@ bool advanceHead::attemptMove(configurations_t & confs , firstOrderAction & S,ra
 recedeHead::recedeHead(int maxAdvanceLength_,int set) :
 _maxReconstructedLength(maxAdvanceLength_+2) , _levy((maxAdvanceLength_+2)*2),gauss(0,1),uniformRealNumber(0,1),singleSetMove(set)
 {
-
+    setRandomLength();
+    
 }
 
 
@@ -1394,9 +1697,7 @@ bool recedeHead::attemptMove(configurations_t & confs , firstOrderAction & S,ran
     
     int M = confs.nBeads();
 
-    int l= std::floor( uniformRealNumber(randG) * (_maxReconstructedLength -2) ) + 1 ;
-
-    
+    int l= sampleLength(randG);
 
     // do not accept propose which would destry the chain
     int tTail = -100000;
@@ -1422,6 +1723,8 @@ bool recedeHead::attemptMove(configurations_t & confs , firstOrderAction & S,ran
         }
 
     }
+
+
 
     Real deltaS=0;
 
@@ -1483,25 +1786,6 @@ bool recedeHead::attemptMove(configurations_t & confs , firstOrderAction & S,ran
     return accept;
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 moveHead::moveHead(int maxAdvanceLength_,int set) :

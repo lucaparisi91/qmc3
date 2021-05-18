@@ -6,7 +6,6 @@
 #include "hdf5IO.h"
 #include <iostream>
 
-
 namespace fs = std::filesystem;
 
 namespace pimc

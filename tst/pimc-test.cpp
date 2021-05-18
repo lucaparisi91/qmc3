@@ -12,7 +12,6 @@
 
 namespace fs = std::filesystem;
 
-
 TEST(distances,updateSingleParticleDistances)
 {
     pimc::geometryPBC_PIMC geo(10,10,10);
@@ -1139,14 +1138,636 @@ TEST(run,free_harmonic_oscillator)
     std::cout << "END." << std::endl;
 }
 
+
+
+class configurationsTest : public ::testing::Test {
+protected:
+    configurationsTest() {
+        open=NULL;
+        close=NULL;
+    }
+
+     void SetRandom()
+    {
+        std::uniform_real_distribution<double> uniformDistribution(0.0,1.0);
+
+        auto & data=configurations.dataTensor();
+        for (int t=0;t<data.dimensions()[2];t++)
+        for (int i=0;i<data.dimensions()[0];i++)
+            for  (int d=0;d<getDimensions();d++)
+            {
+                data(i,d,t)=uniformDistribution(randG);
+            }
+        configurations.fillHeads();
+    
+    }
+
+    void SetUp( int N_ , int M_ , Real Beta_) {
+        N=N_;
+        M=M_;
+        Beta=Beta_;
+
+        int seed= 356;
+        int buffer=2;
+
+        int nChains=N + buffer;
+
+        timeStep=Beta/M;
+        pimc::particleGroup groupA{ 0 , N-1, nChains -1 , 1.0};
+
+
+        configurations=pimc::pimcConfigurations(M , getDimensions() , {groupA});
+
+        geo = pimc::geometryPBC_PIMC(300,300,300);
+
+        randG=randomGenerator_t(seed);
+
+        SetRandom();
+
+    }
+
+    void SetSeed(int seed)
+    {
+        randG=randomGenerator_t(seed);
+    }
+
+    void SetUpFreeParticleAction()
+    {
+         std::shared_ptr<pimc::action> sT= std::make_shared<pimc::kineticAction>(timeStep, configurations.nChains() , M  , geo);
+
+    std::shared_ptr<pimc::action> sV= std::make_shared<pimc::nullPotentialAction>(timeStep  , geo);
+
+
+    
+    S= pimc::firstOrderAction(sT,  sV);
+    }
+
+    void SetGrandCanonicalEnsamble(Real chemicalPotential)
+    {
+        configurations.setEnsamble(pimc::ensamble_t::grandCanonical);
+        configurations.setChemicalPotential(chemicalPotential);
+    }
+
+   
+
+    void addOpenCloseFixedSegment(Real C , int l , int t0)
+    {
+        open=new pimc::openMove(C, 0, l );
+        close=new pimc::closeMove(C, 0, l );
+
+        open->setStartingBead(t0);
+        close->setStartingBead(t0);
+
+        open->setLengthCut(l);
+        close->setLengthCut(l);
+
+        tab.push_back(open,1,pimc::sector_t::diagonal);
+        tab.push_back(close, 1, pimc::sector_t::offDiagonal);
+    }
+
+
+
+    void accumulateBeadPosition(int i,std::array<Real,getDimensions()> & x, std::array<Real,getDimensions()> & x2)
+    {
+        const auto & data = configurations.dataTensor();
+        for(int d=0;d<getDimensions();d++)
+            {
+                    x[d]+=data( 0 ,d, i) ;
+                    x2[d]+=std::pow(data(0,d,i),2);
+
+                }
+    }
+
+    template<class T>
+    void accumulate(int nBurns,int nTrials,const T & f)
+    {
+        for(int k=0;k<nBurns;k++)
+        {
+            bool accept= tab.attemptMove(configurations,S,randG);    
+        }
+
+        for(int k=0;k<nTrials;k++)
+        {
+            nMoves+=1;
+            if ( configurations.isOpen() )
+            {
+                nOpen+=1;
+            }
+            else
+            {
+                nClosed+=1;
+                f();
+
+            }
+
+            bool accept= tab.attemptMove(configurations,S,randG);
+
+        }
+
+
+    }
+
+
+
+    virtual void TearDown() {
+        if (open != NULL )
+        {
+            delete open;
+        }
+
+        if (close != NULL )
+        {
+            delete close;
+        }
+
+    }
+
+    void resetCounters()
+    {
+        nMoves=0;
+        nOpen=0;
+        nClosed=0;
+    }
+
+
+    int N;
+    int M;
+    Real Beta;
+    Real timeStep;
+    pimc::pimcConfigurations configurations;
+    pimc::firstOrderAction S;
+    randomGenerator_t randG;
+    pimc::geometryPBC_PIMC geo;
+    pimc::tableMoves tab;
+
+    pimc::openMove *open;
+    pimc::closeMove *close;
+
+    Real nOpen=0;
+    Real nClosed=0;
+    Real nMoves=0;
+
+    
+};
+
+
+
+auto meanBeadFixedLengths(int iChainBegin , int iChainEnd,  int t0, int t1, int i, Real timeStep, const pimc::configurations_t & configurations)
+{
+    const auto & data = configurations.dataTensor();
+
+
+
+    std::array<Real,getDimensions()> meanExpected;
+    
+    Real D = 0.5;
+    Real mass = 1;
+    int M= configurations.nBeads();
+
+    std::array<Real,3> difference;
+    for (int d=0;d<getDimensions();d++)
+    {
+        int l1 = (i - t0) > 0 ? i - t0 : i - t0 + M;
+        int l2 = (t1 - i ) > 0 ? t1 - i  : t1 - i  + M;
+
+
+        meanExpected[d]=(data(iChainBegin,d,t0)/ l1 + 
+        data(iChainEnd,d,t1)/l2 )/(1./l1 + 1./l2 );
+
+    }
+
+    return meanExpected;
+}
+
+auto varianceBeadFixedLengths(int iChain , int t0, int t1, int i, Real timeStep, const pimc::configurations_t & configurations)
+{
+
+    std::array<Real,getDimensions()> varianceExpected;
+    const auto & data = configurations.dataTensor();
+
+    Real D = 0.5;
+    Real mass = 1;
+
+    int M= configurations.nBeads();
+
+    std::array<Real,3> difference;
+    for (int d=0;d<getDimensions();d++)
+    {
+        difference[d]= data(iChain,d,t0) - data(iChain,d,t1);
+
+        int l1 = (i - t0) > 0 ? i - t0 : i - t0 + M;
+        int l2 = (t1 - i ) > 0 ? t1 - i  : t1 - i  + M;
+
+
+       varianceExpected[d]=1./(1./l1 + 1./l2 )* 2 * D * timeStep / mass;
+
+
+
+
+    }
+
+    return varianceExpected;
+}
+
+
+TEST_F(configurationsTest,openCloseGrandCanonical_distributionReconstructedChain)
+{
+    Real C=1;
+    int t0=80;
+    int l =40;
+
+    SetUp(1,100,1);
+    SetGrandCanonicalEnsamble(0);
+    SetUpFreeParticleAction();
+    addOpenCloseFixedSegment(C , l , t0);
+
+    int t1=(t0 + l)%M;
+    int i = (t0 + 20)%M;
+
+    Real nTrials = 1000000;
+    Real nBurns = 100;
+
+    std::array<Real,getDimensions() > x{0,0,0};
+    std::array<Real ,getDimensions() > x2{0,0,0};
+
+    auto & data = configurations.dataTensor();
+    
+
+    pimc::configurations_t configurationsInitial=configurations;
+
+    const auto & dataInitial = configurations.dataTensor();
+    
+
+
+    accumulate(nBurns,nTrials, [&](){accumulateBeadPosition(i,x,x2) ;}  );
+
+
+
+    Real openRatio = nOpen/nMoves;
+    
+    auto  meanExpected = meanBeadFixedLengths(0,0,t0,t1,i,timeStep,configurations);
+
+    auto  varianceExpected = varianceBeadFixedLengths(0,t0,t1,i,timeStep,configurations);
+    
+
+  
+    Real D = 0.5;
+    Real mass = 1;
+
+
+    std::array<Real,3> difference;
+    for (int d=0;d<getDimensions();d++)
+    {
+          difference[d]= data(0,d,t0) - data(0,d,t1);
+        x[d]/=nClosed;
+        x2[d]/=nClosed;
+
+    }
+
+    Real expectedOpenRatio= 1/( 1 + exp(pimc::freeParticleLogProbability(difference,S.getTimeStep()*l,mass))/C );
+
+    std::cout << "Open ratio error : " << std::abs(openRatio - expectedOpenRatio)/expectedOpenRatio <<  std::endl;
+
+    EXPECT_NEAR((openRatio - expectedOpenRatio)/expectedOpenRatio , 0 , 1e-2);
+
+
+    std::cout << "Mean error: " << std::abs((x[0]  -  meanExpected[0])/meanExpected[0])<< std::endl;
+    EXPECT_NEAR( (x[0]  -  meanExpected[0])/meanExpected[0] , 0 , 1e-2);
+
+    std::cout << "var error : " << std::abs(x2[0] - x[0]*x[0] - varianceExpected[0] )/varianceExpected[0] << std::endl;
+
+    EXPECT_NEAR(( x2[0] - x[0]*x[0] - varianceExpected[0] )/varianceExpected[0] , 0 , 3e-2);
+
+}
+
+
+TEST_F(configurationsTest,advanceRecedeGrandCanonical_distributionReconstructedChain)
+{
+    Real C=1;
+    int l =40;
+    int nBeads= 100;
+
+    SetUp(1,nBeads,1);
+    SetGrandCanonicalEnsamble(0);
+    SetUpFreeParticleAction();
+    
+    int iHead=60;
+
+    configurations.setHeadTail(0,iHead,-1);
+
+    pimc::advanceHead advanceMove(l,0);
+    pimc::recedeHead recedeMove(l,0);
+
+    advanceMove.setFixedLength();
+    recedeMove.setFixedLength();
+
+    int nTrails = 1000000;
+
+    std::array<Real ,getDimensions()> x{0,0,0}; 
+    int nMeasurements = 0;
+    int i = iHead + l <= M ? iHead + l  : iHead + l - M;
+    int iChainNewHead = iHead + l <= M ? 0  : 1;
+
+    const auto & data = configurations.dataTensor();
+
+    SetSeed(56);
+
+    for (int n=0;n<nTrails;n++)
+    {
+        int currentHead = configurations.getChain(0).head;
+        
+        if (currentHead == iHead)
+        {
+            advanceMove.attemptMove(configurations,S,randG);
+        }
+        else
+        {
+            for (int d=0;d<getDimensions();d++)
+            {
+                x[d]+=data(iChainNewHead,d,i);
+            }
+            nMeasurements+=1;
+            recedeMove.attemptMove(configurations,S,randG);
+        }
+
+    }
+
+    ASSERT_NEAR( nMeasurements * 1./nTrails, 0.5 , 1e-3 ) ;
+
+    for (int d=0;d<getDimensions();d++)
+    {
+        x[d]/=nMeasurements;
+        ASSERT_NEAR ( data(0,d,iHead)  , x[d] , 1e-2 );
+
+    }
+
+
+
+}
+
+TEST_F(configurationsTest,swapGrandCanonical_distributionReconstructedChain)
+{
+    Real C=1;
+    int l =40;
+    int nBeads= 100;
+
+    SetUp(2,nBeads,1);
+    SetGrandCanonicalEnsamble(0);
+    SetUpFreeParticleAction();
+    
+
+    int iHead=30;
+
+    configurations.setHeadTail(0,iHead,-1);
+
+    pimc::swapMove swap(l,2,0);
+
+    swap.setFixedLength();
+
+    SetSeed(58);
+
+    int nTrails = 1000000;
+    int nBurns = 1000;
+    int nMeasurements=0;
+
+    const auto & data = configurations.dataTensor();
+
+    pimc::configurations_t configurationsInitial(configurations);
+    const auto & dataInitial = configurations.dataTensor();
+
+    
+
+    std::array<Real ,getDimensions()> x{0,0,0}; 
+    int i = iHead + 10;
+
+    auto meanExpected=meanBeadFixedLengths(0 ,  1 , iHead, iHead + l, i , timeStep,configurations);
+
+
+    for (int n=0;n<nBurns;n++)
+    {
+        bool accept=swap.attemptMove(configurations,S,randG);
+    }
+    for (int n=0;n<nTrails;n++)
+    {
+        bool accept=swap.attemptMove(configurations,S,randG);
+
+        assert( configurations.getChain(0).hasHead() or configurations.getChain(1).hasHead( ));
+
+
+        if ( not configurations.getChain(0).hasHead()  )
+        {
+            
+            for (int d=0;d<getDimensions();d++)
+            {
+                x[d]+=data(0,d,i);
+            }
+            nMeasurements+=1;
+        }
+
+    }
+
+    for (int d=0;d<getDimensions();d++)
+            {
+                x[d]/=nMeasurements;
+            }
+    
+    
+
+    for (int d=0;d<getDimensions();d++)
+    {
+
+       
+
+        int iChainHead = configurations.getGroups()[0].heads[0];
+        int iChainCont = iChainHead == 0 ? 1 : 0;
+
+            for (int t=0;t<=iHead;t++)
+            {
+                assert(data(0,d,t) == dataInitial(0,d,t)    );
+                assert(data(1,d,t) == dataInitial(1,d,t)    );
+            }
+
+            for (int t=iHead+l;t<=M;t++)
+            {
+                assert(data(iChainCont,d,t) == dataInitial(1,d,t)    );
+            }
+         ASSERT_NEAR(x[d],meanExpected[d],1e-2);
+
+           }
+        
+        
+    
+}
+
+
+
+
+TEST(moves,openCloseGrandCanonical)
+{   
+    int N=1;
+    int M=100;
+    Real Beta = 1;
+
+    int seed=812; // 356
+    int buffer=2;
+
+    int nChains=N + buffer;
+
+    Real timeStep=Beta/M;
+    pimc::particleGroup groupA{ 0 , N-1, nChains -1 , 1.0};
+
+    std::default_random_engine generator;
+    std::uniform_real_distribution<double> uniformDistribution(0.0,1.0);
+
+    pimc::pimcConfigurations configurations(M , getDimensions() , {groupA});
+
+
+    configurations.setEnsamble(pimc::ensamble_t::grandCanonical);
+    configurations.setChemicalPotential(0);
+
+    pimc::geometryPBC_PIMC geo(300,300,300);
+
+    
+    std::shared_ptr<pimc::action> sT= std::make_shared<pimc::kineticAction>(timeStep, configurations.nChains() , M  , geo);
+
+    std::shared_ptr<pimc::action> sV= std::make_shared<pimc::nullPotentialAction>(timeStep  , geo);
+
+
+    randomGenerator_t randG(seed);
+
+   
+
+    pimc::firstOrderAction S(sT,  sV);
+
+    auto & data=configurations.dataTensor();
+
+    for (int t=0;t<data.dimensions()[2];t++)
+        for (int i=0;i<data.dimensions()[0];i++)
+            for  (int d=0;d<getDimensions();d++)
+            {
+                data(i,d,t)=uniformDistribution(randG);
+            }
+    
+    Real C = 1;
+    int l=30;
+    int t0=6;
+    int t1=t0 + l;
+    int i = t0 + 20;
+
+
+
+    pimc::tableMoves tab;
+
+    pimc::openMove open(C, 0, l );
+    pimc::closeMove close(C, 0, l );
+
+    open.setStartingBead(t0);
+    close.setStartingBead(t0);
+
+    open.setLengthCut(l);
+    close.setLengthCut(l);
+
+    tab.push_back(& open,1,pimc::sector_t::diagonal);
+    tab.push_back(& close, 1, pimc::sector_t::offDiagonal);
+
+
+    configurations.fillHeads();
+
+    Real nTrials = 100000;
+    Real nBurns = 100;
+
+    Real nOpen=0;
+
+    std::array<Real,getDimensions() > x{0,0,0};
+    std::array<Real ,getDimensions() > x2{0,0,0};
+
+
+    for(int k=0;k<nBurns;k++)
+    {
+        bool accept= tab.attemptMove(configurations,S,randG);    
+    }
+    
+    for(int k=0;k<nTrials;k++)
+    {
+
+        if ( configurations.isOpen() )
+        {
+            nOpen+=1;
+        }
+        else
+        {
+                for(int d=0;d<getDimensions();d++)
+                {
+                    x[d]+=data( 0 ,d, i) ;
+                    x2[d]+=std::pow(data(0,d,i),2);
+
+                }
+            
+            
+        }
+
+        bool accept= tab.attemptMove(configurations,S,randG);
+
+    }
+
+    Real nClosed = nTrials - nOpen;
+
+    Real openRatio = nOpen/nTrials;
+    
+    std::array<Real,getDimensions()> meanExpected;
+    std::array<Real,getDimensions()> varianceExpected;
+
+    Real D = 0.5;
+    Real mass = 1;
+
+    std::array<Real,3> difference;
+    for (int d=0;d<getDimensions();d++)
+    {
+        difference[d]= data(0,d,t0) - data(0,d,t1);
+
+        varianceExpected[d]=1./(1./(i - t0) + 1./(t1 - i) )* 2 * D * timeStep / mass;
+
+        meanExpected[d]=(data(0,d,t0)/ (i-t0) + 
+        data(0,d,t1)/( t1 - i) )/(1./(i - t0) + 1./(t1 - i) );
+
+        x[d]/=nClosed;
+        x2[d]/=nClosed;
+
+
+    }
+
+
+    Real expectedOpenRatio= 1/( 1 + exp(pimc::freeParticleLogProbability(difference,S.getTimeStep()*l,mass))/C );
+
+    std::cout << "Open ratio error : " << std::abs(openRatio - expectedOpenRatio)/expectedOpenRatio <<  std::endl;
+
+    ASSERT_NEAR((openRatio - expectedOpenRatio)/expectedOpenRatio , 0 , 1e-2);
+
+
+    std::cout << "Mean error: " << std::abs((x[0]  -  meanExpected[0])/meanExpected[0])<< std::endl;
+    ASSERT_NEAR( (x[0]  -  meanExpected[0])/meanExpected[0] , 0 , 1e-2);
+
+    std::cout << "var error : " << std::abs(x2[0] - x[0]*x[0] - varianceExpected[0] )/varianceExpected[0] << std::endl;
+
+    ASSERT_NEAR(( x2[0] - x[0]*x[0] - varianceExpected[0] )/varianceExpected[0] , 0 , 1e-2);
+
+
+
+
+
+
+
+
+}
+
 TEST(run,free_harmonic_oscillator_grandCanonical)
 {   
     int N=1;
     int M=10;
     Real Beta = 1;
 
-    int seed=356;
-    int buffer=1000;
+    int seed= time(NULL);
+    int buffer=200;
 
     int nChains=N + buffer;
 
@@ -1164,8 +1785,9 @@ TEST(run,free_harmonic_oscillator_grandCanonical)
 
     pimc::pimcConfigurations configurations(M , getDimensions() , {groupA});
 
-    configurations.setEnsamble(pimc::ensamble_t::grandCanonical);
-    configurations.setChemicalPotential(3/2. * 0.9);
+    //configurations.setEnsamble(pimc::ensamble_t::grandCanonical);
+    //configurations.setChemicalPotential(3/2. * 0);
+
 
     auto & data=configurations.dataTensor();
 
@@ -1191,9 +1813,8 @@ TEST(run,free_harmonic_oscillator_grandCanonical)
 
     //pimc::translateMove translMove(delta,(M+1)*N,0);
 
-    Real C = 1e-4;
-    int l = 1;
-
+    Real C = 1e-3;
+    int l = 4;
     
     pimc::openMove openMove(C,0,l);
     pimc::closeMove closeMove(C,0,l);
@@ -1208,7 +1829,7 @@ TEST(run,free_harmonic_oscillator_grandCanonical)
     pimc::createWorm addMove(C,0,l,1);
     pimc::deleteWorm removeMove(C,0,l,1);
 
-    //pimc::swapMove swapMove(l,N,0);
+    pimc::swapMove swapMove(l,N,0);
 
     pimc::tableMoves table;
 
@@ -1221,19 +1842,17 @@ TEST(run,free_harmonic_oscillator_grandCanonical)
     table.push_back(& openMove,0.2,pimc::sector_t::diagonal,"open");
     table.push_back(& closeMove,0.2,pimc::sector_t::offDiagonal,"close");
 
+
     //table.push_back(& addMove,0.2,pimc::sector_t::diagonal,"addMove");
     //table.push_back(& removeMove,0.2,pimc::sector_t::offDiagonal,"removeMove");
 
 
-    table.push_back(& moveHeadMove,0.4,pimc::sector_t::offDiagonal,"moveHead");
-    table.push_back(& moveTailMove,0.4,pimc::sector_t::offDiagonal,"moveTail");
+    //table.push_back(& moveHeadMove,0.4,pimc::sector_t::offDiagonal,"moveHead");
+    //table.push_back(& moveTailMove,0.4,pimc::sector_t::offDiagonal,"moveTail");
 
-    table.push_back(& advanceHeadMove,0.4,pimc::sector_t::offDiagonal,"advanceHead");
-    
+    //table.push_back(& advanceHeadMove,0.9,pimc::sector_t::offDiagonal,"advanceHead");
 
-    table.push_back(& recedeHeadMove,0.4,pimc::sector_t::offDiagonal,"recedeHead");
-
-
+    //table.push_back(& recedeHeadMove,0.9,pimc::sector_t::offDiagonal,"recedeHead");
 
     //table.push_back(& swapMove,0.8,pimc::sector_t::offDiagonal,"swap");
 
@@ -1333,12 +1952,12 @@ TEST(run,free_harmonic_oscillator_grandCanonical)
             
                 nMeasurements++;
 
-                if (tmp < -20)
+                /* if (tmp < -6)
                 {
-                    std::string name="configurations/sample"+std::to_string(iSuspicious);
-                      //configurations.save(name,"pdb"); 
+                    std::string name="configurations/sampleSusp"+std::to_string(iSuspicious);
+                    configurations.save(name,"pdb"); 
                     iSuspicious++;             
-                }
+                } */
                 eStep+=tmp;
                 eVirialStep+=tmp1;
                 nStep+=tmp2;
@@ -1363,7 +1982,7 @@ TEST(run,free_harmonic_oscillator_grandCanonical)
 
         table >> std::cout;
 
-        configurations.save("configurations/sample"+std::to_string(i+1),"pdb");
+        //configurations.save("configurations/sample"+std::to_string(i+1),"pdb");
     }
 
     f.close();
@@ -1422,8 +2041,8 @@ TEST(run,free)
 
     pimc::translateMove translMove(delta,(M+1)*N,0);
 
-    Real C = 1e-4;
-    int l = 1;
+    Real C = 1e-1;
+    int l = 4;
 
 
     pimc::openMove openMove(C,0,l);

@@ -8,6 +8,8 @@
 #include "geometryPMC.h"
 #include "towerSampler.h"
 #include "toolsPimc.h"
+#include <cassert>
+
 
 namespace pimc
 {
@@ -95,7 +97,6 @@ class sectorTableMoves
     private:
 
     int sample(randomGenerator_t & random); 
-
     std::vector<move*> _moves;
 
     std::vector<Real> _nTrials;
@@ -106,6 +107,9 @@ class sectorTableMoves
     Real totalWeight;
     towerSampler sampler;
 };
+
+
+
 
 class tableMoves
 {
@@ -135,6 +139,7 @@ class tableMoves
     std::vector<Real> nClosedSectorMoves;
     configurationsSampler _chainSampler;
 };
+
 
 class levyMove : public singleSetMove
 {
@@ -171,6 +176,11 @@ class openMove : public singleSetMove
 
     openMove(const json_t & j) : openMove(j["C"].get<Real>() ,j["set"].get<int>() ,j["reconstructionMaxLength"].get<int>() ) {}
 
+
+    void setStartingBead(int m){setStartingBeadRandom=false; startingBead=m;assert(m>=0);};
+    void setLengthCut( int l1){setLengthCutRandom=false;lengthCut=l1;}
+
+
     bool attemptMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG);
     
     bool attemptGrandCanonicalMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG);
@@ -179,6 +189,10 @@ class openMove : public singleSetMove
 
 
     private:
+
+    Real openCloseRatioCoefficient(int N,int M);
+
+
     Real C;
     int _maxReconstructedLength;
     std::array<Real, 3> tmp;
@@ -190,6 +204,13 @@ class openMove : public singleSetMove
     levyReconstructor _levy;
     metropolis sampler;
     Eigen::Tensor<Real,2> buffer;
+
+
+    int startingBead;
+    bool setStartingBeadRandom;
+    bool setLengthCutRandom;
+    int lengthCut;
+
 };
 
 class createWorm : public singleSetMove
@@ -213,10 +234,10 @@ class createWorm : public singleSetMove
         {
             sum+= -0.5*log(2*M_PI*sigma2) -0.5 * x[d]*x[d] / sigma2;    
         }
-
         return sum;
-        
     }
+
+
 
     private:
     Real C;
@@ -289,7 +310,14 @@ class closeMove : public singleSetMove
 
     closeMove(const json_t & j) : closeMove(j["C"].get<Real>() , j["set"].get<int>(),j["reconstructionMaxLength"].get<int>()   ) {}
 
+    void setStartingBead(int m){setStartingBeadRandom=false; startingBead=m;assert(m>=0 );};
+    void setLengthCut( int l1){setLengthCutRandom=false;lengthCut=l1;}
+
+
     private:
+
+    Real openCloseRatioCoefficient(int N,int M);
+
     Real C;
     std::array<Real, 3> tmp;
     int _maxLength;
@@ -301,6 +329,12 @@ class closeMove : public singleSetMove
     std::uniform_real_distribution<float> uniformRealNumber;
     metropolis sampler;
     Eigen::Tensor<Real,2> buffer;
+
+    int startingBead;
+    bool setStartingBeadRandom;
+    bool setLengthCutRandom;
+    int lengthCut;
+
 };
 
 // advance and recede in opposite directions
@@ -339,8 +373,16 @@ class advanceHead : public singleSetMove
 
     bool attemptMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG);
 
+    void setFixedLength() {_setRandomLength=false;}
+
+    void setRandomLength() {_setRandomLength=true;}
+
 
     private:
+
+
+    int sampleLength(randomGenerator_t & randG);
+
 
     int _maxReconstructedLength;
     std::array<Real, 3> tmp;
@@ -351,6 +393,7 @@ class advanceHead : public singleSetMove
     std::uniform_real_distribution<float> uniformRealNumber;
     levyReconstructor _levy;
     metropolis sampler;
+    bool _setRandomLength;
 };
 
 class recedeHead : public singleSetMove
@@ -358,12 +401,18 @@ class recedeHead : public singleSetMove
     public:
     recedeHead(int maxAdvanceLength_,int set);
 
+    void setFixedLength() {_setRandomLength=false;}
+
+    void setRandomLength() {_setRandomLength=true;}
+    
 
     recedeHead(const json_t & j) : recedeHead(j["reconstructionMaxLength"].get<int>() ,j["set"].get<int>() ) {}
 
     bool attemptMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG);
 
+
     private:
+    int sampleLength(randomGenerator_t & randG);
 
     int _maxReconstructedLength;
     std::array<Real, 3> tmp;
@@ -374,13 +423,10 @@ class recedeHead : public singleSetMove
     std::uniform_real_distribution<float> uniformRealNumber;
     levyReconstructor _levy;
     metropolis sampler;
+        bool _setRandomLength;
+
+    
 };
-
-
-
-
-
-
 
 
 
@@ -447,6 +493,34 @@ class swapMove : public singleSetMove
 
     bool attemptMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG); // will attempt to perform a new move
 
+    bool attemptGrandCanonicalMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG); // will attempt to perform a new move
+
+    bool attemptCanonicalMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG);
+
+    void setRandomLength()
+    {
+        _setRandomLength=true;
+    }
+
+    void setFixedLength()
+    {
+        _setRandomLength=false;
+    }
+
+    int sampleLength()
+    {
+        if (_setRandomLength)
+        {
+            return std::floor(uniformRealNumber(randG) * maxStepLength) + 1;
+        }
+        else
+        {
+            return maxStepLength;
+        }
+       
+    }
+
+
     private:
 
     int maxStepLength;
@@ -461,7 +535,7 @@ class swapMove : public singleSetMove
     timeSliceGenerator tGen;
     configurationsSampler confSampler;
     towerSampler particleSampler;
-
+    bool _setRandomLength;
 };
 
 template<class T>
