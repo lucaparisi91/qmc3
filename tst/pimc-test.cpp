@@ -1139,6 +1139,175 @@ TEST(run,free_harmonic_oscillator)
 }
 
 
+void accumulateBeadPosition(int i,std::array<Real,getDimensions()> & x, std::array<Real,getDimensions()> & x2, const pimc::configurations_t & configurations, const pimc::firstOrderAction & S)
+    {
+        const auto & data = configurations.dataTensor();
+        for(int d=0;d<getDimensions();d++)
+            {
+                    x[d]+=data( 0 ,d, i) ;
+                    x2[d]+=std::pow(data(0,d,i),2);
+
+                }
+    }
+
+
+Real accumulateX2( const pimc::configurations_t & configurations, const pimc::firstOrderAction & S)
+{
+    Real x2=0;
+    const auto & data = configurations.dataTensor();
+    const auto & group = configurations.getGroups()[0];    
+
+    for (int t=0;t<configurations.nBeads();t++)
+        for (int i=group.iStart;i<=group.iEnd;i++)
+            {
+                for(int d=0;d<getDimensions();d++)
+                {
+                    x2+=data( i ,d, t)*data(i,d,t);
+                }
+
+            }
+    
+
+    return x2/configurations.nBeads();
+            
+}
+
+Real accumulateX2SingleDirection(int iChain, const pimc::configurations_t & configurations, int direction, bool &  isCyclic, int t0 , int t1)
+    {
+        const auto & data = configurations.dataTensor();
+        Real l2=0;
+
+        int iCurrentChain=iChain;
+
+        if (iCurrentChain < 0)
+        {
+            return 0;
+        }
+        do 
+        {
+            const auto & chain = configurations.getChain(iCurrentChain);
+
+            for (int t=std::max(chain.tail + 1,t0);t<=std::min(chain.head , t1 );t++)
+            {
+                Real prefactor = (t == chain.tail+1) or (t == chain.head) ? 0.5 : 1;
+                for(int d=0;d<getDimensions();d++)
+                {
+                        l2+=prefactor*data( iCurrentChain ,d, t)*data( iCurrentChain ,d, t);
+                }
+            }
+
+            if (direction == 1)
+            {
+                iCurrentChain=chain.next;
+            }
+            else if (direction == -1)
+            {
+                iCurrentChain=chain.prev;
+            }
+
+        }
+        while ( (iCurrentChain!= -1) and (iCurrentChain != iChain) );
+
+
+        isCyclic= iCurrentChain == - 1 ? false : true;
+        
+        return l2;
+
+    }
+
+Real accumulateAverageLengthSquareSingleDirection(int iChain, const pimc::configurations_t & configurations, int direction, bool &  isCyclic, int t0 , int t1)
+    {
+        const auto & data = configurations.dataTensor();
+        Real l2=0;
+
+        int iCurrentChain=iChain;
+
+        if (iCurrentChain < 0)
+        {
+            return 0;
+        }
+        do 
+        {
+            const auto & chain = configurations.getChain(iCurrentChain);
+
+            for (int t=std::max(chain.tail + 1,t0);t<=std::min(chain.head - 1, t1 );t++)
+            {
+                for(int d=0;d<getDimensions();d++)
+                {
+                        l2+=std::pow(data( iCurrentChain ,d, t+1) - data(iCurrentChain,d,t),2);
+                }
+            }
+
+            if (direction == 1)
+            {
+                iCurrentChain=chain.next;
+            }
+            else if (direction == -1)
+            {
+                iCurrentChain=chain.prev;
+            }
+
+        }
+        while ( (iCurrentChain!= -1) and (iCurrentChain != iChain) );
+
+
+        isCyclic= iCurrentChain == - 1 ? false : true;
+        
+        return l2;
+
+    }
+
+
+Real accumulateAverageLengthSquare(int iChain, const pimc::configurations_t & configurations, int t0, int t1)
+{
+    bool isCyclic;
+
+    Real l2=accumulateAverageLengthSquareSingleDirection(iChain, configurations,+1,isCyclic,t0,t1);
+
+    if (not isCyclic)
+    {
+        
+        l2+=accumulateAverageLengthSquareSingleDirection(configurations.getChain(iChain).prev, configurations,-1,isCyclic,t0,t1);
+
+        assert(isCyclic == false);
+
+    }
+
+    return l2;
+}
+
+
+Real accumulateX2(int iChain, const pimc::configurations_t & configurations, int t0, int t1)
+{
+    bool isCyclic;
+
+    Real l2=accumulateX2SingleDirection(iChain, configurations,+1,isCyclic,t0,t1);
+
+    if (not isCyclic)
+    {
+        
+        l2+=accumulateX2SingleDirection(configurations.getChain(iChain).prev, configurations,-1,isCyclic,t0,t1);
+
+        assert(isCyclic == false);
+
+    }
+
+    return l2;
+}
+
+
+
+
+Real accumulateAverageLengthSquare(int iChain, const pimc::configurations_t & configurations)
+{
+    int t0=0;
+    int t1=configurations.nBeads()-1;
+
+
+
+    return accumulateAverageLengthSquare( iChain, configurations,0,t1);
+}
+
 
 class configurationsTest : public ::testing::Test {
 protected:
@@ -1200,7 +1369,36 @@ protected:
 
     
     S= pimc::firstOrderAction(sT,  sV);
+
+
+
+    
     }
+
+    void SetUpNonInteractingHarmonicAction()
+    {
+         std::shared_ptr<pimc::action> sT= std::make_shared<pimc::kineticAction>(timeStep, configurations.nChains() , M  , geo);
+
+
+
+
+     auto V = pimc::makeIsotropicPotentialFunctor(
+         [](Real r) {return 0.5*(r*r) ;} ,
+         [](Real r) {return r  ;} );
+
+
+
+    std::shared_ptr<pimc::action> sOneBody=std::make_shared<pimc::potentialActionOneBody<decltype(V)> >(timeStep,V ,geo);
+    
+    
+    std::vector<std::shared_ptr<pimc::action> > Vs = {sOneBody};
+
+    std::shared_ptr<pimc::action>  sV = std::make_shared<pimc::sumAction>(Vs);
+
+    S= pimc::firstOrderAction(sT,  sV);
+
+    }
+    
 
     void SetGrandCanonicalEnsamble(Real chemicalPotential)
     {
@@ -1227,19 +1425,9 @@ protected:
 
 
 
-    void accumulateBeadPosition(int i,std::array<Real,getDimensions()> & x, std::array<Real,getDimensions()> & x2)
-    {
-        const auto & data = configurations.dataTensor();
-        for(int d=0;d<getDimensions();d++)
-            {
-                    x[d]+=data( 0 ,d, i) ;
-                    x2[d]+=std::pow(data(0,d,i),2);
-
-                }
-    }
-
+    
     template<class T>
-    void accumulate(int nBurns,int nTrials,const T & f)
+    void accumulate(int nBurns,int nTrials,const T & f, int correlationSteps=1, pimc::sector_t sector= pimc::sector_t::diagonal)
     {
         for(int k=0;k<nBurns;k++)
         {
@@ -1248,19 +1436,40 @@ protected:
 
         for(int k=0;k<nTrials;k++)
         {
+            for (int kk=0;kk<correlationSteps;kk++)
+            {
+                 bool accept= tab.attemptMove(configurations,S,randG);
+
+            }
+
+
             nMoves+=1;
             if ( configurations.isOpen() )
             {
-                nOpen+=1;
+                    
+
+                    nOpen+=1;
+
+                    if (sector == pimc::sector_t::offDiagonal)
+                    {
+                        f(configurations,S);
+                    }
+                    
+                
             }
             else
             {
                 nClosed+=1;
-                f();
+
+                  if (sector == pimc::sector_t::diagonal)
+                    {
+                        f(configurations,S);
+                    }
+
 
             }
 
-            bool accept= tab.attemptMove(configurations,S,randG);
+           
 
         }
 
@@ -1396,11 +1605,9 @@ TEST_F(configurationsTest,openCloseGrandCanonical_distributionReconstructedChain
     pimc::configurations_t configurationsInitial=configurations;
 
     const auto & dataInitial = configurations.dataTensor();
-    
 
 
-    accumulate(nBurns,nTrials, [&](){accumulateBeadPosition(i,x,x2) ;}  );
-
+    accumulate(nBurns,nTrials, [&](const pimc::configurations_t & confs, const pimc::firstOrderAction & S){accumulateBeadPosition(i,x,x2,confs,S) ;}  );
 
 
     Real openRatio = nOpen/nMoves;
@@ -1439,6 +1646,619 @@ TEST_F(configurationsTest,openCloseGrandCanonical_distributionReconstructedChain
     EXPECT_NEAR(( x2[0] - x[0]*x[0] - varianceExpected[0] )/varianceExpected[0] , 0 , 3e-2);
 
 }
+
+
+TEST_F(configurationsTest,openChain)
+{
+    Real C=1;
+    int nBeads=10;
+
+    SetUp(2,nBeads,1);
+    //SetGrandCanonicalEnsamble(0);
+    SetUpFreeParticleAction();
+    
+    SetRandom();
+
+
+    SetSeed(time(NULL));
+
+
+    
+    int t0=10;
+    int l = nBeads/3;
+
+    pimc::levyMove levy(l,0);
+    pimc::moveHead moveHeadMove(l,0);
+    pimc::moveTail moveTailMove(l,0);
+
+
+
+    configurations.setTail(0,-1);
+    configurations.setHead(1,M);
+    configurations.join(0,1);
+
+    configurations.fillHeads();
+
+    tab.push_back(&levy,0.9,pimc::sector_t::offDiagonal);
+    tab.push_back(&moveHeadMove,0.9,pimc::sector_t::offDiagonal);
+    tab.push_back(&moveTailMove,0.9,pimc::sector_t::offDiagonal);
+
+
+    Real l2=0;
+    Real l2Var=0;
+    Real l2Error=0;
+
+    int nTrials = 1000000;
+
+    accumulate(1000,nTrials, [&](const pimc::configurations_t & confs, const pimc::firstOrderAction & S){Real tmp=accumulateAverageLengthSquare(0,confs) ;l2+=tmp;l2Var+=tmp*tmp;}  ,10,pimc::sector_t::offDiagonal);
+
+    l2/=nOpen;
+    l2Var/=nOpen;
+
+    l2Error = std::sqrt((l2Var - l2*l2)/nOpen);
+
+    EXPECT_NEAR(l2 , 3* 2, 2*l2Error);
+
+
+}
+
+
+TEST_F(configurationsTest,closedChain_free)
+{
+    Real C=1;
+    int nBeads=10;
+
+    SetUp(2,nBeads,1);
+    //SetGrandCanonicalEnsamble(0);
+    SetUpFreeParticleAction();
+    
+    SetRandom();
+
+
+    SetSeed(time(NULL));
+
+    
+    int t0=10;
+    int l = nBeads/3;
+
+    pimc::levyMove levy(l,0);
+
+
+
+
+    configurations.setTail(0,-1);
+    configurations.setHead(1,M);
+    configurations.join(0,1);
+    configurations.join(1,0);
+
+
+    //configurations.fillHeads();
+
+    tab.push_back(&levy,0.9,pimc::sector_t::diagonal);
+
+    Real l2=0;
+    Real l2Var=0;
+    Real l2Error=0;
+
+    int nTrials = 100000;
+
+    accumulate(1000,nTrials, [&](const pimc::configurations_t & confs, const pimc::firstOrderAction & S){Real tmp=accumulateAverageLengthSquare(0,confs) ;l2+=tmp;l2Var+=tmp*tmp;}  ,100,pimc::sector_t::diagonal);
+
+    l2/=nClosed;
+    l2Var/=nClosed;
+
+    l2Error = std::sqrt((l2Var - l2*l2)/nClosed);
+
+    
+    EXPECT_NEAR(l2 , 3* (2*M - 1) * timeStep , 2*l2Error);
+
+
+}
+
+
+TEST_F(configurationsTest,closedChain_harmonic)
+{
+    Real C=1;
+    int nBeads=10;
+
+    SetUp(1,nBeads,1);
+    //SetGrandCanonicalEnsamble(0);
+    SetUpNonInteractingHarmonicAction();
+
+    SetRandom();
+
+
+    SetSeed(time(NULL));
+
+    
+    int t0=10;
+    int l = nBeads/3;
+
+    pimc::levyMove levy(l,0);
+
+/* 
+
+    configurations.setTail(0,-1);
+    configurations.setHead(1,M);
+    configurations.join(0,1);
+    configurations.join(1,0);
+
+
+    //configurations.fillHeads();
+ */
+    tab.push_back(&levy,0.9,pimc::sector_t::diagonal);
+
+    Real l2=0;
+    Real l2Var=0;
+    Real l2Error=0;
+    int i=4;
+
+    int nTrials = 100000000;
+    std::array<Real,3> x2 {0,0,0};
+    std::array<Real,3> x {0,0,0};
+
+
+    accumulate(1000,nTrials, [&](const pimc::configurations_t & confs, const pimc::firstOrderAction & S){Real tmp=accumulateAverageLengthSquare(0,confs) ;l2+=tmp;l2Var+=tmp*tmp;
+    
+    accumulateBeadPosition(i, x, x2, confs, S);
+    
+    }  ,100,pimc::sector_t::diagonal);
+
+    for (int d=0;d<getDimensions();d++)
+    {
+        x[d]/=nClosed;
+        x2[d]/=nClosed;
+    }
+
+
+    l2/=nClosed;
+    l2Var/=nClosed;
+
+    l2Error = std::sqrt((l2Var - l2*l2)/nClosed);
+
+    //EXPECT_NEAR(l2 , 3* (2*M - 1) * timeStep , 2*l2Error);
+
+    std::cout << l2 << " " << l2Error << std::endl;
+
+    for (int d=0;d<getDimensions();d++)
+    {
+        std::cout << x[d] << " " << x2[d] << std::endl;
+
+    }
+
+}
+
+
+TEST_F(configurationsTest,openClosedChain_harmonic)
+{
+    Real C=1;
+    int nBeads=10;
+
+    SetUp(1,nBeads,1);
+    SetGrandCanonicalEnsamble(0);
+    SetUpNonInteractingHarmonicAction();
+
+    SetSeed(356);
+
+    SetRandom();
+    
+    int t0=9;
+    int l = 4;
+
+    pimc::levyMove levy(l,0);
+
+    pimc::openMove open(C, 0, l );
+    pimc::closeMove close(C, 0, l );
+
+    pimc::moveHead moveHeadMove(l,0);
+    pimc::moveTail moveTailMove(l,0);
+    
+
+    open.setStartingBead(t0);
+    close.setStartingBead(t0);
+
+    open.setLengthCut(l);
+    close.setLengthCut(l);
+
+    tab.push_back(&levy,0.9,pimc::sector_t::diagonal);
+    tab.push_back(&levy,0.9,pimc::sector_t::offDiagonal);
+    tab.push_back(&moveHeadMove,0.1,pimc::sector_t::offDiagonal);
+    tab.push_back(&moveTailMove,0.1,pimc::sector_t::offDiagonal);
+    
+
+    tab.push_back(&close,0.9,pimc::sector_t::offDiagonal);
+    tab.push_back(&open,0.9,pimc::sector_t::diagonal);
+    
+
+
+    //configurations.setHeadTail(0,M,-1);
+
+    //configurations.setTail(0,-1);
+    //configurations.setHead(1,M);
+    //configurations.join(0,1);
+    //configurations.join(1,0);
+
+
+    //configurations.fillHeads();
+
+
+    //Real l2=0;
+    //Real l2Var=0;
+    //Real l2Error=0;
+   // int iNewHead=4;
+
+    int nTrials = 10000;
+    
+    std::ofstream l2Out,x2Out,openFractionOut;
+
+    l2Out.open("l2.dat");
+    x2Out.open("x2.dat");
+    openFractionOut.open("openFraction.dat");
+    
+
+    for (int iBlock=0;iBlock < 1000000 ; iBlock++)
+    {
+        Real l2=0;
+        Real l2Var=0;
+        Real x2=0;
+
+        accumulate(0,nTrials, [&](
+            
+            const pimc::configurations_t & confs, const pimc::firstOrderAction & S){
+
+                auto tmp=accumulateAverageLengthSquare(0,confs) ;l2+=tmp;
+                x2+=accumulateX2(0, configurations, 0, M);
+
+                const auto & tags = confs.getTags();
+
+
+
+                
+            
+            } 
+                ,20,pimc::sector_t::diagonal
+        );
+
+
+        int nMeasures= nClosed;
+
+        l2Out << iBlock << "\t" << l2/nMeasures << std::endl;
+        x2Out << iBlock << "\t" << x2/nMeasures << std::endl;
+        openFractionOut << iBlock <<  "\t" << nOpen/(nOpen + nClosed) << std::endl;
+
+
+        resetCounters();
+
+
+
+    }
+
+
+    l2Out.close();
+    x2Out.close();
+    openFractionOut.close();
+
+
+/* 
+
+    l2/=nClosed;
+    l2Var/=nClosed;
+
+    l2Error = std::sqrt((l2Var - l2*l2)/nClosed);
+
+    //EXPECT_NEAR(l2 , 3* (2*M - 1) * timeStep , 2*l2Error);
+
+    std::cout << l2 << " " << l2Error << std::endl;
+
+    for (int d=0;d<getDimensions();d++)
+    {
+        std::cout << x[d] << " " << x2[d] << std::endl;
+
+    } */
+
+
+
+}
+
+
+TEST_F(configurationsTest,openClosedChain_free)
+{
+    Real C=1e-1;
+    int nBeads=10;
+
+    SetUp(1,nBeads,1);
+    SetGrandCanonicalEnsamble(0);
+    SetUpFreeParticleAction();
+
+    SetSeed(time(NULL));
+
+    SetRandom();
+    
+    int t0=3;
+    int l = nBeads/3;
+
+    pimc::levyMove levy(l,0);
+
+    pimc::openMove open(C, 0, l );
+    pimc::closeMove close(C, 0, l );
+
+    pimc::moveHead moveHeadMove(l,0);
+    pimc::moveTail moveTailMove(l,0);
+
+    open.setStartingBead(t0);
+    close.setStartingBead(t0);
+
+    open.setLengthCut(l);
+    close.setLengthCut(l);
+
+
+    tab.push_back(&levy,0.9,pimc::sector_t::diagonal);
+    tab.push_back(&levy,0.9,pimc::sector_t::offDiagonal);
+    tab.push_back(&moveHeadMove,0.1,pimc::sector_t::offDiagonal);
+    tab.push_back(&moveTailMove,0.1,pimc::sector_t::offDiagonal);
+
+
+    tab.push_back(&close,0.9,pimc::sector_t::offDiagonal);
+    tab.push_back(&open,0.9,pimc::sector_t::diagonal);
+    
+
+
+    //configurations.setHeadTail(0,M,-1);
+
+    //configurations.setTail(0,-1);
+    //configurations.setHead(1,M);
+    //configurations.join(0,1);
+    //configurations.join(1,0);
+
+
+    //configurations.fillHeads();
+
+
+    //Real l2=0;
+    //Real l2Var=0;
+    //Real l2Error=0;
+    int iNewHead=4;
+
+    int nTrials = 10000;
+    
+    std::ofstream l2Out,x2Out;
+
+    l2Out.open("l2.dat");
+    x2Out.open("x2.dat");
+
+    for (int iBlock=0;iBlock < 1000000 ; iBlock++)
+    {
+        Real l2=0;
+        Real l2Var=0;
+        Real x2=0;
+
+        accumulate(0,nTrials, [&](
+            
+            const pimc::configurations_t & confs, const pimc::firstOrderAction & S){
+
+                auto tmp=accumulateAverageLengthSquare(0,confs) ;l2+=tmp;
+                //x2+=accumulateX2(0, configurations, 0, M);
+
+            } 
+                ,20,pimc::sector_t::offDiagonal
+        );
+
+
+        int nMeasures= nOpen;
+
+        std::cout << nOpen/(nClosed + nOpen) << std::endl;
+
+        l2Out << iBlock << "\t" << l2/nMeasures << std::endl;
+        //x2Out << iBlock << "\t" << x2/nMeasures << std::endl;
+        
+        resetCounters();
+
+    }
+    
+    l2Out.close();
+    x2Out.close();
+
+
+/* 
+
+    l2/=nClosed;
+    l2Var/=nClosed;
+
+    l2Error = std::sqrt((l2Var - l2*l2)/nClosed);
+
+    //EXPECT_NEAR(l2 , 3* (2*M - 1) * timeStep , 2*l2Error);
+
+    std::cout << l2 << " " << l2Error << std::endl;
+
+    for (int d=0;d<getDimensions();d++)
+    {
+        std::cout << x[d] << " " << x2[d] << std::endl;
+
+    } */
+
+}
+
+
+TEST_F(configurationsTest,openChain_harmonic)
+{
+    Real C=1;
+    int nBeads=10;
+
+    SetUp(2,nBeads,1);
+    SetGrandCanonicalEnsamble(0);
+    SetUpNonInteractingHarmonicAction();
+
+    SetRandom();
+
+
+    SetSeed(time(NULL));
+
+    
+    int t0=10;
+    int l = 3;
+    int iHead=6;
+    int iTail=5;
+
+    pimc::levyMove levy(l,0);
+    pimc::moveHead moveHeadMove(l,0);
+    pimc::moveTail moveTailMove(l,0);
+
+
+
+    configurations.setHeadTail(1,M,iTail);
+    configurations.setHeadTail(0,iHead,-1);
+    configurations.join(1,0);
+    configurations.fillHeads();
+
+    
+
+
+
+    tab.push_back(&levy,0.9,pimc::sector_t::offDiagonal);
+    tab.push_back(&moveHeadMove,0.2,pimc::sector_t::offDiagonal);
+    tab.push_back(&moveTailMove,0.2,pimc::sector_t::offDiagonal);
+
+
+
+    int nTrials = 1000;
+
+    std::ofstream x2Out,l2Out;
+
+
+    l2Out.open("l2.dat");
+    x2Out.open("x2.dat");
+
+    for (int iBlock=0;iBlock < 1000000 ; iBlock++)
+    {
+            Real l2=0;
+            Real x2=0;
+
+            accumulate(
+                1000,nTrials, [&](
+                
+                const pimc::configurations_t & confs, const pimc::firstOrderAction & S){Real tmp=accumulateAverageLengthSquare(0,confs) ;l2+=tmp;
+                x2+=accumulateX2(0, configurations, 0, M);
+
+                }
+                ,100,pimc::sector_t::offDiagonal
+                    );
+            
+            l2Out << iBlock << " " << l2/nOpen << std::endl;
+            x2Out << iBlock << " " << x2/nOpen << std::endl;
+        
+            resetCounters();
+
+    
+    }
+    
+    l2Out.open("l2Out.dat");
+    x2Out.open("x2.dat");
+
+
+
+/*     l2/=nOpen;
+    l2Var/=nOpen;
+
+    l2Error = std::sqrt((l2Var - l2*l2)/nOpen);
+
+    //EXPECT_NEAR(l2 , 3* (2*M - 1) * timeStep , 2*l2Error);
+
+    std::cout << l2 << " " << l2Error << std::endl;
+
+    for (int d=0;d<getDimensions();d++)
+    {
+        std::cout << x[d] << " " << x2[d] << std::endl;
+
+    } */
+
+}
+
+
+
+
+
+
+TEST_F(configurationsTest,openClosedChain)
+{
+    Real C=1;
+    int nBeads=10;
+
+    SetUp(1,nBeads,1);
+    SetGrandCanonicalEnsamble(0);
+    SetUpFreeParticleAction();
+    
+    SetRandom();
+
+
+    SetSeed(time(NULL));
+
+    
+    int t0=1;
+    int l = 3;
+
+
+    pimc::levyMove levy(l,0);
+
+    pimc::openMove open(C, 0, l );
+    pimc::closeMove close(C, 0, l );
+
+    pimc::moveHead moveHeadMove(l,0);
+    pimc::moveTail moveTailMove(l,0);
+
+
+
+    tab.push_back(&levy,0.9,pimc::sector_t::diagonal);
+    tab.push_back(&levy,0.9,pimc::sector_t::offDiagonal);
+    tab.push_back(&moveHeadMove,0.1,pimc::sector_t::offDiagonal);
+    tab.push_back(&moveTailMove,0.1,pimc::sector_t::offDiagonal);
+
+
+    tab.push_back(&close,2,pimc::sector_t::offDiagonal);
+    tab.push_back(&open,2,pimc::sector_t::diagonal);
+
+    open.setStartingBead(t0);
+    close.setStartingBead(t0);
+
+    open.setLengthCut(l);
+    close.setLengthCut(l);
+
+
+    Real l2=0;
+    Real l2Var=0;
+    Real l2Error=0;
+
+    int nTrials = 1000000;
+
+    accumulate(1000,nTrials, [&](const pimc::configurations_t & confs, const pimc::firstOrderAction & S){Real tmp=accumulateAverageLengthSquare(0,confs) ;l2+=tmp;l2Var+=tmp*tmp;}  ,100,pimc::sector_t::diagonal);
+
+    l2/=nClosed;
+    l2Var/=nClosed;
+
+    l2Error = std::sqrt((l2Var - l2*l2)/nClosed);
+
+    EXPECT_NEAR(l2 , 3* (M - 1) * timeStep , 3*l2Error);
+
+
+    resetCounters();
+
+
+    l2=0;
+    l2Var=0;
+
+    accumulate(1000,nTrials, [&](const pimc::configurations_t & confs, const pimc::firstOrderAction & S){Real tmp=accumulateAverageLengthSquare(0,confs) ;l2+=tmp;l2Var+=tmp*tmp;}  ,100,pimc::sector_t::offDiagonal);
+
+    l2/=nOpen;
+    l2Var/=nOpen;
+
+    l2Error = std::sqrt((l2Var - l2*l2)/nOpen);
+
+
+    EXPECT_NEAR(l2 , 3* ( M - l ) * timeStep , 3*l2Error);
+
+    
+}
+
+
 
 
 TEST_F(configurationsTest,advanceRecedeGrandCanonical_distributionReconstructedChain)

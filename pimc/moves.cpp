@@ -575,6 +575,15 @@ lengthCut(-1),
 singleSetMove(set)
 {}
 
+
+openMoveTest::openMoveTest(Real C_ , int set,int maxLength, int startingBead_) : C(C_), _levy(maxLength+2) ,
+gauss(0,1),uniformRealNumber(0,1),
+startingBead(startingBead),
+singleSetMove(set)
+{}
+
+
+
 translateMove::translateMove(Real max_delta, int maxBeads, int set) : _max_delta(max_delta),buffer(maxBeads+1,getDimensions())  , distr(-1.,1.),singleSetMove(set)
 {
 
@@ -1218,6 +1227,74 @@ bool openMove::attemptGrandCanonicalMove(configurations_t & confs , firstOrderAc
 };
 
 
+
+
+
+
+
+
+bool openMoveTest::attemptMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG )
+{
+    Real timeStep = S.getTimeStep();
+
+    int N = 1;
+
+    const auto & geo = S.getGeometry();
+    auto & data = confs.dataTensor();
+
+    if ( confs.isOpen(getSet()) )
+    {
+        throw invalidState("The configuration is already open.");
+    }
+
+    int iChain = 0;
+
+
+    int l = 1;
+
+
+    
+    int M = confs.nBeads();
+
+
+    int tHead = startingBead;
+
+
+    
+    
+    Real mass = confs.getGroupByChain(iChain).mass;
+
+    Real deltaS=0;
+
+    std::array<Real,getDimensions()> difference; 
+    for (int d=0;d<getDimensions();d++)
+    {
+        difference[d]=data(0,d,tHead+1)-data(0,d,tHead);
+        deltaS-= 0.5 * 0.5 *( std::pow(data(0,d,tHead+1),2 ) + std::pow(data(0,d,tHead),2 )  );
+    }
+    
+
+    auto propRatio = -deltaS - freeParticleLogProbability(difference,S.getTimeStep()*l,mass)   + log( C );
+
+
+    bool accept = sampler.acceptLog(propRatio,randG);
+
+
+    if ( accept)
+    {  
+        confs.setHead(0,tHead);
+        int iChainTail=confs.pushChain(getSet() );
+        assert(iChainTail == 1);
+        confs.setHeadTail(1,M,tHead);
+        confs.join(1,0);
+        confs.copyData({tHead+1,M}  , 0, 1  );
+
+    }
+
+    return accept;
+};
+
+
 closeMove::closeMove(Real C_ , int set,int maxReconstructionLength) : C(C_),_levy(2*(maxReconstructionLength+2)),_maxLength(maxReconstructionLength+2),buffer((maxReconstructionLength+2)*2,getDimensions()),gauss(0,1),uniformRealNumber(0,1),
 setStartingBeadRandom(true),
 setLengthCutRandom(true),
@@ -1393,7 +1470,7 @@ Real closeMove::openCloseRatioCoefficient(int N,int M)
         }
         if (setLengthCutRandom)
         {
-            coeff*=(_maxLength );
+            coeff*=(_maxLength - 2 );
         }
 
 

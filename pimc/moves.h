@@ -213,6 +213,34 @@ class openMove : public singleSetMove
 
 };
 
+
+class openMoveTest : public singleSetMove
+{
+    public:
+    // splits a chain in two morms with one overlapping bead
+    openMoveTest(Real C_ , int set,int maxLength=1, int startingBead=0) ;
+
+    bool attemptMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG);
+
+    private:
+
+
+    Real C;
+    int _maxLength;
+
+
+    std::normal_distribution<Real> gauss;
+    std::uniform_real_distribution<float> uniformRealNumber;
+    levyReconstructor _levy;
+    metropolis sampler;
+    int startingBead;
+
+};
+
+
+
+
+
 class createWorm : public singleSetMove
 {
     public:
