@@ -657,6 +657,127 @@ TEST(configurations, worms)
     testChain(configurations2,iOpen,M,-1);
     testChain(configurations2,iChainTail,M,newTail);
 
+    {
+    pimc::particleGroup groupB{ 0 , 1 , 1 , 1.0};
+
+    pimc::pimcConfigurations configurations3(M , getDimensions() , {groupB});
+
+    configurations3.setEnsamble(pimc::ensamble_t::grandCanonical);
+    configurations3.setChemicalPotential(0);
+    
+    
+
+    
+     auto & data3 = configurations3.dataTensor();
+    data3.setRandom();
+
+
+    pimc::pimcConfigurations configurations3Old(configurations3);
+    const auto & data3Old = configurations3Old.dataTensor();
+    
+    const auto & tags3 = configurations3.getTags();
+    const auto & tags3Old = configurations3Old.getTags();
+
+    configurations3.setHeadTail(1,M,-1);
+    configurations3.removeChain(1);
+
+
+    for (int t=0;t<=M;t++)
+    {
+        for(int d=0;d<getDimensions();d++)
+        {
+            ASSERT_NEAR( data3(0,d,t) , data3Old(0,d,t) ,1e-6);
+            ASSERT_EQ( tags3(0,t) , tags3Old(0,t));
+        }
+    }
+
+    int tHead=3;
+    int newChain = configurations3.pushChain(0);
+    configurations.setHeadTail(newChain,M,tHead);
+    configurations3.copyData({tHead+1,M}  , 0, newChain  );
+
+    for (int t=tHead+1;t<M;t++)
+    {
+        for(int d=0;d<getDimensions();d++)
+        {
+            ASSERT_NEAR( data3(newChain,d,t) , data3Old(0,d,t) ,1e-6);
+            ASSERT_EQ( tags3(newChain,t) , 1);
+        }
+
+      
+
+    }
+
+    for(int d=0;d<getDimensions();d++)
+        {
+        ASSERT_NEAR( data3(newChain,d,M) , data3Old(0,d,M) ,1e-6);
+        ASSERT_EQ( tags3(newChain,M) , 0);
+
+        }
+
+
+    
+
+
+
+    }
+
+
+      {
+        pimc::particleGroup groupB{ 0 , 2 , 3 , 1.0};
+
+        pimc::pimcConfigurations configurations3(M , getDimensions() , {groupB});
+
+        int iHead = 3;
+
+        auto & data3 = configurations3.dataTensor();
+
+        
+
+        data3.setRandom();
+        configurations3.fillHeads();
+        configurations3.setHeadTail(0,iHead,-1);
+        configurations3.setEnsamble(pimc::ensamble_t::grandCanonical);
+        configurations3.setChemicalPotential(0);
+        
+
+
+        pimc::pimcConfigurations configurations3Old(configurations3);
+
+        
+
+        const auto & tags3Old = configurations3Old.getTags();
+        const auto & tags3 = configurations3.getTags();
+        const auto & data3Old = configurations3Old.dataTensor();
+
+        
+        configurations3.swap(0,1);
+
+
+        for (int t=0;t<=M;t++)
+        {
+            for(int d=0;d<getDimensions();d++)
+            {
+                ASSERT_FLOAT_EQ( data3(0,d,t) , data3Old(1,d,t) );
+                
+            }
+            ASSERT_FLOAT_EQ( tags3(0,t) , tags3Old(1,t) );
+
+        }
+
+        ASSERT_EQ(configurations3.getGroups()[0].heads[0],1);
+        ASSERT_EQ(configurations3.getGroups()[0].tails[0],1);
+        
+
+      }
+   
+
+
+
+
+
+
+
 }
 
 
@@ -1189,7 +1310,7 @@ Real accumulateX2SingleDirection(int iChain, const pimc::configurations_t & conf
 
             for (int t=std::max(chain.tail + 1,t0);t<=std::min(chain.head , t1 );t++)
             {
-                Real prefactor = (t == chain.tail+1) or (t == chain.head) ? 0.5 : 1;
+                Real prefactor = ( (t == chain.tail+1) or (t == chain.head) ) ? 0.5 : 1;
                 for(int d=0;d<getDimensions();d++)
                 {
                         l2+=prefactor*data( iCurrentChain ,d, t)*data( iCurrentChain ,d, t);
@@ -1375,7 +1496,7 @@ protected:
     
     }
 
-    void SetUpNonInteractingHarmonicAction()
+    void SetUpNonInteractingHarmonicAction(int order=2)
     {
          std::shared_ptr<pimc::action> sT= std::make_shared<pimc::kineticAction>(timeStep, configurations.nChains() , M  , geo);
 
@@ -1388,7 +1509,7 @@ protected:
 
 
 
-    std::shared_ptr<pimc::action> sOneBody=std::make_shared<pimc::potentialActionOneBody<decltype(V)> >(timeStep,V ,geo);
+    std::shared_ptr<pimc::action> sOneBody=std::make_shared<pimc::potentialActionOneBody<decltype(V)> >(timeStep,V ,geo,order);
     
     
     std::vector<std::shared_ptr<pimc::action> > Vs = {sOneBody};
@@ -1831,45 +1952,56 @@ TEST_F(configurationsTest,closedChain_harmonic)
 
 TEST_F(configurationsTest,openClosedChain_harmonic)
 {
-    Real C=1;
+    Real C=0.1;
     int nBeads=10;
+    int order =2;
 
     SetUp(1,nBeads,1);
     SetGrandCanonicalEnsamble(0);
-    SetUpNonInteractingHarmonicAction();
+    SetUpNonInteractingHarmonicAction(order);
 
-    SetSeed(356);
+    SetSeed(time(NULL));
 
     SetRandom();
     
-    int t0=9;
+    int t0=3;
     int l = 4;
 
     pimc::levyMove levy(l,0);
 
-    pimc::openMove open(C, 0, l );
-    pimc::closeMove close(C, 0, l );
+    pimc::openMove open(C, 0, 1 );
+    pimc::closeMove close(C, 0, 1 );
+
+    pimc::openMoveTest openTest(C, 0, 1 , t0 );
+    pimc::closeMoveTest closeTest(C, 0, 1 , t0 );
+    pimc::translateMove translate(0.1, 2*M , 0 );
+
+    openTest.setOrder(order);
+    closeTest.setOrder(order);
+    
+    
+
 
     pimc::moveHead moveHeadMove(l,0);
     pimc::moveTail moveTailMove(l,0);
-    
 
     open.setStartingBead(t0);
     close.setStartingBead(t0);
 
-    open.setLengthCut(l);
-    close.setLengthCut(l);
+    open.setLengthCut(1);
+    close.setLengthCut(1);
 
     tab.push_back(&levy,0.9,pimc::sector_t::diagonal);
+    //tab.push_back(&translate,0.1,pimc::sector_t::diagonal);
+    //tab.push_back(&translate,0.1,pimc::sector_t::offDiagonal);
+    
+
     tab.push_back(&levy,0.9,pimc::sector_t::offDiagonal);
     tab.push_back(&moveHeadMove,0.1,pimc::sector_t::offDiagonal);
     tab.push_back(&moveTailMove,0.1,pimc::sector_t::offDiagonal);
-    
 
-    tab.push_back(&close,0.9,pimc::sector_t::offDiagonal);
-    tab.push_back(&open,0.9,pimc::sector_t::diagonal);
-    
-
+    tab.push_back(&closeTest,0.9,pimc::sector_t::offDiagonal);
+    tab.push_back(&openTest,0.9,pimc::sector_t::diagonal);
 
     //configurations.setHeadTail(0,M,-1);
 
@@ -1894,7 +2026,6 @@ TEST_F(configurationsTest,openClosedChain_harmonic)
     l2Out.open("l2.dat");
     x2Out.open("x2.dat");
     openFractionOut.open("openFraction.dat");
-    
 
     for (int iBlock=0;iBlock < 1000000 ; iBlock++)
     {

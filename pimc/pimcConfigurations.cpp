@@ -321,7 +321,9 @@ void pimcConfigurations::removeChain( int iChain)
         throw invalidState("Cannot remove chain with no head or tail");
     }
 
-    swap(iChain,group.iEnd);
+        swap(iChain,group.iEnd);
+    
+    
 
     deleteTailFromList(group.iEnd);
     deleteHeadFromList(group.iEnd);
@@ -343,7 +345,7 @@ void pimcConfigurations::removeChains( int iChain1, int iChain2)
     }
 
 
-    if (iChain2 != group1.iEnd + 1)
+    if (iChain2 !=( group1.iEnd + 1))
     {
         removeChain(iChain2);
     }
@@ -802,6 +804,13 @@ void pimcConfigurations::swapTags( pimcConfigurations & confFrom, const std::arr
 
 void pimcConfigurations::swap(int particleA, int particleB)
 {
+
+    if (particleA == particleB)
+    {
+
+        return;
+    }
+
     // relink chains under the swap
     auto chainA=_chains[particleA];
     auto chainB=_chains[particleB];

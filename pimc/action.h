@@ -60,6 +60,19 @@ namespace pimc
         return sum;
     };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
     template<class functor_t>
     Real reduceOnPositions(const functor_t & V,const Eigen::Tensor<Real,3> & tn, std::array<int ,2 > timeRange, std::array<int, 2>  particleRange, const pimcConfigurations::tags_t & mask)
     {
@@ -129,6 +142,37 @@ namespace pimc
         }
         return sum;
     };
+
+
+    template<class functor_t>
+    Real reduceOnPositionsFirstOrder(const functor_t & V,const Eigen::Tensor<Real,3> & tn, std::array<int ,2 > timeRange, std::array<int, 2>  particleRange, const pimcConfigurations::tags_t & mask)
+    {
+        Real sum=0;
+       
+        
+        for(int t=timeRange[0];t<=timeRange[1] ; t++ )
+            {
+              for (int i=particleRange[0];i<=particleRange[1];i++ )
+                {
+                    sum+=
+                        mask(i,t) * 
+                    #if DIMENSIONS == 3
+                     V( tn( i,0, t  ) , tn(i,1,t) , tn(i,2,t) )
+                     #endif
+                     #if DIMENSIONS == 1
+                     V( tn( i,0, t  )) 
+                     #endif
+                     #if DIMENSIONS == 2
+                     V( tn( i,0, t  ),tn( i,1, t  )) 
+                     #endif
+                       ;
+                }
+            }
+
+        return sum;
+    };
+
+
 
     
 using pimcConfigurations_t = pimcConfigurations;
@@ -335,7 +379,6 @@ auto makeIsotropicPotentialFunctor(V_t V_,grad_t grad)
 #endif
 
 
-
 template<class functor_t>
 class potentialActionOneBody : public action
 {
@@ -344,7 +387,7 @@ class potentialActionOneBody : public action
     potentialActionOneBody::potentialActionOneBody(tau,functor_t(j["potential"]) , geo_   ) {} 
 
 
-    potentialActionOneBody(Real tau_, functor_t V_ ,geometryPBC_PIMC geo_): V(V_),action::action(tau_,geo_) {}
+    potentialActionOneBody(Real tau_, functor_t V_ ,geometryPBC_PIMC geo_,int order_=2): V(V_),action::action(tau_,geo_),order(order_) {}
 
     Real evaluate(pimcConfigurations_t & configurations, std::array<int,2> timeRange, std::array<int,2>  particleRange  ) 
     {
@@ -357,6 +400,15 @@ class potentialActionOneBody : public action
 
         if (configurations.getEnsamble() == ensamble_t::canonical)
         {
+
+        if (order == 1)
+        {
+            throw missingImplementation("One body evaluate canonical");
+
+        }
+
+
+
         auto sumCentral = reduceOnPositions(V, data, {timeRange[0]+1,timeRange[1]}, particleRange );
 
         auto sumTail = 0.5*reduceOnPositions(V, data, {timeRange[0],timeRange[0]},particleRange);
@@ -374,7 +426,17 @@ class potentialActionOneBody : public action
             }
             else
             {
-                auto sum = reduceOnPositions(V, data, {timeRange[0],timeRange[1]}, particleRange, configurations.getTags() );
+                Real sum=0;
+                
+                if (order == 1)
+                {
+                    sum = reduceOnPositionsFirstOrder(V, data, {timeRange[0],timeRange[1]}, particleRange, configurations.getTags() );
+                }
+                else if (order == 2)
+                {
+                    sum = reduceOnPositions(V, data, {timeRange[0],timeRange[1]}, particleRange, configurations.getTags() );
+                }
+                
             return getTimeStep()*sum;
             }
 
@@ -423,7 +485,10 @@ class potentialActionOneBody : public action
 
     virtual void addGradient(const configurations_t & pimcConfigurations,const std::array<int,2> & timeRange,const  std::array<int,2> & particleRange,  Eigen::Tensor<Real,3> & gradientBuffer)
    {
-
+        if (order == 1)
+        {
+            throw missingImplementation("First order oneBody addGradient");
+        }
          const auto & data = pimcConfigurations.dataTensor();
 
          for (int t=timeRange[0];t<=timeRange[1];t++)
@@ -495,6 +560,7 @@ class potentialActionOneBody : public action
 
     private:
     functor_t V;
+    int order;
 };
 
 template<class functor_t>

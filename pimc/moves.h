@@ -222,11 +222,15 @@ class openMoveTest : public singleSetMove
 
     bool attemptMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG);
 
+    void setOrder(int order_){order=order_;}
+
+
     private:
 
 
     Real C;
     int _maxLength;
+    int order;
 
 
     std::normal_distribution<Real> gauss;
@@ -237,7 +241,29 @@ class openMoveTest : public singleSetMove
 
 };
 
+class closeMoveTest : public singleSetMove
+{
+    public:
+    // splits a chain in two morms with one overlapping bead
+    closeMoveTest(Real C_ , int set,int maxLength=1, int startingBead=0) ;
 
+    bool attemptMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG);
+     void setOrder(int order_){order=order_;}
+    private:
+
+
+    Real C;
+    int _maxLength;
+    int order;
+
+
+    std::normal_distribution<Real> gauss;
+    std::uniform_real_distribution<float> uniformRealNumber;
+    levyReconstructor _levy;
+    metropolis sampler;
+    int startingBead;
+
+};
 
 
 

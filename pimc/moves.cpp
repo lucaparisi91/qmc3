@@ -578,7 +578,16 @@ singleSetMove(set)
 
 openMoveTest::openMoveTest(Real C_ , int set,int maxLength, int startingBead_) : C(C_), _levy(maxLength+2) ,
 gauss(0,1),uniformRealNumber(0,1),
-startingBead(startingBead),
+startingBead(startingBead_),
+order(2),
+singleSetMove(set)
+{}
+
+
+closeMoveTest::closeMoveTest(Real C_ , int set,int maxLength, int startingBead_) : C(C_), _levy(maxLength+2) ,
+gauss(0,1),uniformRealNumber(0,1),
+startingBead(startingBead_),
+order(2),
 singleSetMove(set)
 {}
 
@@ -1229,10 +1238,6 @@ bool openMove::attemptGrandCanonicalMove(configurations_t & confs , firstOrderAc
 
 
 
-
-
-
-
 bool openMoveTest::attemptMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG )
 {
     Real timeStep = S.getTimeStep();
@@ -1262,7 +1267,7 @@ bool openMoveTest::attemptMove(configurations_t & confs , firstOrderAction & S,r
 
     
     
-    Real mass = confs.getGroupByChain(iChain).mass;
+    Real mass = 1;
 
     Real deltaS=0;
 
@@ -1270,15 +1275,26 @@ bool openMoveTest::attemptMove(configurations_t & confs , firstOrderAction & S,r
     for (int d=0;d<getDimensions();d++)
     {
         difference[d]=data(0,d,tHead+1)-data(0,d,tHead);
-        deltaS-= 0.5 * 0.5 *( std::pow(data(0,d,tHead+1),2 ) + std::pow(data(0,d,tHead),2 )  );
+
+        if (order == 2)
+        {
+            deltaS-= 0.5 * 0.5 *( std::pow(data(0,d,tHead+1),2 ) + std::pow(data(0,d,tHead),2 )  )*timeStep;
+        }
+        if (order == 1)
+        {
+            deltaS-= 0.5*( std::pow(data(0,d,tHead),2 )  )*timeStep;
+        }
+        
     }
     
+
 
     auto propRatio = -deltaS - freeParticleLogProbability(difference,S.getTimeStep()*l,mass)   + log( C );
 
 
     bool accept = sampler.acceptLog(propRatio,randG);
 
+    
 
     if ( accept)
     {  
@@ -1293,6 +1309,78 @@ bool openMoveTest::attemptMove(configurations_t & confs , firstOrderAction & S,r
 
     return accept;
 };
+
+bool closeMoveTest::attemptMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG )
+{
+    Real timeStep = S.getTimeStep();
+
+    int N = 1;
+
+    const auto & geo = S.getGeometry();
+    auto & data = confs.dataTensor();
+
+    if ( ! confs.isOpen(getSet()) )
+    {
+        throw invalidState("The configuration is already closed.");
+    }
+
+    int iChainHead = 0;
+    int iChainTail = 1;
+
+
+    int l = 1;
+
+
+    
+    int M = confs.nBeads();
+
+
+    int tHead = startingBead;
+
+    
+    
+    Real mass = 1;
+
+    Real deltaS=0;
+
+    std::array<Real,getDimensions()> difference; 
+    for (int d=0;d<getDimensions();d++)
+    {
+        difference[d]=data(1,d,tHead + 1)-data(0,d,tHead);
+
+        if (order == 2)
+        {
+            deltaS+= 0.5 * 0.5 *( std::pow(data(1,d,tHead + 1),2 ) + std::pow(data(0,d,tHead),2 )  )*timeStep;
+        }
+
+
+        if (order == 1)
+        {
+            deltaS+= 0.5*( std::pow(data(0,d,tHead),2 )  )*timeStep;
+        }
+    }
+    
+
+    auto propRatio = -deltaS + freeParticleLogProbability(difference,S.getTimeStep()*l,mass)   - log( C );
+
+
+    bool accept = sampler.acceptLog(propRatio,randG);
+
+
+    if ( accept)
+    {  
+
+        confs.setHead(0,M);
+        //confs.setHeadTail(0,M,-1);
+        confs.copyData({tHead+1,M}  , 1, 0  );
+        confs.join(0,0);
+        confs.fillHead(0);
+        confs.removeChain(1);
+    }
+
+    return accept;
+};
+
 
 
 closeMove::closeMove(Real C_ , int set,int maxReconstructionLength) : C(C_),_levy(2*(maxReconstructionLength+2)),_maxLength(maxReconstructionLength+2),buffer((maxReconstructionLength+2)*2,getDimensions()),gauss(0,1),uniformRealNumber(0,1),
