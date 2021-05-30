@@ -345,6 +345,8 @@ bool swapMove::attemptGrandCanonicalMove(configurations_t & confs, firstOrderAct
     const auto & group = confs.getGroups()[getSet()];
 
     const auto & heads =  confs.getGroups()[getSet()].heads;
+
+    
     int iiChainHead =  std::floor(  uniformRealNumber( randG )*heads.size() ) ;
     int iChainHead = heads[iiChainHead];
 
@@ -369,6 +371,9 @@ bool swapMove::attemptGrandCanonicalMove(configurations_t & confs, firstOrderAct
     
     auto & geo = S.getGeometry();
 
+    const auto & tags = confs.getTags();
+
+
     std::array<Real, 3> distance;
     particleSampler.reset();
 
@@ -382,9 +387,14 @@ bool swapMove::attemptGrandCanonicalMove(configurations_t & confs, firstOrderAct
             distance[d]=geo.difference(  data(iChainHead,d,tHead) - data(i,d,tJoin),d)    ;
         }
 
-        particleSelectionWeight=exp(freeParticleLogProbability(distance,S.getTimeStep()*l,group.mass));
+        particleSelectionWeight=exp(freeParticleLogProbability(distance,S.getTimeStep()*l,group.mass))*tags(i,tJoin) ;
         weightForwardMove+=particleSelectionWeight;
+
+        
         particleSampler.accumulateWeight(particleSelectionWeight);
+        
+
+
     }
 
     int iPartner=particleSampler.sample(randG) + group.iStart;
@@ -400,21 +410,42 @@ bool swapMove::attemptGrandCanonicalMove(configurations_t & confs, firstOrderAct
 
     int iPartnerNext = confs.getChain(iPartner).next;
     
+    assert(iPartnerNext != -1);
+
     int iNewChainHead=-1;
     if (tHead + l >= M)
     {
         iNewChainHead=confs.getChain(iPartner).prev;
 
-        if ( confs.getChain(iNewChainHead).tail >= tHead)
+        if (iNewChainHead == -1)
         {
             return false;
         }
+
+       
+       
     }
     else
     {
         iNewChainHead=iPartner;
+        
     }
 
+
+     if ( confs.getChain(iNewChainHead).tail >= tHead)
+        {
+            return false;
+        }
+
+    assert(iNewChainHead != -1);
+
+    
+     if ( confs.getChain(iNewChainHead).hasHead() or 
+     confs.getChain(iNewChainHead).hasTail()
+     )
+        {
+            return false;
+        }
 
 
 
@@ -430,12 +461,21 @@ bool swapMove::attemptGrandCanonicalMove(configurations_t & confs, firstOrderAct
         }
 
 
-        weightBackwardMove+=exp(freeParticleLogProbability(distance,S.getTimeStep()*l,group.mass));
+        weightBackwardMove+=exp(freeParticleLogProbability(distance,S.getTimeStep()*l,group.mass))*tags(i,tJoin);
     }
     
 
     Real deltaS=-(log(weightForwardMove) - log(weightBackwardMove)) ;
+    
+    bool acceptChain = metropolisSampler.acceptLog(-deltaS,randG);
+
+    if (not acceptChain)
+    {
+        return false;
+    }
+
     deltaS=0;
+
     
     const auto  partnerChain = confs.getChain(iPartner);
 
@@ -444,7 +484,7 @@ bool swapMove::attemptGrandCanonicalMove(configurations_t & confs, firstOrderAct
     deltaS-=Spot.evaluate(confs,{0,tHead + l - M  - 1},iPartner);
 
 
-    confs.copyDataToBuffer(buffer,{0,tHead + l - M  - 1},iPartner);
+    confs.copyDataToBuffer(buffer,{0,tHead + l - M  },iPartner);
 
 
     // performs levy reconstruction between the head and the bead
@@ -483,7 +523,7 @@ bool swapMove::attemptGrandCanonicalMove(configurations_t & confs, firstOrderAct
     }
     else
     {
-        confs.copyDataFromBuffer(buffer,{0,tHead + l - M  - 1},iPartner);
+        confs.copyDataFromBuffer(buffer,{0,tHead + l - M  },iPartner);
         confs.setHead( iChainHead , tHead );
         confs.setHead( iNewChainHead , M );
 
@@ -1236,16 +1276,18 @@ bool openMove::attemptGrandCanonicalMove(configurations_t & confs , firstOrderAc
 };
 
 
-
-
 bool openMoveTest::attemptMove(configurations_t & confs , firstOrderAction & S,randomGenerator_t & randG )
 {
     Real timeStep = S.getTimeStep();
 
+
     int N = 1;
+
+
 
     const auto & geo = S.getGeometry();
     auto & data = confs.dataTensor();
+
 
     if ( confs.isOpen(getSet()) )
     {
@@ -1262,9 +1304,7 @@ bool openMoveTest::attemptMove(configurations_t & confs , firstOrderAction & S,r
     int M = confs.nBeads();
 
 
-    int tHead = startingBead;
-
-
+    int tHead = M-1;
     
     
     Real mass = 1;
@@ -1299,11 +1339,11 @@ bool openMoveTest::attemptMove(configurations_t & confs , firstOrderAction & S,r
     if ( accept)
     {  
         confs.setHead(0,tHead);
-        int iChainTail=confs.pushChain(getSet() );
-        assert(iChainTail == 1);
-        confs.setHeadTail(1,M,tHead);
-        confs.join(1,0);
-        confs.copyData({tHead+1,M}  , 0, 1  );
+        //int iChainTail=confs.pushChain(getSet() );
+        //assert(iChainTail == 1);
+        //confs.setHeadTail(1,M,tHead);
+        //confs.join(1,0);
+        //confs.copyData({tHead+1,M}  , 0, 1  );
 
     }
 
@@ -1334,9 +1374,7 @@ bool closeMoveTest::attemptMove(configurations_t & confs , firstOrderAction & S,
     
     int M = confs.nBeads();
 
-
-    int tHead = startingBead;
-
+    int tHead = M-1;
     
     
     Real mass = 1;
@@ -1346,11 +1384,11 @@ bool closeMoveTest::attemptMove(configurations_t & confs , firstOrderAction & S,
     std::array<Real,getDimensions()> difference; 
     for (int d=0;d<getDimensions();d++)
     {
-        difference[d]=data(1,d,tHead + 1)-data(0,d,tHead);
+        difference[d]=data(0,d,0)-data(0,d,tHead);
 
         if (order == 2)
         {
-            deltaS+= 0.5 * 0.5 *( std::pow(data(1,d,tHead + 1),2 ) + std::pow(data(0,d,tHead),2 )  )*timeStep;
+            deltaS+= 0.5 * 0.5 *( std::pow(data(0,d,0),2 ) + std::pow(data(0,d,tHead),2 )  )*timeStep;
         }
 
 
@@ -1372,10 +1410,10 @@ bool closeMoveTest::attemptMove(configurations_t & confs , firstOrderAction & S,
 
         confs.setHead(0,M);
         //confs.setHeadTail(0,M,-1);
-        confs.copyData({tHead+1,M}  , 1, 0  );
+        //confs.copyData({tHead+1,M}  , 1, 0  );
         confs.join(0,0);
         confs.fillHead(0);
-        confs.removeChain(1);
+        //confs.removeChain(1);
     }
 
     return accept;
@@ -1570,6 +1608,8 @@ bool closeMove::attemptGrandCanonicalMove(configurations_t & confs , firstOrderA
   /*   std::cout << "Before close" << std::endl;
     confs >> std::cout;
     std::cout << std::endl; */
+
+
 
      if (! confs.isOpen(getSet()) )
     {

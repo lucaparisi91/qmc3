@@ -1824,6 +1824,90 @@ TEST_F(configurationsTest,openChain)
 }
 
 
+
+TEST_F(configurationsTest,openChain_swap)
+{
+    Real C=1;
+    int nBeads=10;
+
+    SetUp(3,nBeads,1);
+    SetGrandCanonicalEnsamble(0);
+    SetUpFreeParticleAction();
+    
+    
+
+    SetSeed( 345);
+
+    SetRandom();
+
+
+    
+    int t0=3;
+    int l = 3;
+
+    int iHead=4;
+
+    pimc::levyMove levy(l,0);
+    pimc::swapMove swap(l , 3 , 0);
+    swap.setFixedLength();
+
+    
+    pimc::moveHead moveHeadMove(l,0);
+    pimc::moveTail moveTailMove(l,0);
+
+    tab.push_back(&levy,0.9,pimc::sector_t::offDiagonal);
+    tab.push_back(&moveHeadMove,0.9,pimc::sector_t::offDiagonal);
+    tab.push_back(&moveHeadMove,0.9,pimc::sector_t::offDiagonal);
+    
+   
+
+    configurations.setHead(1,iHead);
+    configurations.setTail(0,8);
+    configurations.join(0,1);
+
+
+   
+    accumulate(10000,0, [&](const pimc::configurations_t & confs, const pimc::firstOrderAction & S){ } ,1,pimc::sector_t::diagonal);
+
+    resetCounters();
+
+
+
+    int nTrials=100000;
+
+    for (int iBlock=0;iBlock<10000;iBlock++)
+    {
+        Real nAccepted=0;
+
+        for (int i=0;i<nTrials;i++)
+        {
+            bool accept=swap.attemptMove(configurations,S,randG);
+
+            if (accept)
+            {
+                nAccepted+=1;
+            }
+        }
+
+        std::cout << nAccepted/nTrials << std::endl;
+    }
+
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 TEST_F(configurationsTest,closedChain_free)
 {
     Real C=1;
@@ -1949,7 +2033,6 @@ TEST_F(configurationsTest,closedChain_harmonic)
 
 }
 
-
 TEST_F(configurationsTest,openClosedChain_harmonic)
 {
     Real C=0.1;
@@ -1994,7 +2077,7 @@ TEST_F(configurationsTest,openClosedChain_harmonic)
     tab.push_back(&levy,0.9,pimc::sector_t::diagonal);
     //tab.push_back(&translate,0.1,pimc::sector_t::diagonal);
     //tab.push_back(&translate,0.1,pimc::sector_t::offDiagonal);
-    
+
 
     tab.push_back(&levy,0.9,pimc::sector_t::offDiagonal);
     tab.push_back(&moveHeadMove,0.1,pimc::sector_t::offDiagonal);
@@ -2713,12 +2796,12 @@ TEST(moves,openCloseGrandCanonical)
 
 TEST(run,free_harmonic_oscillator_grandCanonical)
 {   
-    int N=1;
+    int N=10;
     int M=10;
     Real Beta = 1;
 
-    int seed= time(NULL);
-    int buffer=200;
+    int seed= 456;
+    int buffer=1;
 
     int nChains=N + buffer;
 
@@ -2736,8 +2819,8 @@ TEST(run,free_harmonic_oscillator_grandCanonical)
 
     pimc::pimcConfigurations configurations(M , getDimensions() , {groupA});
 
-    //configurations.setEnsamble(pimc::ensamble_t::grandCanonical);
-    //configurations.setChemicalPotential(3/2. * 0);
+    configurations.setEnsamble(pimc::ensamble_t::grandCanonical);
+    configurations.setChemicalPotential(3/2. * 0);
 
 
     auto & data=configurations.dataTensor();
@@ -2765,7 +2848,7 @@ TEST(run,free_harmonic_oscillator_grandCanonical)
     //pimc::translateMove translMove(delta,(M+1)*N,0);
 
     Real C = 1e-3;
-    int l = 4;
+    int l = 1;
     
     pimc::openMove openMove(C,0,l);
     pimc::closeMove closeMove(C,0,l);
@@ -2798,14 +2881,16 @@ TEST(run,free_harmonic_oscillator_grandCanonical)
     //table.push_back(& removeMove,0.2,pimc::sector_t::offDiagonal,"removeMove");
 
 
-    //table.push_back(& moveHeadMove,0.4,pimc::sector_t::offDiagonal,"moveHead");
-    //table.push_back(& moveTailMove,0.4,pimc::sector_t::offDiagonal,"moveTail");
+    table.push_back(& moveHeadMove,0.4,pimc::sector_t::offDiagonal,"moveHead");
+    table.push_back(& moveTailMove,0.4,pimc::sector_t::offDiagonal,"moveTail");
+
 
     //table.push_back(& advanceHeadMove,0.9,pimc::sector_t::offDiagonal,"advanceHead");
 
     //table.push_back(& recedeHeadMove,0.9,pimc::sector_t::offDiagonal,"recedeHead");
 
-    //table.push_back(& swapMove,0.8,pimc::sector_t::offDiagonal,"swap");
+
+    table.push_back(& swapMove,0.8,pimc::sector_t::offDiagonal,"swap");
 
 
      std::shared_ptr<pimc::action> sT= std::make_shared<pimc::kineticAction>(timeStep, configurations.nChains() , M  , geo);

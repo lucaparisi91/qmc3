@@ -326,7 +326,6 @@ public:
             }
 
             int iEnd=0;
-            
 
             throw invalidInput("Chain " + std::to_string(iChain) + " is not contained in any group");
         }
